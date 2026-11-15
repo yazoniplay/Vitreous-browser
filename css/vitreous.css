@@ -2056,3 +2056,11 @@ html body .tp-stage {
     linear-gradient(135deg, #3b1d8f, #12183a);
 }
 html body .tp-stage .tp-preview { margin: 0; }
+
+/* Dark glass fill fades with --glass-solid too. The theme base colour was painted at a fixed 60-70%,
+   which left a dark wash even at 100% transparency. Low-spec mode stays opaque. */
+html body[data-theme="dark"]:not([data-fx="low"]) .glass.glass {
+  background:
+    linear-gradient(140deg, rgba(255,255,255,calc(.05 * var(--glass-solid, 1))), rgba(255,255,255,calc(.01 * var(--glass-solid, 1)))),
+    color-mix(in srgb, var(--base) calc(70% * var(--glass-solid, 1)), transparent) !important;
+}
