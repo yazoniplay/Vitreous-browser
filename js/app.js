@@ -1128,7 +1128,7 @@
     any: ['Welcome back', 'Hello there', 'Hey', 'Good to see you', 'Ready when you are', 'What are we exploring today?', 'Nice to see you', 'Hi'],
   };
   function greetText() {
-    const custom = S.customGreeting.trim();
+    const custom = (S.customGreeting || '').trim();
     if (custom) return custom;
     const hr = new Date().getHours();
     const part = hr < 5 ? 'night' : hr < 12 ? 'morning' : hr < 18 ? 'afternoon' : 'evening';
