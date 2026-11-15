@@ -1112,3 +1112,97 @@ body[data-theme="dark"] .sidebar {
 /* Keep the backdrop behind the application chrome. */
 .backdrop { z-index: 0 !important; }
 .app { position: relative; z-index: 1 !important; }
+
+
+/* ---------- Final layout, color and toolbar corrections ---------- */
+
+/* The app is a horizontal flex layout: the sidebar owns its space and the
+   main column starts after it instead of sitting underneath an overlay. */
+.app {
+  display: flex !important;
+  align-items: stretch;
+}
+.side-wrap {
+  position: relative !important;
+  flex: 0 0 var(--side-w) !important;
+  min-width: 0;
+  z-index: 20 !important;
+  transition: width .5s var(--spring), flex-basis .5s var(--spring) !important;
+}
+.side-wrap[data-rail="1"] {
+  width: var(--rail-w) !important;
+  flex-basis: var(--rail-w) !important;
+}
+/* Hover expansion grows the actual flex slot, keeping the toolbar beside it.
+   The existing body data-pinned state makes a pinned sidebar stay expanded. */
+body[data-pinned="0"] .side-wrap[data-rail="1"]:hover,
+body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within,
+body[data-pinned="1"] .side-wrap {
+  width: var(--side-w) !important;
+  flex-basis: var(--side-w) !important;
+}
+.side-wrap[data-rail="1"] .sidebar {
+  left: 0;
+  right: auto;
+  width: 100% !important;
+  z-index: 1 !important;
+}
+body[data-side="right"] .side-wrap[data-rail="1"] .sidebar {
+  left: auto;
+  right: 0;
+}
+.side-wrap::after { display: none !important; }
+.main {
+  position: relative !important;
+  z-index: 10 !important;
+  flex: 1 1 0% !important;
+  min-width: 0;
+}
+
+/* Dark and Midnight: remove the white wash and let the colored backdrop show
+   through a darker neutral glass base. The existing shadow/rim stays intact. */
+body[data-theme="dark"] .glass,
+body[data-theme="dark"] .drop-menu,
+body[data-theme="dark"] .context-menu,
+body[data-theme="dark"] .address,
+body[data-theme="dark"] .toolbar,
+body[data-theme="dark"] .sidebar,
+body[data-theme="dark"] .tabstrip {
+  background: color-mix(in srgb, var(--base) 60%, transparent) !important;
+  box-shadow: 0 8px 30px -10px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.15) !important;
+}
+
+/* Light Mode: translucent base rather than a white gradient slab. */
+body[data-theme="light"] .glass,
+body[data-theme="light"] .drop-menu,
+body[data-theme="light"] .context-menu,
+body[data-theme="light"] .address,
+body[data-theme="light"] .sidebar {
+  background: color-mix(in srgb, var(--base) 70%, transparent) !important;
+}
+
+/* Restore richer color atmosphere consistently in High-Fidelity and Low-Spec. */
+.backdrop i {
+  opacity: calc(var(--blob) * var(--blob-mul) * 1.5) !important;
+}
+
+/* High-Fidelity toolbar: distinct from page content, but still translucent. */
+body[data-fx="high"] .toolbar,
+body[data-fx="high"] .tabstrip {
+  background: color-mix(in srgb, var(--base) 80%, transparent) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+}
+
+/* Keep native blue focus rectangles off the input; the address container
+   supplies the visible accent ring for mouse and keyboard focus. */
+input:focus,
+input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.address:focus-within {
+  box-shadow: inset 0 0 0 2px var(--accent),
+    0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent) !important;
+}
