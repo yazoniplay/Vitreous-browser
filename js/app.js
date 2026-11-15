@@ -72,7 +72,7 @@
     theme: 'dark', accent: '#5aa9ff', aurora: 'prism', auroraCustom: ['#5aa9ff', '#b57bff', '#0ea5a0'],
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
-    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, radius: 22, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
+    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
@@ -111,7 +111,7 @@
     font: ['system', 'inter', 'serif', 'mono', 'rounded', 'custom'], density: ['compact', 'cozy', 'roomy'],
     tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['round', 'flat', 'underline'],
     closeBtn: ['hover', 'always', 'never'], addrShape: ['pill', 'round', 'square'], addrAlign: ['center', 'left'],
-    newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'], startLayout: ['centered', 'left', 'command'],
+    newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'], startLayout: ['centered', 'left', 'command'], lightDirection: ['top-left', 'top-right', 'center'],
     cookies: ['all', 'third', 'block'], permLocation: ['ask', 'allow', 'block'], permCamera: ['ask', 'allow', 'block'], permMic: ['ask', 'allow', 'block'], permNotify: ['ask', 'allow', 'block'],
     safeBrowsing: ['off', 'standard', 'enhanced'], dnsProvider: ['cloudflare', 'quad9', 'mullvad', 'nextdns'], webrtc: ['default', 'public', 'off'],
     lang: ['en-US', 'en-GB', 'sv-SE', 'de-DE', 'fr-FR', 'es-ES', 'pt-BR', 'ja-JP', 'zh-CN'], sleepAfter: ['5', '15', '30', '60'], proxy: ['system', 'none', 'manual'], channel: ['stable', 'beta', 'nightly'],
@@ -464,6 +464,13 @@
     const tintV = String(0.30 - gl * 0.28);
     /* blur capped at 4px so clear glass shows the background, not a frosted version of it */
     r.setProperty('--blur', (gl * 4) + 'px');
+    /* living light: lighting direction sets the sheen angle and the drop-shadow offset */
+    const LIGHT = { 'top-left': { a: 135, x: 6 }, 'top-right': { a: 225, x: -6 }, center: { a: 180, x: 0 } }[S.lightDirection] || { a: 135, x: 6 };
+    r.setProperty('--sheen-angle', LIGHT.a + 'deg');
+    r.setProperty('--shadow-x', LIGHT.x + 'px');
+    /* cursor spotlight strength, 0-100% */
+    r.setProperty('--spot-a', String(S.spotlightIntensity / 100));
+    document.body.dataset.breathe = S.breathingGlow ? '1' : '0';
     /* refraction edge glow scales with transparency: zero on a solid panel, full strength on clear glass */
     r.setProperty('--refraction', (S.glassRefraction * gl) + 'px');
     /* frost texture: white fractal noise whose alpha follows the slider (0 = none, 100 = light grain) */
@@ -1763,6 +1770,9 @@
         row('Glass transparency', 'How see-through the glass is. 0% is solid, 100% is clear glass.', range('glassTransparency', 0, 100, '%')),
         row('Refraction', 'Edge glow that simulates thick glass.', range('glassRefraction', 0, 20, 'px')),
         row('Frost Texture', 'Subtle grain that simulates frosted glass.', range('glassFrost', 0, 100, '%')),
+        row('Lighting direction', 'Which way the glass catches light and throws its shadow', seg([['top-left', 'Top-Left'], ['top-right', 'Top-Right'], ['center', 'Center']], 'lightDirection')),
+        row('Breathing glow', 'Background glow slowly pulses on a 6-second loop', toggle('breathingGlow')),
+        row('Cursor spotlight', 'Strength of the light that follows the pointer over glass', range('spotlightIntensity', 0, 100, '%')),
         row('Edge highlight', null, range('rim', 0, 100, '%')),
         row('Shadow strength', null, range('shadow', 0, 100, '%')),
         row('Border width', null, range('border', 0, 3, 'px')),
