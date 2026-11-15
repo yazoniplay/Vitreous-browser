@@ -15,11 +15,17 @@ A private, fast, deeply customizable browser with a liquid-glass interface.
 | Glass UI shell: vertical tabs (default) or top tabs, spaces, slim toolbar | Working |
 | Compact sidebar: collapses to an icon rail, expands on hover | Working |
 | Motion: sliding tab indicator, tab enter/leave, page transitions, load bar, cursor spotlight on glass | Working |
+| Refined settings controls: custom glass dropdowns, tactile sliders, restrained section headers, compact rows and themed scrollbars | Working |
+| Low-Spec Mode: disables blur, glow, spotlight and transitions; fresh installs auto-enable it when `deviceMemory` reports 4 GB or less | Working where the browser exposes `deviceMemory` |
+| Start page: default Wikipedia, MDN, GitHub and Vitreous tiles; tightened spacing and non-stretching widget grid | Working |
+| Context menus: tabs, links in the app shell, and viewport background | Working in the app shell; cross-origin iframe menus require the native engine |
 | Command palette (`Ctrl K`) | Working |
 | Settings and live theming: themes (incl. OLED Midnight), accent and glow colors, wallpaper, glass, fonts, density, icon size, sidebar, tab style, address bar, start page, spaces, search engines, rebindable shortcuts, custom CSS, settings export/import | Working |
 | HTTPS-only upgrade, search engine choice | Working |
 | Web content | Sandboxed `<iframe>` preview. Many sites refuse to load in frames |
 | Tracker blocking, fingerprint resistance, Do Not Track | Interface only. Needs the engine layer |
+| Mock engine adapter (`window.vitreousEngine`): theme-color, load-state, title and error callbacks; preview commands in the palette | UI contract only; no native engine is connected |
+| Dynamic Chrome tint and glass error page | UI prototype; color callbacks can be tested from the command palette |
 | Rendering engine | Not started |
 
 ## Run it
