@@ -49,7 +49,7 @@
     font: 'system', fontCustom: '', fontScale: 100,
     /* layout */
     density: 'cozy', gap: 8, iconSize: 18, iconStroke: 18, brand: 'vitreous',
-    tabs: 'side', collapsed: false, hoverExpand: true, sideWidth: 252, sideSide: 'left',
+    tabs: 'side', collapsed: true, hoverExpand: true, sideWidth: 252, sideSide: 'left',
     /* tabs */
     tabShape: 'round', tabWidth: 200, favs: true, closeBtn: 'hover',
     /* toolbar */
