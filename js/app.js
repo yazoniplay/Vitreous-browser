@@ -132,11 +132,12 @@
   const WIDGET_TYPES = {
     clock: ['Clock', 'clock'], calendar: ['Calendar', 'calendar'], notes: ['Notes', 'note'], todo: ['To-do', 'check'],
     countdown: ['Countdown', 'flag'], timer: ['Timer', 'timer'], weather: ['Weather', 'sun'],
+    rss: ['RSS Feed', 'rss'], sysstats: ['System', 'cpu'], quicklinks: ['Quick Links', 'grid'],
   };
   /* widget sizes on the start-page grid: sm = 1x1, md = 2x1, lg = 2x2 */
   const SIZE_LABEL = { sm: 'Small', md: 'Medium', lg: 'Large' };
   const SIZE_NEXT = { sm: 'md', md: 'lg', lg: 'sm' };
-  const DEFAULT_SIZE = { clock: 'sm', calendar: 'md', notes: 'md', todo: 'md', countdown: 'sm', timer: 'sm', weather: 'md' };
+  const DEFAULT_SIZE = { clock: 'sm', calendar: 'md', notes: 'md', todo: 'md', countdown: 'sm', timer: 'sm', weather: 'md', rss: 'md', sysstats: 'md', quicklinks: 'md' };
   const TOGGLES = [['motion', 'Animations'], ['lowfx', 'Low-Spec Mode'], ['collapsed', 'Compact sidebar'], ['hoverExpand', 'Expand sidebar on hover'],
     ['favs', 'Tab icons'], ['siteIcons', 'Site icons'], ['showHome', 'Home button'], ['shield', 'Privacy shield button'], ['startHint', 'Start page hint'], ['startWidgets', 'Start page widgets']];
   const CMD_KINDS = ['url', 'newtab', 'action', 'toggle'];
@@ -1000,7 +1001,88 @@
     load2();
     return box;
   }
-  const WIDGET_VIEW = { clock: wClock, calendar: wCalendar, notes: wNotes, todo: wTodo, countdown: wCountdown, timer: wTimer, weather: wWeather };
+  function wRss() {
+    const items = [
+      ['Browsers tighten privacy defaults again', 'Tech Daily', '2h'],
+      ['Why glass interfaces are harder than they look', 'Design Notes', '5h'],
+      ['Open-source tools worth trying this month', 'Dev Weekly', '1d'],
+    ];
+    return h('div', { class: 'rss' }, items.map(([t, src, ago]) => h('button', { class: 'rss-item', type: 'button', title: t, onclick: () => toast('Sample feed. Live feeds come with the engine') },
+      h('span', { class: 'rss-t', text: t }), h('span', { class: 'rss-m', text: src + ' · ' + ago }))));
+  }
+  function wSysStats(w) {
+    const meter = (label, v) => {
+      const fill = h('i'), val = h('span', { text: Math.round(v) + '%' });
+      const el = h('div', { class: 'st-row' }, h('div', { class: 'st-h' }, h('span', { text: label }), val), h('div', { class: 'st-bar' }, fill));
+      fill.style.width = v + '%';
+      return { el, set: (x) => { fill.style.width = x + '%'; val.textContent = Math.round(x) + '%'; } };
+    };
+    const cpu = meter('CPU', 34), mem = meter('Memory', 58);
+    const root = h('div', { class: 'sys' }, cpu.el, mem.el);
+    let c = 34, m = 58;
+    const walk = (x, spread) => Math.min(96, Math.max(4, x + (Math.random() - 0.5) * spread));
+    const iv = setInterval(() => {
+      if (!root.isConnected) { clearInterval(iv); return; }
+      c = walk(c, 26); m = walk(m, 6);
+      cpu.set(c); mem.set(m);
+    }, 1800);
+    return root;
+  }
+  function wQuickLinks() {
+    const links = [['Wikipedia', 'https://www.wikipedia.org'], ['GitHub', 'https://github.com'], ['MDN', 'https://developer.mozilla.org'], ['YouTube', 'https://www.youtube.com'],
+      ['Reddit', 'https://www.reddit.com'], ['Maps', 'https://www.openstreetmap.org'], ['Weather', 'https://open-meteo.com'], ['Hacker News', 'https://news.ycombinator.com']];
+    return h('div', { class: 'ql' }, links.map(([n, u]) => {
+      const fav = h('span', { class: 'fav', 'aria-hidden': 'true' });
+      paintFav(fav, u, n[0]);
+      return h('button', { class: 'ql-b', type: 'button', title: n, onclick: () => navigate(cur(), u) }, fav, h('span', { class: 'n', text: n }));
+    }));
+  }
+  const WIDGET_VIEW = { clock: wClock, calendar: wCalendar, notes: wNotes, todo: wTodo, countdown: wCountdown, timer: wTimer, weather: wWeather,
+    rss: wRss, sysstats: wSysStats, quicklinks: wQuickLinks };
+
+  /* glide one element from its measured old rect to its new layout position */
+  function glide(el, dx, dy, dur = 520) {
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+    el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0px, 0px)' }], { duration: dur, easing: FLIP_EASE });
+  }
+  /* resize: the card springs to its new size (FLIP with scale), its content fades in,
+     and every sibling glides to its new grid cell. Nothing snaps. */
+  function resizeWidget(card, w, name, btn) {
+    const next = SIZE_NEXT[w.size] || 'sm';
+    const box = card.parentNode;
+    const others = [...box.children].filter((el) => el !== card);
+    const cardFirst = card.getBoundingClientRect();
+    const firstOthers = others.map((el) => el.getBoundingClientRect());
+
+    w.size = next; save();
+    card.classList.remove('w-sm', 'w-md', 'w-lg');
+    card.classList.add('w-' + next);
+    card.dataset.size = next;
+    btn.title = 'Resize: ' + SIZE_LABEL[next];
+    btn.setAttribute('aria-label', 'Resize ' + name + ' (' + SIZE_LABEL[next] + ')');
+
+    const cardLast = card.getBoundingClientRect();
+    const sx = cardFirst.width / (cardLast.width || 1), sy = cardFirst.height / (cardLast.height || 1);
+    const dx = cardFirst.left - cardLast.left, dy = cardFirst.top - cardLast.top;
+    card.style.transformOrigin = '0 0';
+    const grow = card.animate([
+      { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+      { transform: 'translate(0px, 0px) scale(1, 1)' },
+    ], { duration: 560, easing: FLIP_EASE });
+    grow.onfinish = () => { card.style.transformOrigin = ''; };
+    grow.oncancel = () => { card.style.transformOrigin = ''; };
+
+    [...card.children].forEach((el) => {
+      if (el.classList.contains('w-head') || el.classList.contains('w-resize')) return;
+      el.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 420, delay: 150, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'backwards' });
+    });
+
+    others.forEach((el, i) => {
+      const f = firstOthers[i], l = el.getBoundingClientRect();
+      glide(el, f.left - l.left, f.top - l.top);
+    });
+  }
 
   function widgetCard(w, onRemove) {
     const [name, icn] = WIDGET_TYPES[w.type];
@@ -1010,118 +1092,10 @@
       WIDGET_VIEW[w.type](w),
       h('button', {
         class: 'w-resize', type: 'button', title: 'Resize: ' + SIZE_LABEL[w.size], 'aria-label': 'Resize ' + name + ' (' + SIZE_LABEL[w.size] + ')',
-        onclick: (e) => {
-          e.stopPropagation();
-          const next = SIZE_NEXT[w.size] || 'sm';
-          card.classList.remove('w-sm', 'w-md', 'w-lg');
-          card.classList.add('w-' + next);
-          card.dataset.size = next;
-          w.size = next;
-          e.currentTarget.title = 'Resize: ' + SIZE_LABEL[next];
-          e.currentTarget.setAttribute('aria-label', 'Resize ' + name + ' (' + SIZE_LABEL[next] + ')');
-          save();
-        },
+        onclick: (e) => { e.stopPropagation(); resizeWidget(card, w, name, e.currentTarget); },
       }, ico('resize')));
     return card;
   }
-  /* ---------- widget drag-and-drop ----------
-     The dragged card is position:fixed and moved only with transform on every pointermove.
-     Its CSS transition is switched off inline, so it can't lag behind the pointer.
-     Other widgets glide with Web Animations API FLIP: measure, reorder, animate from the old spot to the new one. */
-  const FLIP_EASE = 'cubic-bezier(.32, 1.1, .4, 1)';
-  function flipAnimate(items, mutate) {
-    const first = items.map((el) => el.getBoundingClientRect());
-    mutate();
-    items.forEach((el, i) => {
-      const last = el.getBoundingClientRect();
-      const dx = first[i].left - last.left, dy = first[i].top - last.top;
-      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
-      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0px, 0px)' }], { duration: 420, easing: FLIP_EASE });
-    });
-  }
-  function enableWidgetDrag(box) {
-    let d = null;
-    /* only switch places when the pointer is in the middle of a widget, so the layout can't ping-pong */
-    const inZone = (r, x, y) => x > r.left + r.width * 0.3 && x < r.right - r.width * 0.3 && y > r.top + r.height * 0.3 && y < r.bottom - r.height * 0.3;
-
-    box.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0 || d) return;
-      const card = e.target.closest('.widget');
-      if (!card || card.parentNode !== box || card.classList.contains('widget-ph')) return;
-      if (e.target.closest('button, input, textarea, select, a, label, [contenteditable]')) return;
-      const r = card.getBoundingClientRect();
-      d = { card, id: e.pointerId, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, r, ox: e.clientX - r.left, oy: e.clientY - r.top, ph: null, over: null, active: false };
-      addEventListener('pointermove', onMove);
-      addEventListener('pointerup', onUp);
-      addEventListener('pointercancel', onUp);
-    });
-
-    function endListeners() {
-      removeEventListener('pointermove', onMove);
-      removeEventListener('pointerup', onUp);
-      removeEventListener('pointercancel', onUp);
-      document.body.style.userSelect = '';
-    }
-
-    function activate() {
-      const { card, r } = d;
-      const size = [...card.classList].find((c) => /^w-(sm|md|lg)$/.test(c)) || 'w-sm';
-      const ph = h('div', { class: 'widget widget-ph ' + size, 'aria-hidden': 'true' });
-      box.insertBefore(ph, card);
-      d.ph = ph; d.active = true;
-      /* no entry animation or CSS transition while dragged: both would make the card lag or re-run */
-      card.style.animation = 'none';
-      card.style.setProperty('transition', 'box-shadow .25s ease', 'important');
-      Object.assign(card.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', margin: '0', zIndex: '60' });
-      card.classList.add('dragging');
-      document.body.style.userSelect = 'none';
-    }
-
-    function onMove(e) {
-      if (!d || e.pointerId !== d.id) return;
-      if (!d.active) {
-        if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 6) return;
-        activate();
-      }
-      d.x = e.clientX; d.y = e.clientY;
-      const { card, ph } = d;
-      card.style.transform = `translate(${d.x - d.ox - d.r.left}px, ${d.y - d.oy - d.r.top}px) scale(1.02)`;
-
-      const hit = [...box.children].find((el) => el !== card && el !== ph && el.classList.contains('widget') && inZone(el.getBoundingClientRect(), d.x, d.y));
-      if (!hit) { d.over = null; return; }
-      if (hit === d.over) return;
-      d.over = hit;
-      const kids = [...box.children];
-      const hitIsBefore = kids.indexOf(hit) < kids.indexOf(ph);
-      const others = kids.filter((el) => el !== card && el !== ph);
-      flipAnimate(others, () => box.insertBefore(ph, hitIsBefore ? hit : hit.nextSibling));
-    }
-
-    function onUp(e) {
-      if (!d || e.pointerId !== d.id) return;
-      const { card, ph, active } = d;
-      endListeners();
-      d = null;
-      if (!active) return;
-
-      const from = card.getBoundingClientRect();
-      Object.assign(card.style, { position: '', left: '', top: '', width: '', height: '', margin: '', zIndex: '', transform: '', transition: '' });
-      ph.replaceWith(card); /* the card takes the placeholder's grid cell */
-      const to = card.getBoundingClientRect();
-      const dx = from.left - to.left, dy = from.top - to.top;
-      const anim = card.animate([
-        { transform: `translate(${dx}px, ${dy}px) scale(1.02)` },
-        { transform: 'translate(0px, 0px) scale(1)' },
-      ], { duration: 320, easing: FLIP_EASE });
-      anim.onfinish = () => card.classList.remove('dragging');
-      anim.oncancel = () => card.classList.remove('dragging');
-
-      const ids = [...box.children].filter((el) => el.dataset.id).map((el) => el.dataset.id);
-      const next = ids.map((id) => S.widgets.find((w) => w.id === id)).filter(Boolean);
-      if (next.length === S.widgets.length) { S.widgets = next; save(); }
-    }
-  }
-
   function widgetsBlock() {
     const box = h('div', { class: 'widgets rise', style: '--i:9' });
     const menu = h('div', { class: 'w-menu', hidden: true }, Object.entries(WIDGET_TYPES).map(([t, [n, i]]) => h('button', {
@@ -1380,6 +1354,7 @@
     bookmark: '<path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     resize: '<path d="M19 9L9 19M19 14l-5 5"/>',
+    rss: '<path d="M5 5a14 14 0 0 1 14 14M5 11a8 8 0 0 1 8 8"/><circle cx="6" cy="18" r="1.6"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
     circle: '<circle cx="12" cy="12" r="7"/>',
     command: '<path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/>',
