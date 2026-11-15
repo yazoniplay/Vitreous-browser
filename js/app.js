@@ -30,8 +30,8 @@
   const DEFAULT_BOOKMARKS = [
     { name: 'Wikipedia', url: 'https://www.wikipedia.org' },
     { name: 'MDN Web Docs', url: 'https://developer.mozilla.org' },
-    { name: 'Ladybird', url: 'https://ladybird.org' },
-    { name: 'Vitreous repo', url: 'https://github.com/yazoniplay/Vitreous-browser' },
+    { name: 'GitHub', url: 'https://github.com' },
+    { name: 'Vitreous', url: 'https://github.com/yazoniplay/Vitreous-browser' },
   ];
   const DEFAULT_KEYS = {
     newTab: 'Alt+KeyT', closeTab: 'Alt+KeyW', focusAddr: 'Alt+KeyL', sidebar: 'Alt+KeyB', settings: 'Alt+Comma',
@@ -44,6 +44,7 @@
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
     blur: 28, tint: 14, radius: 22, saturate: 180, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true,
+    dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
     /* layout */
@@ -74,7 +75,7 @@
   const RANGES = {
     wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], blur: [0, 60], tint: [2, 40], radius: [4, 36],
     saturate: [100, 260], rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
-    iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], tileSize: [80, 160],
+    iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
   };
   const FONTS = {
     system: 'Inter, "SF Pro Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif',
@@ -87,7 +88,7 @@
     clock: ['Clock', 'clock'], calendar: ['Calendar', 'calendar'], notes: ['Notes', 'note'], todo: ['To-do', 'check'],
     countdown: ['Countdown', 'flag'], timer: ['Timer', 'timer'], weather: ['Weather', 'sun'],
   };
-  const TOGGLES = [['motion', 'Animations'], ['lowfx', 'Low-power glass'], ['collapsed', 'Compact sidebar'], ['hoverExpand', 'Expand sidebar on hover'],
+  const TOGGLES = [['motion', 'Animations'], ['lowfx', 'Low-Spec Mode'], ['collapsed', 'Compact sidebar'], ['hoverExpand', 'Expand sidebar on hover'],
     ['favs', 'Tab icons'], ['siteIcons', 'Site icons'], ['showHome', 'Home button'], ['shield', 'Privacy shield button'], ['startHint', 'Start page hint'], ['startWidgets', 'Start page widgets']];
   const CMD_KINDS = ['url', 'newtab', 'action', 'toggle'];
   const DENSITY = { compact: 32, cozy: 38, roomy: 46 };
@@ -127,7 +128,7 @@
     const enc = encodeURIComponent(q);
     return e[1].includes('%s') ? e[1].replace('%s', enc) : e[1] + enc;
   };
-  const INTERNAL = ['vitreous://newtab', 'vitreous://settings', 'vitreous://blank'];
+  const INTERNAL = ['vitreous://newtab', 'vitreous://settings', 'vitreous://blank', 'vitreous://error'];
 
   /* ---------- state ---------- */
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -137,6 +138,10 @@
   let ws = 'personal';
   let viewKey = '';
   let loadTimer = 0;
+  let hasSavedState = false;
+  let autoLowSpecNotice = false;
+  let engineThemeColor = '';
+  let lastFailedUrl = '';
 
   const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -171,6 +176,8 @@
     if (u === 'vitreous://newtab') return 'New tab';
     if (u === 'vitreous://settings') return 'Settings';
     if (u === 'vitreous://blank') return 'Blank';
+    if (u === 'vitreous://error') return 'Site unreachable';
+    if (t.titleOverride) return t.titleOverride;
     try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; }
   }
   function favLetter(t) {
@@ -267,6 +274,7 @@
     try {
       const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
       if (!raw) return;
+      hasSavedState = true;
       S = sanitize(raw.S);
       if (S.spaces.some((x) => x.id === raw.ws)) ws = raw.ws; else ws = S.spaces[0].id;
       if (Array.isArray(raw.tabs)) {
@@ -343,6 +351,7 @@
     b.dataset.oled = S.theme === 'midnight' ? '1' : '0';
     b.dataset.motion = S.motion ? 'on' : 'off';
     b.dataset.fx = S.lowfx ? 'low' : 'high';
+    b.dataset.dynamicTheme = S.dynamicTheme ? '1' : '0';
     b.dataset.side = S.sideSide;
     b.dataset.hover = S.hoverExpand ? '1' : '0';
     b.dataset.navbtns = S.navBtns ? '1' : '0';
@@ -359,6 +368,8 @@
     $('#wall').style.backgroundImage = wall ? `url("${wall.replace(/["\\\n\r]/g, (c) => encodeURIComponent(c))}")` : '';
     const r = document.documentElement.style;
     r.setProperty('--accent', S.accent);
+    r.setProperty('--dynamic-color', engineThemeColor || S.accent);
+    r.setProperty('--dynamic-intensity', String(S.dynamicTheme ? S.dynamicIntensity : 0));
     r.setProperty('--blur', S.blur + 'px');
     r.setProperty('--tint', String(S.tint / 100));
     r.setProperty('--radius', S.radius + 'px');
@@ -482,6 +493,18 @@
   function loadStart() { clearTimeout(loadTimer); const l = loadbar(); l.className = 'loadbar'; void l.offsetWidth; l.className = 'loadbar loading'; loadTimer = setTimeout(loadEnd, 9000); }
   function loadEnd() { clearTimeout(loadTimer); const l = loadbar(); if (l.classList.contains('loading')) l.className = 'loadbar finish'; }
 
+  function errorPage() {
+    const retry = () => {
+      const target = lastFailedUrl || 'https://example.com';
+      navigate(cur(), target);
+    };
+    return h('div', { class: 'error-page' },
+      h('div', { class: 'error-mark' }, ico('wifi-off')),
+      h('h1', { text: 'Site unreachable' }),
+      h('p', { text: cur()?.errorMessage || 'Vitreous could not complete this navigation. Check the address or your connection, then try again.' }),
+      h('div', { class: 'btns' }, btn('Retry', retry), btn('Back to start', () => navigate(cur(), 'vitreous://newtab'))));
+  }
+
   function renderViewport() {
     const t = cur();
     const u = urlOf(t);
@@ -494,6 +517,7 @@
     if (u === 'vitreous://newtab') { v.append(startPage()); setTimeout(loadEnd, 380); }
     else if (u === 'vitreous://blank') { v.append(h('div', { class: 'page' })); setTimeout(loadEnd, 120); }
     else if (u === 'vitreous://settings') { v.append(settingsPage()); setTimeout(loadEnd, 380); }
+    else if (u === 'vitreous://error') { v.append(errorPage()); setTimeout(loadEnd, 160); }
     else {
       const frame = h('iframe', {
         src: u, title: titleOf(t), referrerpolicy: 'no-referrer',
@@ -783,6 +807,43 @@
   }
 
   /* ---------- settings page ---------- */
+  function dropdown(options, value, onChange, label = 'Choose an option') {
+    const current = () => options.find((x) => String(x[0]) === String(value))?.[1] || label;
+    const wrap = h('div', { class: 'dropdown' });
+    const trigger = h('button', { type: 'button', class: 'drop-trigger', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-label': label },
+      h('span', { class: 'drop-value', text: current() }), ico('chevron-down'));
+    const menu = h('div', { class: 'drop-menu', role: 'listbox', hidden: true, 'aria-label': label });
+    const close = () => { menu.hidden = true; wrap.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); };
+    const draw = () => {
+      menu.replaceChildren(...options.map(([v, name]) => h('button', {
+        type: 'button', class: 'drop-option', role: 'option', 'aria-selected': String(String(v) === String(value)), text: name,
+        onclick: () => { value = v; trigger.querySelector('.drop-value').textContent = name; onChange(v); draw(); close(); trigger.focus(); },
+      })));
+    };
+    draw();
+    trigger.addEventListener('click', () => {
+      const opening = menu.hidden;
+      menu.hidden = !opening;
+      wrap.classList.toggle('open', opening);
+      trigger.setAttribute('aria-expanded', String(opening));
+    });
+    trigger.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); menu.hidden = false; wrap.classList.add('open'); trigger.setAttribute('aria-expanded', 'true');
+        menu.querySelector('[aria-selected="true"]')?.focus();
+      } else if (e.key === 'Escape') close();
+    });
+    menu.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); close(); trigger.focus(); }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault(); const items = [...menu.querySelectorAll('button')]; const i = items.indexOf(document.activeElement);
+        items[Math.max(0, Math.min(items.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1))) ]?.focus();
+      }
+    });
+    wrap.addEventListener('focusout', (e) => { if (!wrap.contains(e.relatedTarget)) close(); });
+    wrap.append(trigger, menu);
+    return wrap;
+  }
   function seg(options, key, after) {
     const wrap = h('div', { class: 'seg', role: 'group' });
     options.forEach(([val, label]) => {
@@ -963,8 +1024,7 @@
     /* engines */
     const engineBox = h('div'), engineEd = h('div', { class: 'ed' });
     const drawEngines = () => {
-      const sel = h('select', { 'aria-label': 'Search engine', onchange: () => set('search', sel.value) },
-        Object.entries(allEngines()).map(([k, v]) => h('option', { value: k, text: v[0], selected: S.search === k })));
+      const sel = dropdown(Object.entries(allEngines()).map(([k, v]) => [k, v[0]]), S.search, (v) => set('search', v), 'Search engine');
       engineBox.replaceChildren(row('Search engine', 'Used by the address bar and start page', sel));
       engineEd.replaceChildren(
         ...S.engines.map((e) => h('div', { class: 'er' }, h('span', { text: e.name, style: 'width:110px;font-size:13px' }), h('span', { text: e.url, style: 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px' }),
@@ -1062,12 +1122,11 @@
     const drawCmds = () => {
       cmdBox.replaceChildren(...S.commands.map((cm, i) => {
         const name = h('input', { type: 'text', value: cm.name, maxlength: 40, 'aria-label': 'Command name', style: 'max-width:170px', oninput: () => { cm.name = name.value || 'Command'; save(); } });
-        const kind = h('select', { 'aria-label': 'Type', onchange: () => { cm.kind = kind.value; cm.target = kind.value === 'action' ? 'newTab' : kind.value === 'toggle' ? 'motion' : 'https://example.com'; save(); drawCmds(); } },
-          [['url', 'Open address'], ['newtab', 'Open in new tab'], ['action', 'Run action'], ['toggle', 'Toggle setting']].map(([v, l]) => h('option', { value: v, text: l, selected: cm.kind === v })));
+        const kind = dropdown([['url', 'Open address'], ['newtab', 'Open in new tab'], ['action', 'Run action'], ['toggle', 'Toggle setting']], cm.kind, (v) => { cm.kind = v; cm.target = v === 'action' ? 'newTab' : v === 'toggle' ? 'motion' : 'https://example.com'; save(); drawCmds(); }, 'Command type');
         let target;
         if (cm.kind === 'action' || cm.kind === 'toggle') {
           const opts = cm.kind === 'action' ? actions().map(([id, l]) => [id, l]) : TOGGLES;
-          target = h('select', { 'aria-label': 'Target', onchange: () => { cm.target = target.value; save(); } }, opts.map(([v, l]) => h('option', { value: v, text: l, selected: cm.target === v })));
+          target = dropdown(opts, cm.target, (v) => { cm.target = v; save(); }, 'Command target');
         } else {
           target = h('input', { type: 'text', value: cm.target, maxlength: 500, spellcheck: 'false', 'aria-label': 'Address',
             onchange: () => { let v = target.value.trim(); if (!/^(https?:\/\/|vitreous:\/\/(newtab|settings))/i.test(v)) v = 'https://' + v; try { new URL(v); cm.target = v; save(); } catch { toast('That is not a valid address'); } target.value = cm.target; } });
@@ -1117,12 +1176,14 @@
         row('Border width', null, range('border', 0, 3, 'px')),
         row('Corner radius', null, range('radius', 4, 36, 'px')),
         row('Animations', 'Background drift, transitions and effects', toggle('motion')),
-        row('Low-power glass', 'Turns off blur for older GPUs and battery saving', toggle('lowfx'))),
+        row('Low-Spec Mode', 'Disables blur, glow, cursor spotlight and transitions for slower devices', toggle('lowfx')),
+        row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
+        row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%'))),
 
       group('type', 'Typography', gi++,
-        row('Font', null, (() => { const s = h('select', { 'aria-label': 'Font', onchange: () => set('font', s.value) }, [['system', 'Default (Inter / system)'], ['inter', 'Inter'], ['serif', 'Serif'], ['mono', 'Monospace'], ['rounded', 'Rounded'], ['custom', 'Custom…']].map(([v, l]) => h('option', { value: v, text: l, selected: S.font === v }))); return s; })()),
+        row('Font', null, (() => { return dropdown([['system', 'Default (Inter / system)'], ['inter', 'Inter'], ['serif', 'Serif'], ['mono', 'Monospace'], ['rounded', 'Rounded'], ['custom', 'Custom…']], S.font, (v) => set('font', v), 'Font'); })()),
         row('Custom font name', 'Any font installed on your device. Pick “Custom…” above', text('fontCustom', 'e.g. Fira Sans', '200px', 60, () => { if (S.fontCustom.trim() && S.font !== 'custom') set('font', 'custom'); })),
-        row('Interface size', 'Scales the whole interface', range('fontScale', 80, 140, '%'))),
+        row('Interface size', 'Scales the whole interface', range('fontScale', 50, 150, '%'))),
 
       group('layout', 'Layout', gi++,
         row('Density', 'Height of tabs and rows', seg([['compact', 'Compact'], ['cozy', 'Cozy'], ['roomy', 'Roomy']], 'density')),
@@ -1238,7 +1299,15 @@
     const c = actions().map(([id, label, fn]) => [label, S.keys[id] ? keyText(S.keys[id]) : '', fn]);
     c.push(
       ['Toggle animations', '', () => set('motion', !S.motion)],
-      ['Toggle low-power glass', '', () => set('lowfx', !S.lowfx)],
+      ['Toggle Low-Spec Mode', '', () => set('lowfx', !S.lowfx)],
+      ['Test dynamic theme color', '', () => {
+        const hex = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+        window.vitreousEngine.onThemeColorChange(hex);
+        toast('Mock website theme: ' + hex);
+      }],
+      ['Simulate engine title update', '', () => { window.vitreousEngine.onTitleChange('Vitreous Engine Demo'); toast('Mock engine title received'); }],
+      ['Simulate engine load state', '', () => { window.vitreousEngine.onLoadStateChange('loading'); setTimeout(() => window.vitreousEngine.onLoadStateChange('complete'), 900); toast('Mock engine load started'); }],
+      ['Preview site error page', '', () => { lastFailedUrl = urlOf(cur()); window.vitreousEngine.onError('Mock navigation failure'); }],
       ['Toggle top / side tab layout', '', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
       ['Export settings', '', () => { openSettings('grp-advanced'); }],
     );
@@ -1290,6 +1359,38 @@
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
   }
+
+  /* Stable UI-facing adapter. A native CEF host can call these same hooks later. */
+  window.vitreousEngine = {
+    onThemeColorChange(hexCode) {
+      if (!isHex(hexCode)) return false;
+      engineThemeColor = hexCode;
+      apply();
+      return true;
+    },
+    onLoadStateChange(state) {
+      if (state === 'loading') loadStart();
+      else if (state === 'complete' || state === 'error') loadEnd();
+      return true;
+    },
+    onTitleChange(title) {
+      const t = cur();
+      if (!t || typeof title !== 'string') return false;
+      t.titleOverride = title.slice(0, 120);
+      renderTabs(); save();
+      return true;
+    },
+    onError(message) {
+      const t = cur();
+      if (!t) return false;
+      lastFailedUrl = urlOf(t);
+      t.errorMessage = String(message || 'Navigation failed').slice(0, 240);
+      t.hist[t.i] = 'vitreous://error';
+      t.titleOverride = '';
+      render();
+      return true;
+    },
+  };
 
   /* ---------- rebindable shortcuts ---------- */
   let recording = false;
@@ -1359,7 +1460,7 @@
   /* glass spotlight follows the cursor */
   let spot = 0;
   document.addEventListener('pointermove', (e) => {
-    if (spot || !motionOn()) return;
+    if (spot || !motionOn() || document.body.dataset.fx === 'low') return;
     spot = requestAnimationFrame(() => {
       spot = 0;
       const g = e.target.closest && e.target.closest('.glass');
@@ -1378,9 +1479,14 @@
 
   /* ---------- boot ---------- */
   load();
+  if (!hasSavedState && Number.isFinite(navigator.deviceMemory) && navigator.deviceMemory <= 4) {
+    S.lowfx = true;
+    autoLowSpecNotice = true;
+  }
   buildSpaces();
   apply();
   if (!tabs.length) tabs.push({ id: uid(), ws, hist: ['vitreous://newtab'], i: 0, reload: 0 });
   if (!tabs.some((t) => t.id === activeId)) { const g = wsTabs(); activeId = (g[0] || tabs[0]).id; ws = cur().ws; }
   render();
+  if (autoLowSpecNotice) setTimeout(() => toast('Low-Spec Mode enabled for this device. You can turn it off in Settings → Glass.'), 500);
 })();
