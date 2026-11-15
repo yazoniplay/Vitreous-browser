@@ -151,6 +151,8 @@ body[data-fx="low"] .glass::after { display: none; }
 .icon-btn:hover { background: var(--field); }
 .icon-btn:active { transform: scale(0.88); }
 .icon-btn[disabled] { opacity: 0.28; pointer-events: none; }
+#reload svg { transition: transform 0.45s var(--spring); }
+#reload:active svg { transform: rotate(180deg); }
 .toolbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; height: 40px; flex: none; padding: 0 2px; }
 .nav { display: flex; gap: 1px; min-width: 100px; }
 .nav:last-child { justify-content: flex-end; }
