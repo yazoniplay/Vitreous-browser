@@ -16,7 +16,7 @@ A private, fast, deeply customizable browser with a liquid-glass interface.
 | Compact sidebar: collapses to an icon rail, expands on hover | Working |
 | Motion: sliding tab indicator, tab enter/leave, page transitions, load bar, cursor spotlight on glass | Working |
 | Command palette (`Ctrl K`) | Working |
-| Settings and live theming (theme, accent, background, blur, tint, radius, tab layout) | Working |
+| Settings and live theming: themes (incl. OLED Midnight), accent and glow colors, wallpaper, glass, fonts, density, icon size, sidebar, tab style, address bar, start page, spaces, search engines, rebindable shortcuts, custom CSS, settings export/import | Working |
 | HTTPS-only upgrade, search engine choice | Working |
 | Web content | Sandboxed `<iframe>` preview. Many sites refuse to load in frames |
 | Tracker blocking, fingerprint resistance, Do Not Track | Interface only. Needs the engine layer |

@@ -7,8 +7,10 @@
 <meta name="description" content="Vitreous: a private, fast, fully customizable browser with a liquid-glass interface.">
 <link rel="icon" href="assets/favicon.ico">
 <link rel="stylesheet" href="css/vitreous.css">
+<style id="userCss"></style>
 </head>
 <body data-theme="dark">
+<div class="wall" id="wall" aria-hidden="true"></div>
 <div class="backdrop" aria-hidden="true"><i></i><i></i><i></i></div>
 
 <div class="app">
@@ -42,7 +44,8 @@
     </div>
 
     <div class="toolbar">
-      <div class="nav">
+      <div class="nav nav-l">
+        <button class="icon-btn" id="home" title="Home" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg></button>
         <button class="icon-btn" id="back" title="Back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <button class="icon-btn" id="forward" title="Forward" aria-label="Forward"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
         <button class="icon-btn" id="reload" title="Reload" aria-label="Reload"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>
@@ -51,7 +54,7 @@
         <svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
         <input id="addr" type="text" spellcheck="false" autocomplete="off" placeholder="Search or enter address" aria-label="Address bar">
       </label>
-      <div class="nav">
+      <div class="nav nav-r">
         <button class="icon-btn" id="shield" title="Privacy" aria-label="Privacy settings"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></button>
       </div>
     </div>
