@@ -526,7 +526,9 @@ body[data-dynamic-theme="1"] .address { box-shadow: inset 0 0 0 1px color-mix(in
 body[data-fx="low"] .context-menu { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 
-/* ---------- Low-Spec Mode: premium lightweight profile ---------- */
+/* ---------- Low-Spec Mode: identity-preserving performance profile ---------- */
+
+/* Fake glass: static sheen and depth, with no backdrop sampling. */
 body[data-fx="low"] .glass,
 body[data-fx="low"] .drop-menu,
 body[data-fx="low"] .context-menu,
@@ -537,14 +539,15 @@ body[data-fx="low"] .sidebar {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-
-/* Restore surface separation without expensive backdrop blur. */
 body[data-fx="low"] .glass,
 body[data-fx="low"] .drop-menu,
 body[data-fx="low"] .context-menu,
 body[data-fx="low"] .address {
-  background: color-mix(in srgb, var(--base) 92%, white 8%) !important;
-  box-shadow: 0 8px 20px -10px rgba(0,0,0,.5), inset 0 0 0 1px var(--line) !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.02) 100%),
+    var(--base) !important;
+  box-shadow: 0 8px 30px -10px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.15) !important;
 }
 body[data-fx="low"] .sidebar {
   background: var(--base) !important;
@@ -557,29 +560,36 @@ body[data-side="right"][data-fx="low"] .sidebar {
 }
 body[data-fx="low"] .tab[aria-selected="true"],
 body[data-fx="low"] .tab[aria-selected="true"]:hover {
-  background: color-mix(in srgb, var(--accent) 9%, transparent) !important;
+  background: transparent !important;
   box-shadow: inset 0 0 0 1px var(--accent) !important;
 }
-body[data-fx="low"] .backdrop,
-body[data-fx="low"] .backdrop i {
-  display: none !important;
-  animation: none !important;
-}
-body[data-fx="low"] .glass::before,
-body[data-fx="low"] .glass::after { display: none !important; }
 
-/* Remove entrance and layout-changing motion, but retain cheap feedback. */
-body[data-fx="low"] .rise,
-body[data-fx="low"] .content > *,
-body[data-fx="low"] .tab.enter,
-body[data-fx="low"] .tab.leave,
-body[data-fx="low"] .pal-item {
-  animation: none !important;
-  opacity: 1;
+/* Keep the indicator, but remove spring bounce. */
+body[data-fx="low"] .tab-list.ready .indicator {
+  transition: transform .32s ease-out, width .32s ease-out,
+    height .32s ease-out, opacity .18s ease-out !important;
+}
+
+/* Keep motion composited and subtle: opacity-only entrances, scale-only tile hover. */
+@keyframes lowRise {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+body[data-fx="low"] .rise {
+  animation: lowRise .45s ease-out backwards !important;
   transform: none !important;
 }
 body[data-fx="low"] .tile,
-body[data-fx="low"] .tile:hover,
+body[data-fx="low"] .tile:hover {
+  transform-origin: center;
+  transition: transform .18s ease-out, background-color .2s ease,
+    color .2s ease, box-shadow .2s ease !important;
+}
+body[data-fx="low"] .tile:hover {
+  transform: scale(1.02) !important;
+  background-color: var(--field);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
 body[data-fx="low"] .sw,
 body[data-fx="low"] .sw:hover,
 body[data-fx="low"] .sw[aria-pressed="true"],
@@ -588,21 +598,15 @@ body[data-fx="low"] .icon-btn:hover,
 body[data-fx="low"] .tab:active {
   transform: none !important;
 }
-body[data-fx="low"] .tile,
-body[data-fx="low"] .sw,
 body[data-fx="low"] .tab,
 body[data-fx="low"] .space,
 body[data-fx="low"] .btn,
 body[data-fx="low"] .row,
 body[data-fx="low"] .icon-btn,
 body[data-fx="low"] .drop-option {
-  transition: background-color .2s ease, color .2s ease, opacity .16s ease, box-shadow .2s ease !important;
+  transition: background-color .2s ease, color .2s ease,
+    opacity .16s ease, box-shadow .2s ease !important;
 }
-body[data-fx="low"] .tile:hover {
-  background-color: var(--field);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-body[data-fx="low"] .sw:hover { background-color: var(--field); }
 body[data-fx="low"] .tab .t,
 body[data-fx="low"] .tab svg { transition: opacity .16s ease !important; }
 body[data-fx="low"] .drop-menu {
@@ -616,3 +620,42 @@ body[data-fx="low"] .new-tab svg {
 }
 body[data-fx="low"] .new-tab:hover svg { transform: rotate(90deg); }
 body[data-fx="low"] .context-menu { animation: dropIn .14s ease-out !important; }
+
+/* Keep the brand's color atmosphere, but freeze it as radial gradients. */
+body[data-fx="low"] .backdrop {
+  display: block !important;
+  pointer-events: none;
+}
+body[data-fx="low"] .backdrop i {
+  filter: none !important;
+  animation: none !important;
+  opacity: calc(var(--blob) * var(--blob-mul) * .7) !important;
+  background: radial-gradient(circle, var(--b1) 0%, transparent 70%) !important;
+}
+body[data-fx="low"] .backdrop i:nth-child(1) {
+  background: radial-gradient(circle, var(--b1) 0%, transparent 70%) !important;
+}
+body[data-fx="low"] .backdrop i:nth-child(2) {
+  background: radial-gradient(circle, var(--b2) 0%, transparent 70%) !important;
+}
+body[data-fx="low"] .backdrop i:nth-child(3) {
+  background: radial-gradient(circle, var(--b3) 0%, transparent 70%) !important;
+}
+
+/* A fixed central sheen replaces cursor-following spotlight calculations. */
+body[data-fx="low"] .glass {
+  --mx: 50%;
+  --my: 50%;
+}
+body[data-fx="low"] .glass::before {
+  display: block !important;
+  background: linear-gradient(160deg, rgba(255,255,255,.12), transparent 42%) !important;
+  mix-blend-mode: normal !important;
+}
+body[data-fx="low"] .glass::after {
+  display: block !important;
+  background: radial-gradient(380px circle at 50% 50%,
+    rgba(255,255,255,.09), transparent 68%) !important;
+  opacity: .8 !important;
+  transition: none !important;
+}
