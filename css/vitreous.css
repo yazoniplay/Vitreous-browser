@@ -2041,3 +2041,4 @@ html body .glass::before {
     linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 38%),
     linear-gradient(color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent), color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent)) !important;
 }
+html body .viewport.glass::before { display: none !important; }
