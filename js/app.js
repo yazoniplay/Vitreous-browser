@@ -1382,7 +1382,7 @@
       const t = cur();
       if (!t || typeof title !== 'string') return false;
       t.titleOverride = title.slice(0, 120);
-      renderTabs(); save();
+      renderTabs(); renderToolbar(); save();
       return true;
     },
     onError(message) {
