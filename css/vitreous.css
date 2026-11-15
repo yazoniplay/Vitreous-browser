@@ -1541,3 +1541,128 @@ body[data-fx="high"] .side-wrap .lbl {
 body[data-fx="low"] .side-wrap .lbl {
   transition: opacity .18s ease-out !important;
 }
+
+
+/* ---------- Complete High-Fidelity animation restoration ---------- */
+/* High-Fidelity uses the full motion system. Low-Spec remains independently
+   restricted by its performance rules above. */
+body[data-fx="high"] .backdrop {
+  display: block !important;
+}
+body[data-fx="high"] .backdrop i {
+  filter: blur(80px) !important;
+  animation: drift var(--blob-dur, 26s) ease-in-out infinite alternate !important;
+  will-change: transform;
+}
+body[data-fx="high"] .backdrop i:nth-child(2) { animation-delay: -9s !important; }
+body[data-fx="high"] .backdrop i:nth-child(3) { animation-delay: -17s !important; }
+
+/* Restore entrance and exit choreography for tabs, pages, chips and menus. */
+body[data-fx="high"] .tab.enter {
+  animation: tabIn .45s var(--spring, cubic-bezier(.32,1.12,.4,1)) both !important;
+}
+body[data-fx="high"] .tab.leave {
+  animation: tabOut .26s var(--ease, cubic-bezier(.2,.8,.2,1)) forwards !important;
+}
+body[data-fx="high"] .tab.side.leave { animation-name: tabOutSide !important; }
+body[data-fx="high"] .content > * {
+  animation: pageIn .5s var(--ease, cubic-bezier(.2,.8,.2,1)) backwards !important;
+}
+body[data-fx="high"] .rise {
+  animation: rise .8s var(--ease, cubic-bezier(.2,.8,.2,1)) backwards !important;
+  animation-delay: calc(var(--i, 0) * 70ms) !important;
+}
+body[data-fx="high"] .chip {
+  animation: chipIn .6s var(--spring, cubic-bezier(.32,1.12,.4,1)) .6s backwards !important;
+}
+body[data-fx="high"] .chip.out {
+  animation: chipOut .25s var(--ease, cubic-bezier(.2,.8,.2,1)) forwards !important;
+}
+body[data-fx="high"] .hint {
+  animation: hintFade 8s ease 4s forwards !important;
+}
+body[data-fx="high"] .drop-menu {
+  animation: dropIn .2s var(--spring, cubic-bezier(.32,1.12,.4,1)) both !important;
+}
+body[data-fx="high"] .context-menu {
+  animation: highGlassEnter .2s var(--spring, cubic-bezier(.32,1.12,.4,1)) both !important;
+}
+body[data-fx="high"] .pal {
+  transition: opacity .25s ease, visibility 0s linear .25s !important;
+}
+body[data-fx="high"] .pal.open {
+  transition: opacity .25s ease, visibility 0s !important;
+}
+body[data-fx="high"] .pal-box {
+  transition: transform .45s var(--spring, cubic-bezier(.32,1.12,.4,1)) !important;
+}
+body[data-fx="high"] .pal-item {
+  animation: rise .35s var(--ease, cubic-bezier(.2,.8,.2,1)) backwards !important;
+  animation-delay: calc(var(--i, 0) * 16ms) !important;
+}
+
+/* Full spring microinteractions for controls and navigation. */
+body[data-fx="high"] .icon-btn,
+body[data-fx="high"] .new-tab,
+body[data-fx="high"] .space,
+body[data-fx="high"] .space .dot,
+body[data-fx="high"] .space .sl,
+body[data-fx="high"] .tab,
+body[data-fx="high"] .tab .x,
+body[data-fx="high"] .tile,
+body[data-fx="high"] .sw,
+body[data-fx="high"] .switch,
+body[data-fx="high"] .switch::after,
+body[data-fx="high"] .seg button,
+body[data-fx="high"] .drop-trigger .ico,
+body[data-fx="high"] .drop-option,
+body[data-fx="high"] .btn,
+body[data-fx="high"] .row,
+body[data-fx="high"] .address,
+body[data-fx="high"] .address input,
+body[data-fx="high"] .toolbar,
+body[data-fx="high"] .sidebar,
+body[data-fx="high"] .side-wrap,
+body[data-fx="high"] .lbl,
+body[data-fx="high"] .tab-list .indicator,
+body[data-fx="high"] .toast {
+  transition-timing-function: var(--spring, cubic-bezier(.32,1.12,.4,1)) !important;
+}
+body[data-fx="high"] .icon-btn:hover { transform: translateY(-1px) scale(1.06); }
+body[data-fx="high"] .icon-btn:active { transform: scale(.88); }
+body[data-fx="high"] .new-tab:hover { transform: translateX(3px); }
+body[data-fx="high"] .space:hover { transform: translateY(-1px); }
+body[data-fx="high"] .tab:hover { transform: translateX(2px) scale(1.01); }
+body[data-fx="high"] .tab:active { transform: scale(.975); }
+body[data-fx="high"] .tile:hover { transform: translateY(-4px) scale(1.025); }
+body[data-fx="high"] .sw:hover { transform: scale(1.15); }
+body[data-fx="high"] .drop-trigger:hover { transform: translateY(-1px); }
+body[data-fx="high"] .new-tab svg { transition: transform .3s var(--spring) !important; }
+body[data-fx="high"] .new-tab:hover svg { transform: rotate(90deg); }
+
+/* Re-enable moving glass reflections and the animated loading gradient. */
+body[data-fx="high"] .glass::before {
+  animation: vitreousSheen 13s ease-in-out infinite alternate !important;
+}
+body[data-fx="high"] .loadbar.loading {
+  animation: loadSlow 6s cubic-bezier(.1,.6,.2,1) forwards,
+    loadColorFlow 2.8s linear infinite !important;
+}
+
+/* Explicit user and OS accessibility preferences still take precedence. */
+body[data-motion="off"] *,
+body[data-motion="off"] *::before,
+body[data-motion="off"] *::after {
+  animation: none !important;
+  transition-duration: .01ms !important;
+  transition-delay: 0s !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-fx="high"] *,
+  body[data-fx="high"] *::before,
+  body[data-fx="high"] *::after {
+    animation: none !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0s !important;
+  }
+}
