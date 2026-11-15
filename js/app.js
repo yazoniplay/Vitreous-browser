@@ -72,7 +72,7 @@
     theme: 'dark', accent: '#5aa9ff', aurora: 'prism', auroraCustom: ['#5aa9ff', '#b57bff', '#0ea5a0'],
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
-    blur: 28, tint: 14, radius: 22, saturate: 180, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
+    blur: 28, tint: 14, glassTransparency: 0, radius: 22, saturate: 180, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
@@ -117,7 +117,7 @@
     lang: ['en-US', 'en-GB', 'sv-SE', 'de-DE', 'fr-FR', 'es-ES', 'pt-BR', 'ja-JP', 'zh-CN'], sleepAfter: ['5', '15', '30', '60'], proxy: ['system', 'none', 'manual'], channel: ['stable', 'beta', 'nightly'],
   };
   const RANGES = {
-    wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], blur: [0, 60], tint: [2, 40], radius: [4, 36],
+    wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], blur: [0, 60], glassTransparency: [0, 100], tint: [2, 40], radius: [4, 36],
     saturate: [100, 260], rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
     dlParallel: [1, 8], pageZoom: [50, 300], minFont: [0, 24],
     iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
@@ -460,7 +460,10 @@
     r.setProperty('--dynamic-color', engineThemeColor || S.accent);
     r.setProperty('--dynamic-intensity', String(S.dynamicTheme ? S.dynamicIntensity : 0));
     r.setProperty('--blur', S.blur + 'px');
-    r.setProperty('--tint', String(S.tint / 100));
+    /* glass transparency: 0 = ultra-clear (default), 100 = nearly solid, like Reduce Transparency */
+    const gt = S.glassTransparency / 100;
+    r.setProperty('--tint', String(Math.min(0.9, S.tint / 100 + gt * 0.5)));
+    r.setProperty('--glass-solid', String(gt * 0.92));
     r.setProperty('--radius', S.radius + 'px');
     r.setProperty('--sat', S.saturate + '%');
     r.setProperty('--rim-a', String(S.rim / 100));
@@ -1742,6 +1745,11 @@
         row('Blur', null, range('wallBlur', 0, 40, 'px'))),
 
       group('glass', 'Glass', gi++,
+        h('div', { class: 'tp-preview glass', 'aria-hidden': 'true' },
+          h('strong', { text: 'Preview' }),
+          h('span', { text: 'Changes apply live as you drag' }),
+          h('i', { class: 'tp-swatch' })),
+        row('Glass transparency', 'Ultra-clear by default. Raise it toward a near-solid panel, like Reduce Transparency', range('glassTransparency', 0, 100, '%')),
         row('Glass blur', null, range('blur', 0, 60, 'px')),
         row('Glass tint', null, range('tint', 2, 40, '%')),
         row('Saturation', 'How vivid the background looks through glass', range('saturate', 100, 260, '%')),
