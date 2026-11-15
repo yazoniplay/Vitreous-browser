@@ -1504,10 +1504,10 @@
     access: '<circle cx="12" cy="5" r="1.800"/><path d="M5 9l7 1.500L19 9M12 10.500V15l-3 5M12 15l3 5"/>',
   };
   const ico = (n) => { const t = document.createElement('template'); t.innerHTML = `<svg viewBox="0 0 24 24" class="ico" aria-hidden="true">${ICONS[n]}</svg>`; return t.content.firstChild; };
-  const GROUP_ICON = { appearance: 'palette', wallpaper: 'image', glass: 'drop', type: 'type', layout: 'layout', tabs: 'tabs', spaces: 'layers', toolbar: 'sliders', start: 'home', widgets: 'grid', search: 'search', privacy: 'shield',
+  const GROUP_ICON = { appearance: 'palette', wallpaper: 'image', glass: 'drop', physics: 'sliders', type: 'type', layout: 'layout', tabs: 'tabs', spaces: 'layers', toolbar: 'sliders', start: 'home', widgets: 'grid', search: 'search', privacy: 'shield',
     startup: 'power', addrbar: 'search', cookies: 'drop', perms: 'lock', secure: 'shield', clear: 'trash', dlset: 'download', lang: 'globe', a11y: 'access', perf: 'cpu', network: 'globe', extensions: 'puzzle', about: 'info', shortcuts: 'keyboard', palette: 'command', advanced: 'code' };
   const SECTIONS = [
-    ['appearance', 'Appearance', 'palette', 'Themes, colors, wallpaper, glass, fonts, layout and toolbar', ['appearance', 'wallpaper', 'glass', 'type', 'layout', 'tabs', 'toolbar', 'spaces']],
+    ['appearance', 'Appearance', 'palette', 'Themes, colors, wallpaper, glass, fonts, layout and toolbar', ['appearance', 'wallpaper', 'glass', 'physics', 'type', 'layout', 'tabs', 'toolbar', 'spaces']],
     ['startup', 'On Startup', 'power', 'What opens when Vitreous starts and on new tabs', ['startup', 'start', 'widgets']],
     ['search', 'Search Engine', 'search', 'Default and custom search engines, address bar suggestions', ['search', 'addrbar']],
     ['privacy', 'Privacy & Security', 'shield', 'Tracking, cookies, permissions, secure connections and clearing data', ['privacy', 'cookies', 'perms', 'secure', 'clear']],
@@ -1586,6 +1586,10 @@
     });
     $('.nores', root).hidden = any;
   }
+
+  const GLASS_DEFAULTS = { glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, rim: 100, shadow: 100, border: 1, radius: 22 };
+  const refreshSettings = () => { const t = cur(); if (t && urlOf(t) === 'vitreous://settings') render(); };
+  function resetGlassPhysics() { Object.assign(S, GLASS_DEFAULTS); apply(); save(); toast('Glass Physics reset'); refreshSettings(); }
 
   function settingsPage() {
     let gi = 0;
@@ -1762,6 +1766,14 @@
         row('Blur', null, range('wallBlur', 0, 40, 'px'))),
 
       group('glass', 'Glass', gi++,
+        row('Animations', 'Background drift, transitions and effects', toggle('motion')),
+        row('Follow system reduced-motion', 'Off by default. Turn on to let your OS "reduce animations" setting disable them', toggle('respectReducedMotion')),
+        row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
+        row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
+        row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%'))),
+
+      group('physics', 'Glass Physics', gi++,
+        h('div', { class: 'warn', text: 'Fine-tune the physical properties of the glass.' }),
         h('div', { class: 'tp-stage', 'aria-hidden': 'true' },
           h('div', { class: 'tp-preview glass' },
             h('strong', { text: 'Preview' }),
@@ -1777,11 +1789,7 @@
         row('Shadow strength', null, range('shadow', 0, 100, '%')),
         row('Border width', null, range('border', 0, 3, 'px')),
         row('Corner radius', null, range('radius', 4, 36, 'px')),
-        row('Animations', 'Background drift, transitions and effects', toggle('motion')),
-        row('Follow system reduced-motion', 'Off by default. Turn on to let your OS "reduce animations" setting disable them', toggle('respectReducedMotion')),
-        row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
-        row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
-        row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%'))),
+        row('Reset', 'Restores every glass property above to its default', btn('Reset Glass Physics', resetGlassPhysics, 'danger'))),
 
       group('type', 'Typography', gi++,
         row('Font', null, (() => { return dropdown([['system', 'Default (Inter / system)'], ['inter', 'Inter'], ['serif', 'Serif'], ['mono', 'Monospace'], ['rounded', 'Rounded'], ['custom', 'Custom…']], S.font, (v) => set('font', v), 'Font'); })()),
