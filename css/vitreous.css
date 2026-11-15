@@ -1331,3 +1331,84 @@ body[data-theme="light"][data-fx="high"] .backdrop i {
     0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent),
     0 0 18px color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
+
+/* ---------- Sidebar clamp + address focus cleanup ---------- */
+/* data-pinned is owned by <body>, not .side-wrap. Keep the compact
+   rail's flex footprint fixed until the user explicitly pins it. */
+body[data-pinned="0"] .side-wrap[data-rail="1"] {
+  position: relative !important;
+  width: var(--rail-w) !important;
+  flex: 0 0 var(--rail-w) !important;
+  min-width: var(--rail-w) !important;
+  overflow: visible !important;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
+  position: absolute !important;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: auto;
+  width: var(--rail-w) !important;
+  max-width: var(--side-w);
+  overflow: hidden !important;
+  z-index: 50 !important;
+}
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
+  left: auto;
+  right: 0;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
+body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+  position: absolute !important;
+  top: 0;
+  width: var(--side-w) !important;
+  overflow: visible !important;
+  z-index: 50 !important;
+  box-shadow: 20px 0 50px -20px rgba(0,0,0,.8),
+    0 8px 24px -12px var(--shadow),
+    inset 0 1px 0 var(--rim) !important;
+}
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+  box-shadow: -20px 0 50px -20px rgba(0,0,0,.8),
+    0 8px 24px -12px var(--shadow),
+    inset 0 1px 0 var(--rim) !important;
+}
+body[data-pinned="1"] .side-wrap {
+  position: relative !important;
+  width: var(--side-w) !important;
+  flex: 0 0 var(--side-w) !important;
+  min-width: 0;
+  overflow: visible !important;
+}
+body[data-pinned="1"] .side-wrap .sidebar {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100%;
+  overflow: visible !important;
+  z-index: 1 !important;
+}
+
+/* Remove native focus rectangles from the address input itself. */
+#addr,
+#addr:focus,
+#addr:focus-visible,
+.address input,
+.address input:focus,
+.address input:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+.address:focus-within {
+  background: var(--base) !important;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent),
+    inset 0 0 0 2px var(--accent) !important;
+}
+
