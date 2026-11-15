@@ -322,6 +322,9 @@
   }
   function navigate(t, input) {
     const u = normalize(input);
+    t.titleOverride = '';
+    t.errorMessage = '';
+    if (u !== 'vitreous://error') lastFailedUrl = '';
     t.hist = t.hist.slice(0, t.i + 1);
     if (t.hist[t.i] !== u) { t.hist.push(u); t.i++; }
     t.reload++;
@@ -655,7 +658,7 @@
       if (!st.running) return;
       d.left = Math.max(0, (st.end - Date.now()) / 1000); show();
       if (d.left <= 0) { st.running = false; sync(); save(); toast('Timer finished'); }
-    }, 250);
+    }, 1000);
     const mins = h('input', { type: 'number', min: 1, max: 180, value: d.mins, 'aria-label': 'Minutes', style: 'width:70px',
       onchange: () => { d.mins = Math.min(180, Math.max(1, Math.round(+mins.value) || 25)); mins.value = d.mins; if (!st.running) { d.left = d.mins * 60; show(); } save(); } });
     return h('div', { class: 'w-col' }, disp, h('div', { class: 'w-row' }, go, ibtn('reset', 'Reset', () => { st.running = false; d.left = d.mins * 60; show(); sync(); save(); }), mins, h('span', { class: 'w-sub', text: 'min' })));
@@ -1302,6 +1305,7 @@
       ['Toggle animations', '', () => set('motion', !S.motion)],
       ['Toggle Low-Spec Mode', '', () => set('lowfx', !S.lowfx)],
       ['Test dynamic theme color', '', () => {
+        if (!S.dynamicTheme) set('dynamicTheme', true);
         const hex = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
         window.vitreousEngine.onThemeColorChange(hex);
         toast('Mock website theme: ' + hex);
@@ -1392,6 +1396,58 @@
       return true;
     },
   };
+
+  /* ---------- native-feeling context menus ---------- */
+  const contextMenu = h('div', { class: 'context-menu glass', hidden: true, role: 'menu' });
+  document.body.append(contextMenu);
+  const hideContextMenu = () => { contextMenu.hidden = true; };
+  function openContextMenu(e, entries) {
+    e.preventDefault();
+    contextMenu.replaceChildren(...entries.map(([label, action, disabled]) => h('button', {
+      type: 'button', role: 'menuitem', class: 'context-item', text: label, disabled: !!disabled,
+      onclick: () => { hideContextMenu(); action(); },
+    })));
+    contextMenu.hidden = false;
+    const x = Math.min(e.clientX, innerWidth - 210);
+    const y = Math.min(e.clientY, innerHeight - Math.min(entries.length * 38 + 12, 220));
+    contextMenu.style.left = Math.max(8, x) + 'px';
+    contextMenu.style.top = Math.max(8, y) + 'px';
+  }
+  document.addEventListener('contextmenu', (e) => {
+    const tab = e.target.closest && e.target.closest('.tab');
+    const link = e.target.closest && e.target.closest('a[href]');
+    if (tab) {
+      const id = tab.dataset.id;
+      openContextMenu(e, [
+        ['Activate tab', () => activate(id)],
+        ['Close tab', () => closeTab(id)],
+        ['Close other tabs', () => {
+          tabs = tabs.filter((t) => t.ws !== ws || t.id === id);
+          activeId = id; render();
+        }],
+        ['New tab', () => newTab()],
+      ]);
+      return;
+    }
+    if (link) {
+      const href = link.href;
+      openContextMenu(e, [
+        ['Open link in new tab', () => newTab(href)],
+        ['Open link in this tab', () => navigate(cur(), href)],
+      ]);
+      return;
+    }
+    if (e.target.closest && e.target.closest('.viewport')) {
+      openContextMenu(e, [
+        ['New tab', () => newTab()],
+        ['Reload page', () => { cur().reload++; render(); }],
+        ['Back', () => go(-1)],
+        ['Open settings', () => openSettings()],
+      ]);
+    }
+  });
+  document.addEventListener('pointerdown', (e) => { if (!contextMenu.contains(e.target)) hideContextMenu(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideContextMenu(); });
 
   /* ---------- rebindable shortcuts ---------- */
   let recording = false;
