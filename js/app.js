@@ -462,7 +462,8 @@
     /* glass transparency: 0 = solid panel, 100 = clear glass. Only the panel's relation to the background changes. */
     const gl = S.glassTransparency / 100;
     const tintV = String(0.30 - gl * 0.28);
-    r.setProperty('--blur', (gl * 30) + 'px');
+    /* blur capped at 4px so clear glass shows the background, not a frosted version of it */
+    r.setProperty('--blur', (gl * 4) + 'px');
     /* refraction edge glow scales with transparency: zero on a solid panel, full strength on clear glass */
     r.setProperty('--refraction', (S.glassRefraction * gl) + 'px');
     r.setProperty('--tint', tintV);
