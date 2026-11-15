@@ -829,3 +829,87 @@ body[data-fx="high"] .loadbar.loading {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 24%, transparent),
     0 0 16px color-mix(in srgb, var(--accent) 48%, transparent);
 }
+
+/* ---------- Light Mode: translucent, colored, dimensional glass ---------- */
+body[data-theme="light"] {
+  --tint: .55;
+  --glass-light-top: rgba(255,255,255,.8);
+  --glass-light-bottom: rgba(255,255,255,.5);
+  --glass-light-rim: rgba(255,255,255,.6);
+  --glass-light-shadow: 0 8px 32px rgba(0,0,0,.08);
+}
+
+/* Keep the background atmosphere visible through every glass surface. */
+body[data-theme="light"] .glass,
+body[data-theme="light"] .drop-menu,
+body[data-theme="light"] .context-menu,
+body[data-theme="light"] .address {
+  background: linear-gradient(140deg,
+    var(--glass-light-top) 0%,
+    var(--glass-light-bottom) 100%) !important;
+  color: var(--text);
+  box-shadow:
+    var(--glass-light-shadow),
+    inset 0 0 0 1px var(--glass-light-rim),
+    inset 0 1px 0 rgba(255,255,255,.82) !important;
+  text-shadow: 0 1px 1px rgba(255,255,255,.18);
+}
+
+/* Low-Spec keeps its no-blur guarantee, but no longer turns light glass opaque. */
+body[data-theme="light"][data-fx="low"] .glass,
+body[data-theme="light"][data-fx="low"] .drop-menu,
+body[data-theme="light"][data-fx="low"] .context-menu,
+body[data-theme="light"][data-fx="low"] .address {
+  background: linear-gradient(140deg,
+    rgba(255,255,255,.8), rgba(255,255,255,.5)) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.08),
+    inset 0 0 0 1px rgba(255,255,255,.6),
+    inset 0 1px 0 rgba(255,255,255,.82) !important;
+}
+
+/* Light-mode sheen needs a stronger peak to remain visible on pale surfaces. */
+body[data-theme="light"][data-fx="high"] .glass::before {
+  background: linear-gradient(115deg,
+    rgba(255,255,255,.9) 0%,
+    rgba(255,255,255,.34) 24%,
+    transparent 48%,
+    rgba(255,255,255,.5) 68%,
+    transparent 84%) !important;
+  background-size: 220% 220% !important;
+  animation: vitreousSheen 13s ease-in-out infinite alternate;
+}
+
+/* Accent-colored cursor light is visible against white and pale glass. */
+body[data-theme="light"][data-fx="high"] .glass::after {
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--accent) 30%, transparent),
+    color-mix(in srgb, var(--accent) 12%, transparent) 34%,
+    transparent 70%) !important;
+  opacity: 0;
+  transition: opacity .18s ease-out !important;
+}
+body[data-theme="light"][data-fx="high"] .glass:hover::after { opacity: 1; }
+
+/* Light-mode controls retain clear separation from the pale glass. */
+body[data-theme="light"] .context-menu {
+  border: 1px solid rgba(255,255,255,.72);
+  box-shadow: 0 14px 36px rgba(20,30,55,.14),
+    inset 0 0 0 1px rgba(255,255,255,.55) !important;
+}
+body[data-theme="light"] .context-item:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, rgba(255,255,255,.6));
+}
+
+/* Accent-colored scrollbar thumb on hover, across WebKit and standard scrollbars. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 72%, transparent) !important;
+  background-clip: padding-box;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text) 24%, transparent) transparent;
+}
+*:hover {
+  scrollbar-color: color-mix(in srgb, var(--accent) 68%, transparent) transparent;
+}
