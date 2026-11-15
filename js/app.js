@@ -72,7 +72,7 @@
     theme: 'dark', accent: '#5aa9ff', aurora: 'prism', auroraCustom: ['#5aa9ff', '#b57bff', '#0ea5a0'],
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
-    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, addrPosition: 'center', crazyAnimations: false, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
+    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, addrPosition: 'center', rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
@@ -452,7 +452,7 @@
     b.dataset.close = S.closeBtn;
     b.dataset.tabShape = S.tabShape;
     /* Crazy Animations: off in Low-Spec Mode, with animations off, or with the OS reduced-motion preference when respected */
-    b.dataset.crazy = (S.crazyAnimations && !S.lowfx && b.dataset.motion !== 'off' && !(b.dataset.respectRm === '1' && matchMedia('(prefers-reduced-motion: reduce)').matches)) ? '1' : '0';
+    b.dataset.crazy = motionOn() ? '1' : '0';
     /* address bar position. 'sidebar' needs the sidebar tabs, so it falls back to the toolbar when tabs are on top. */
     const addrEl = $('.address');
     const inSide = S.addrPosition === 'sidebar' && S.tabs !== 'top';
@@ -1801,7 +1801,6 @@
         row('Shadow strength', null, range('shadow', 0, 100, '%')),
         row('Border width', null, range('border', 0, 3, 'px')),
         row('Corner radius', null, range('radius', 4, 36, 'px')),
-        row('Crazy Animations', 'Ripple clicks, a parallax background and close buttons that lean toward the pointer. Off in Low-Spec Mode and with reduced motion.', toggle('crazyAnimations')),
         row('Reset', 'Restores every glass property above to its default', btn('Reset Glass Physics', resetGlassPhysics, 'danger'))),
 
       group('type', 'Typography', gi++,
@@ -2241,7 +2240,7 @@
   }, { passive: true });
 
   /* ---------- Crazy Animations: ripple clicks, parallax background, magnetic close buttons ---------- */
-  const crazyOn = () => !!S.crazyAnimations && !S.lowfx && motionOn();
+  const crazyOn = () => motionOn();
   addEventListener('pointerdown', (e) => {
     if (!crazyOn() || e.button !== 0) return;
     const g = e.target.closest && e.target.closest('.glass');

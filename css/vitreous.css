@@ -2101,12 +2101,65 @@ body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"]:has(:focus-visible) .add
 body[data-crazy="1"] .backdrop { transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) scale(1.04); transition: transform .8s var(--ease); }
 body[data-crazy="1"] .tab .x { transition: transform .25s var(--ease), opacity .2s, background .2s !important; }
 
-/* Address bar and sidebar motion (high-fidelity only) */
-body[data-fx="high"] .address { transition: box-shadow .35s var(--ease), width .55s var(--spring), background .3s, transform .5s var(--spring); }
-body[data-fx="high"] .address:focus-within { transform: translateY(-1px) scale(1.01); }
-body[data-fx="high"] .side-list .tab { transition: transform .45s var(--spring), background .25s, box-shadow .3s; }
-body[data-fx="high"] .side-list .tab:hover { transform: translateX(3px); }
-body[data-fx="high"] .side-list .tab:active { transform: scale(.97); }
-body[data-fx="high"] .new-tab { transition: transform .4s var(--spring), background .25s; }
-body[data-fx="high"] .new-tab:hover { transform: translateX(2px); }
-body[data-fx="high"] .new-tab:active { transform: scale(.94); }
+/* ======================================================================
+   Default motion: iOS-style springs for anything that opens, expands or closes.
+   Material ease-out for colour and opacity. Low-Spec keeps the same motion,
+   with a gentler curve and 30% shorter durations. Reduced motion turns it off.
+   ====================================================================== */
+:root { --m-spring: cubic-bezier(0.34, 1.56, 0.64, 1); --m-fade: cubic-bezier(0.4, 0, 0.2, 1); --m-out: ease-out; --m-scale: 1; }
+body[data-fx="low"] { --m-spring: cubic-bezier(0.2, 0.8, 0.2, 1); --m-scale: 0.7; }
+
+/* Address bar: hover grows 20px, focus springs open, the ring fades in, blur snaps back */
+html body .address {
+  transition: width calc(.3s * var(--m-scale)) var(--m-fade), box-shadow calc(.25s * var(--m-scale)) var(--m-fade), background .3s var(--m-fade);
+}
+html body .address:hover:not(:focus-within) {
+  width: min(calc(var(--addr-w) + 20px), 100%);
+  transition: width calc(.2s * var(--m-scale)) var(--m-out), box-shadow .2s var(--m-out), background .2s var(--m-out);
+}
+html body .address:focus-within {
+  width: min(calc(var(--addr-w) + 100px), 100%);
+  transition: width calc(.55s * var(--m-scale)) var(--m-spring), box-shadow calc(.3s * var(--m-scale)) var(--m-fade), background .3s var(--m-fade);
+}
+html body[data-addr-pos="left"] .address:hover:not(:focus-within) { width: min(600px, 100%); }
+html body[data-addr-pos="left"] .address:focus-within { width: min(600px, 100%); }
+html body[data-addr-pos="sidebar"] .address:hover:not(:focus-within),
+html body[data-addr-pos="sidebar"] .address:focus-within { width: 100%; }
+
+/* Sidebar and top tabs: hover lifts, press sinks, indicator slides on the spring */
+html body .tab {
+  transition: transform calc(.15s * var(--m-scale)) var(--m-out), background .25s var(--m-fade), box-shadow .25s var(--m-fade), opacity .2s var(--m-fade);
+}
+html body .tab:hover { transform: scale(1.02) translateY(-1px); }
+html body .tab:active { transform: scale(0.98); }
+html body .indicator {
+  transition: transform calc(.55s * var(--m-scale)) var(--m-spring), width calc(.55s * var(--m-scale)) var(--m-spring), height calc(.55s * var(--m-scale)) var(--m-spring), opacity .25s var(--m-fade);
+}
+
+/* New tab: plus rotates on hover on the spring, button sinks on press */
+html body #newTab, html body .new-tab { transition: transform calc(.3s * var(--m-scale)) var(--m-spring), background .25s var(--m-fade); }
+html body #newTab svg, html body .new-tab svg { transition: transform calc(.5s * var(--m-scale)) var(--m-spring); }
+html body #newTab:hover svg, html body .new-tab:hover svg { transform: rotate(90deg); }
+html body #newTab:active, html body .new-tab:active { transform: scale(0.96); }
+
+/* Settings rows: soft hover tint, and a thin accent bar that slides in on the active row */
+html body .row { position: relative; transition: background .25s var(--m-fade); }
+html body .row:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+html body .row::before {
+  content: ""; position: absolute; left: 0; top: 22%; bottom: 22%; width: 3px; border-radius: 3px;
+  background: var(--accent); opacity: 0; transform: translateX(-4px);
+  transition: transform calc(.4s * var(--m-scale)) var(--m-spring), opacity .25s var(--m-fade);
+}
+html body .row:focus-within::before { opacity: 1; transform: translateX(0); }
+
+/* Ripple duration follows the low-spec scale */
+body[data-fx="low"] .ripple-dot { animation-duration: .49s; }
+
+/* Reduced motion: no springs, near-instant transitions */
+@media (prefers-reduced-motion: reduce) {
+  html body .address, html body .tab, html body .indicator, html body #newTab, html body .new-tab,
+  html body #newTab svg, html body .new-tab svg, html body .row, html body .row::before {
+    transition-duration: 0.01ms !important; transition-timing-function: linear !important;
+  }
+}
+body[data-respect-rm="1"] .ripple-dot { animation: none; }
