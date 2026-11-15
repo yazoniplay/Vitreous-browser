@@ -354,6 +354,7 @@
     b.dataset.oled = S.theme === 'midnight' ? '1' : '0';
     b.dataset.motion = S.motion ? 'on' : 'off';
     b.dataset.fx = S.lowfx ? 'low' : 'high';
+    b.dataset.pinned = S.tabs !== 'top' && !S.collapsed ? '1' : '0';
     b.dataset.dynamicTheme = S.dynamicTheme ? '1' : '0';
     b.dataset.tabs = S.tabs;
     b.dataset.side = S.sideSide;
