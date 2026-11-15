@@ -579,7 +579,38 @@
   }
   const btn = (label, fn, cls = '') => h('button', { class: 'btn ' + cls, text: label, onclick: fn });
   const row = (label, sub, control, cls = '') => h('div', { class: 'row ' + cls }, h('div', {}, label, sub ? h('small', { text: sub }) : null), control);
-  const group = (id, title, i, ...kids) => h('div', { class: 'group rise', style: `--i:${Math.min(i, 5)}`, id: 'grp-' + id }, h('h3', { text: title }), ...kids);
+  const ICONS = {
+    palette: '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7" r="1"/>',
+    image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>',
+    drop: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>',
+    type: '<path d="M5 19l7-14 7 14M8 14h8"/>',
+    layout: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/>',
+    tabs: '<rect x="3" y="7" width="18" height="12" rx="3"/><path d="M3 11h18M7 7V5h5v2"/>',
+    layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+    sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+    home: '<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/>',
+    search: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/>',
+    shield: '<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    keyboard: '<rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9"/>',
+    code: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
+    bookmark: '<path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  };
+  const ico = (n) => { const t = document.createElement('template'); t.innerHTML = `<svg viewBox="0 0 24 24" class="ico" aria-hidden="true">${ICONS[n]}</svg>`; return t.content.firstChild; };
+  const GROUP_ICON = { appearance: 'palette', wallpaper: 'image', glass: 'drop', type: 'type', layout: 'layout', tabs: 'tabs', spaces: 'layers', toolbar: 'sliders', start: 'home', search: 'search', privacy: 'shield', shortcuts: 'keyboard', advanced: 'code' };
+  const SECTIONS = [
+    ['appearance', 'Appearance', 'palette', 'Themes, colors, wallpaper, glass and fonts', ['appearance', 'wallpaper', 'glass', 'type']],
+    ['layout', 'Layout and tabs', 'layout', 'Sidebar, tab style, density and spaces', ['layout', 'tabs', 'spaces']],
+    ['toolbar', 'Toolbar', 'sliders', 'Buttons and the address bar', ['toolbar']],
+    ['start', 'Start page', 'home', 'What you see on a new tab', ['start']],
+    ['search', 'Search and startup', 'search', 'Search engines, new tabs and homepage', ['search']],
+    ['privacy', 'Privacy and security', 'shield', 'Tracking, HTTPS and fingerprinting', ['privacy']],
+    ['shortcuts', 'Shortcuts', 'keyboard', 'Keyboard bindings', ['shortcuts']],
+    ['advanced', 'Advanced', 'code', 'Custom CSS, backup and reset', ['advanced']],
+  ];
+  let lastSection = 'appearance';
+  let settingsGoto = null;
+  const group = (id, title, i, ...kids) => h('div', { class: 'group rise', style: `--i:${Math.min(i, 5)}`, id: 'grp-' + id }, h('h3', {}, ico(GROUP_ICON[id]), title), ...kids);
 
   /* ----- settings: replace everything in one go (import / reset) ----- */
   function replaceSettings(next) {
@@ -636,6 +667,13 @@
       });
       g.classList.toggle('hidden-row', vis === 0);
       if (vis) any = true;
+    });
+    root.classList.toggle('searching', !!q);
+    root.querySelectorAll('.sec').forEach((sec) => {
+      const has = !!sec.querySelector('.group:not(.hidden-row)');
+      sec.classList.toggle('hidden-row', !has);
+      const nb = root.querySelector(`.set-nav [data-sec="${sec.dataset.sec}"]`);
+      if (nb) nb.classList.toggle('dim', !!q && !has);
     });
     $('.nores', root).hidden = any;
   }
@@ -734,18 +772,14 @@
     const css = h('textarea', { spellcheck: 'false', 'aria-label': 'Custom CSS', placeholder: '/* Style any part of the interface, e.g. */\n.sidebar { border-radius: 8px; }', text: S.css, oninput: () => set('css', css.value.slice(0, 20000)) });
 
     const search = h('input', { type: 'search', placeholder: 'Search settings', 'aria-label': 'Search settings' });
-    const groups = [['appearance', 'Appearance'], ['wallpaper', 'Wallpaper'], ['glass', 'Glass'], ['type', 'Typography'], ['layout', 'Layout'], ['tabs', 'Tabs'], ['toolbar', 'Toolbar'], ['spaces', 'Spaces'], ['start', 'Start page'], ['search', 'Search & behavior'], ['privacy', 'Privacy'], ['shortcuts', 'Shortcuts'], ['advanced', 'Advanced']];
-    const goto = (id) => { const g = document.getElementById('grp-' + id); g && g.scrollIntoView({ behavior: motionOn() ? 'smooth' : 'auto', block: 'start' }); };
-
     drawEngines(); drawBm(); drawSpaces(); drawKeys();
     const auroraSw = swatches(Object.keys(AURORA), 'aurora', (k) => (k === 'custom' ? 'conic-gradient(#ff5e62, #ffd93b, #2fd180, #2b7fff, #b57bff, #ff5e62)' : `linear-gradient(135deg, ${AURORA[k].join(',')})`));
 
     const page = h('div', { class: 'settings' },
       h('h2', { class: 'rise', style: '--i:0', text: 'Settings' }),
       h('p', { class: 'rise', style: '--i:1', text: 'Every surface of Vitreous is adjustable. Changes apply instantly.' }),
-      h('div', { class: 'set-tools' }, search, h('div', { class: 'chips' }, groups.map(([id, t]) => h('button', { text: t, onclick: () => goto(id) })))),
 
-      group('appearance', 'Appearance', gi++,
+      group('appearance', 'Colors and theme', gi++,
         row('Theme', 'Midnight is true black for OLED screens', seg([['dark', 'Dark'], ['light', 'Light'], ['midnight', 'Midnight'], ['auto', 'Auto']], 'theme')),
         row('Accent', 'Pick a preset or any color', swatches(ACCENTS, 'accent', (c) => c, (mark) => colorInput(() => S.accent, (v) => { set('accent', v); mark(); }, 'Custom accent'))),
         row('Background glow', 'Colors of the soft light behind the glass', auroraSw),
@@ -844,8 +878,37 @@
 
       h('div', { class: 'nores', hidden: true, text: 'No settings match your search.' }));
 
-    search.addEventListener('input', () => filterSettings(page, search.value));
-    return h('div', { class: 'page' }, page);
+    /* split the cards into sections, with a left nav like a real browser */
+    const noRes = $('.nores', page);
+    const nav = h('nav', { class: 'set-nav', 'aria-label': 'Settings sections' });
+    const main = h('div', { class: 'set-main' });
+    const root = h('div', { class: 'settings' },
+      h('div', { class: 'set-head' }, h('h2', { text: 'Settings' }), search),
+      h('div', { class: 'set-layout' }, nav, main));
+    const select = (id, scroll) => {
+      lastSection = id;
+      root.querySelectorAll('.sec').forEach((x) => x.classList.toggle('on', x.dataset.sec === id));
+      nav.querySelectorAll('button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.sec === id)));
+      if (search.value) { search.value = ''; filterSettings(root, ''); }
+      const pg = root.closest('.page'); if (pg && scroll !== false) pg.scrollTop = 0;
+    };
+    SECTIONS.forEach(([id, label, ic, sub, gs]) => {
+      nav.append(h('button', { 'data-sec': id, onclick: () => select(id) }, ico(ic), h('span', { text: label })));
+      const sec = h('section', { class: 'sec', 'data-sec': id }, h('div', { class: 'sec-head' }, h('div', { class: 'sec-ico' }, ico(ic)), h('div', {}, h('h2', { text: label }), h('p', { text: sub }))));
+      gs.forEach((g) => sec.append(page.querySelector('#grp-' + g)));
+      main.append(sec);
+    });
+    main.append(noRes);
+    select(SECTIONS.some((x) => x[0] === lastSection) ? lastSection : 'appearance', false);
+    settingsGoto = (anchor) => {
+      const el = document.getElementById(anchor);
+      const sec = el && el.closest('.sec');
+      if (!sec) return;
+      select(sec.dataset.sec, false);
+      el.scrollIntoView({ behavior: motionOn() ? 'smooth' : 'auto', block: 'start' });
+    };
+    search.addEventListener('input', () => filterSettings(root, search.value));
+    return h('div', { class: 'page' }, root);
   }
 
   /* ---------- palette ---------- */
@@ -931,7 +994,7 @@
   function openSettings(anchor) {
     const t = cur();
     if (urlOf(t) !== 'vitreous://settings') navigate(t, 'vitreous://settings');
-    if (typeof anchor === 'string') setTimeout(() => { const g = document.getElementById(anchor); g && g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);
+    if (typeof anchor === 'string') setTimeout(() => settingsGoto && settingsGoto(anchor), 120);
   }
 
   /* ---------- wiring ---------- */
