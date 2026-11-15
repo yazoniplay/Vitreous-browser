@@ -85,7 +85,7 @@
     navBtns: true, shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startHint: true,
-    startClock: false, clock24: true, startGreeting: false, userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
+    startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
     bookmarks: DEFAULT_BOOKMARKS, spaces: DEFAULT_SPACES,
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
@@ -111,7 +111,7 @@
     font: ['system', 'inter', 'serif', 'mono', 'rounded', 'custom'], density: ['compact', 'cozy', 'roomy'],
     tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['round', 'flat', 'underline'],
     closeBtn: ['hover', 'always', 'never'], addrShape: ['pill', 'round', 'square'], addrAlign: ['center', 'left'],
-    newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'],
+    newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'], startLayout: ['centered', 'left', 'command'],
     cookies: ['all', 'third', 'block'], permLocation: ['ask', 'allow', 'block'], permCamera: ['ask', 'allow', 'block'], permMic: ['ask', 'allow', 'block'], permNotify: ['ask', 'allow', 'block'],
     safeBrowsing: ['off', 'standard', 'enhanced'], dnsProvider: ['cloudflare', 'quad9', 'mullvad', 'nextdns'], webrtc: ['default', 'public', 'off'],
     lang: ['en-US', 'en-GB', 'sv-SE', 'de-DE', 'fr-FR', 'es-ES', 'pt-BR', 'ja-JP', 'zh-CN'], sleepAfter: ['5', '15', '30', '60'], proxy: ['system', 'none', 'manual'], channel: ['stable', 'beta', 'nightly'],
@@ -497,6 +497,8 @@
   function wallData() { if (wallCache === null) { try { wallCache = localStorage.getItem(WALL_KEY) || ''; } catch { wallCache = ''; } } return wallCache; }
   function setWall(dataUrl) { wallCache = dataUrl; try { dataUrl ? localStorage.setItem(WALL_KEY, dataUrl) : localStorage.removeItem(WALL_KEY); } catch { toast('Image too large to store'); wallCache = ''; return false; } return true; }
   const set = (k, v) => { S[k] = v; apply(); save(); };
+  /* re-render the start page when a start-page setting changes while it is open */
+  const refreshStart = () => { const t = cur(); if (t && urlOf(t) === 'vitreous://newtab') render(); };
 
   /* ---------- tabs rendering (keyed, animated) ---------- */
   function tabEl(t, side) {
@@ -1152,6 +1154,8 @@
     any: ['Welcome back', 'Hello there', 'Hey', 'Good to see you', 'Ready when you are', 'What are we exploring today?', 'Nice to see you', 'Hi'],
   };
   function greetText() {
+    const custom = S.customGreeting.trim();
+    if (custom) return custom;
     const hr = new Date().getHours();
     const part = hr < 5 ? 'night' : hr < 12 ? 'morning' : hr < 18 ? 'afternoon' : 'evening';
     const pool = [...GREETINGS[part], ...GREETINGS.any];
@@ -1164,6 +1168,7 @@
     return g.endsWith('?') ? `${n}, ${g[0].toLowerCase()}${g.slice(1)}` : `${g}, ${n}`;
   }
   function startPage() {
+    const cmd = S.startLayout === 'command';
     const input = h('input', {
       type: 'text', placeholder: 'Search or enter address', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Search',
       onkeydown: (e) => { if (e.key === 'Enter' && input.value.trim()) navigate(cur(), input.value); },
@@ -1180,7 +1185,7 @@
     if (S.startLogo) kids.push(h('img', { ...rise(), src: 'assets/vitreous-mark.svg', alt: 'Vitreous' }));
     if (S.startTitle.trim()) kids.push(h('h1', { ...rise(), text: S.startTitle }));
     if (S.startSearch) kids.push(h('label', rise('address'), input));
-    if (S.startTiles) {
+    if (S.startTiles && !cmd) {
       const tiles = h('div', rise('tiles'));
       const drawTiles = () => {
         tiles.replaceChildren(...S.bookmarks.map((b, i) => {
@@ -1208,12 +1213,12 @@
       drawTiles();
       kids.push(tiles);
     }
-    if (S.startHint) {
+    if (S.startHint && !cmd) {
       const hint = h('p', rise('hint'), h('kbd', { text: keyText(S.keys.palette) }), ' palette  ·  ', h('kbd', { text: keyText(S.keys.newTab) }), ' new tab  ·  ', h('kbd', { text: keyText(S.keys.sidebar) }), ' sidebar',
         h('button', { class: 'x-mini', title: 'Hide this hint', 'aria-label': 'Hide hint', onclick: () => { set('startHint', false); hint.remove(); } }, ico('x')));
       kids.push(hint);
     }
-    return h('div', { class: 'page' }, h('div', { class: 'start' }, kids), S.startWidgets ? widgetsBlock() : null);
+    return h('div', { class: 'page start-page layout-' + S.startLayout }, h('div', { class: 'start' }, kids), S.startWidgets && !cmd ? widgetsBlock() : null);
   }
 
   /* ---------- settings page ---------- */
@@ -1714,7 +1719,6 @@
       group('start', 'Start page', gi++,
         row('Logo', null, toggle('startLogo')),
         row('Title', 'Leave empty to hide', text('startTitle', 'vitreous', '200px', 40)),
-        row('Greeting', null, toggle('startGreeting')),
         row('Your name', 'Used in the greeting', text('userName', 'Optional', '180px', 30)),
         row('Clock', null, toggle('startClock')),
         row('24-hour clock', null, toggle('clock24')),
@@ -1750,6 +1754,9 @@
 
 
       group('startup', 'When Vitreous starts', gi++,
+        row('Start page layout', 'Centered, left-aligned, or Command Mode: just the search box, no tiles or widgets', seg([['centered', 'Centered'], ['left', 'Left-aligned'], ['command', 'Command Mode']], 'startLayout', refreshStart)),
+        row('Greeting', 'Shows a line above the start page', toggle('startGreeting', refreshStart)),
+        row('Custom greeting', 'Leave empty for a random greeting that changes each session', text('customGreeting', 'e.g. Welcome back, Sam', '240px', 120, refreshStart)),
         row('On startup', 'Session restore and specific pages apply once the engine layer is connected', ddrop('startup', [['start', 'Open the start page'], ['restore', 'Continue where you left off'], ['pages', 'Open specific pages']], 'On startup')),
         spBoxPages,
         row('New tabs open', null, seg([['start', 'Start page'], ['blank', 'Blank'], ['home', 'Homepage']], 'newTabMode')),

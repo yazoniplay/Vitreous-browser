@@ -1928,3 +1928,18 @@ html body .widget.widget-ph { background: rgba(255,255,255,.03); border: 1.5px d
 html body .widget.widget-ph:hover { transform: none; }
 html body .widget-ph::before, html body .widget-ph::after { display: none !important; }
 html body .widget-ph > * { visibility: hidden; }
+
+
+/* ======================================================================
+   Start page layouts: centered (default), left-aligned, command mode
+   ====================================================================== */
+html body .layout-left .start { max-width: none; width: 100%; margin: 9vh 0 0; padding-left: clamp(24px, 7vw, 120px); padding-right: 24px; box-sizing: border-box; text-align: left; }
+html body .layout-left .start img { margin: 0; }
+html body .layout-left .start h1 { letter-spacing: 0.12em; padding-left: 0; text-align: left; }
+html body .layout-left .start .address { width: min(560px, 100%); }
+html body .layout-left .start .greeting, html body .layout-left .start .clock { text-align: left; }
+html body .layout-left .start .tiles { justify-content: flex-start; }
+html body .layout-left .start .hint { text-align: left; }
+html body .layout-left .widgets { margin-left: clamp(24px, 7vw, 120px); margin-right: 24px; max-width: none; }
+html body .layout-command .start { max-width: 640px; margin-top: 24vh; }
+html body .layout-command .start h1 { margin: 10px 0 22px; }
