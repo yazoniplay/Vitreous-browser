@@ -55,14 +55,14 @@
     navBtns: true, shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startHint: true,
-    startClock: false, clock24: true, startGreeting: false, userName: '', tileSize: 108,
+    startClock: false, clock24: true, startGreeting: false, userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
     bookmarks: DEFAULT_BOOKMARKS, spaces: DEFAULT_SPACES,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
     /* privacy */
     trackers: true, https: true, fingerprint: true, dnt: true,
     /* advanced */
-    css: '', keys: DEFAULT_KEYS,
+    css: '', keys: DEFAULT_KEYS, widgets: [], commands: [],
   };
   const ENUMS = {
     theme: ['dark', 'light', 'midnight', 'auto'], wallMode: ['none', 'url', 'upload'],
@@ -83,6 +83,13 @@
     mono: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
     rounded: 'ui-rounded, "SF Pro Rounded", "Varela Round", Nunito, system-ui, sans-serif',
   };
+  const WIDGET_TYPES = {
+    clock: ['Clock', 'clock'], calendar: ['Calendar', 'calendar'], notes: ['Notes', 'note'], todo: ['To-do', 'check'],
+    countdown: ['Countdown', 'flag'], timer: ['Timer', 'timer'], weather: ['Weather', 'sun'],
+  };
+  const TOGGLES = [['motion', 'Animations'], ['lowfx', 'Low-power glass'], ['collapsed', 'Compact sidebar'], ['hoverExpand', 'Expand sidebar on hover'],
+    ['favs', 'Tab icons'], ['siteIcons', 'Site icons'], ['showHome', 'Home button'], ['shield', 'Privacy shield button'], ['startHint', 'Start page hint'], ['startWidgets', 'Start page widgets']];
+  const CMD_KINDS = ['url', 'newtab', 'action', 'toggle'];
   const DENSITY = { compact: 32, cozy: 38, roomy: 46 };
   const ENGINES = {
     ddg: ['DuckDuckGo', 'https://duckduckgo.com/?q='],
@@ -219,6 +226,31 @@
     }
     const allE = { ...ENGINES }; out.engines.forEach((e) => { allE[e.id] = 1; });
     if (!allE[out.search]) out.search = typeof src.search === 'string' && allE[src.search] ? src.search : 'ddg';
+    const cleanUrl = (u) => (typeof u === 'string' && /^(https?:\/\/|vitreous:\/\/(newtab|settings))/i.test(u) ? u.slice(0, 500) : '');
+    if (Array.isArray(src.widgets)) {
+      const seenW = new Set();
+      out.widgets = src.widgets.slice(0, 12).map((w) => {
+        if (!w || !/^[\w-]{1,24}$/.test(w.id) || !(w.type in WIDGET_TYPES) || seenW.has(w.id)) return null;
+        seenW.add(w.id);
+        const d = w.data && typeof w.data === 'object' ? w.data : {}, o = widgetDefaults(w.type);
+        if (w.type === 'notes') o.text = str(d.text, 5000);
+        else if (w.type === 'todo' && Array.isArray(d.items)) o.items = d.items.slice(0, 50).filter((x) => x && typeof x.t === 'string').map((x) => ({ t: x.t.slice(0, 120), d: x.d === true }));
+        else if (w.type === 'countdown') { o.label = str(d.label, 40); o.date = /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : ''; }
+        else if (w.type === 'timer') { o.mins = Math.min(180, Math.max(1, Math.round(+d.mins) || 25)); o.left = Math.min(o.mins * 60, Math.max(0, +d.left || o.mins * 60)); }
+        else if (w.type === 'weather') { o.place = str(d.place, 60); o.lat = clampN(d.lat, [-90, 90]); o.lon = clampN(d.lon, [-180, 180]); o.unit = d.unit === 'f' ? 'f' : 'c'; }
+        return { id: w.id, type: w.type, data: o };
+      }).filter(Boolean);
+    }
+    if (Array.isArray(src.commands)) {
+      out.commands = src.commands.slice(0, 30).map((c) => {
+        if (!c || !CMD_KINDS.includes(c.kind) || !/^[\w-]{1,24}$/.test(c.id)) return null;
+        let t = '';
+        if (c.kind === 'url' || c.kind === 'newtab') t = cleanUrl(c.target);
+        else if (c.kind === 'action') t = c.target in DEFAULT_KEYS ? c.target : '';
+        else t = TOGGLES.some((x) => x[0] === c.target) ? c.target : '';
+        return t ? { id: c.id, name: str(c.name, 40) || 'Command', kind: c.kind, target: t } : null;
+      }).filter(Boolean);
+    }
     if (src.keys && typeof src.keys === 'object') {
       for (const id of Object.keys(DEFAULT_KEYS)) {
         const v = src.keys[id];
@@ -388,7 +420,7 @@
     const title = titleOf(t), letter = favLetter(t);
     const tt = n.querySelector('.t'), ff = n.querySelector('.fav');
     if (tt.textContent !== title) tt.textContent = title;
-    if (ff.textContent !== letter) ff.textContent = letter;
+    paintFav(ff, urlOf(t), letter);
   }
   function reconcile(list, items, side) {
     const ind = list.querySelector('.indicator');
@@ -484,6 +516,192 @@
     renderTabs(); renderSpaces(); renderToolbar(); renderViewport(); save();
   }
 
+  /* ---------- site icons ---------- */
+  const badIcons = new Set();
+  const hostOf = (u) => { try { return new URL(u).host; } catch { return ''; } };
+  function paintFav(el, url, letter) {
+    const bad = badIcons.has(hostOf(url));
+    const key = [url, letter, S.siteIcons, bad].join('|');
+    if (el.dataset.k === key) return;
+    el.dataset.k = key;
+    el.replaceChildren(); el.className = el.className.replace(/\b(has-img|has-ico|logo)\b/g, '').trim(); el.textContent = '';
+    if (url === 'vitreous://settings') { el.classList.add('has-ico'); el.append(ico('gear')); return; }
+    if (url === 'vitreous://blank') { el.classList.add('has-ico'); el.append(ico('circle')); return; }
+    if (url === 'vitreous://newtab') { el.classList.add('has-img', 'logo'); el.append(h('img', { src: 'assets/vitreous-mark.svg', alt: '' })); return; }
+    let src = '';
+    try { const u = new URL(url); if (/^https?:$/.test(u.protocol)) src = u.origin + '/favicon.ico'; } catch { /* letter */ }
+    if (S.siteIcons && src && !bad) {
+      const img = h('img', { src, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' });
+      img.addEventListener('error', () => { badIcons.add(hostOf(url)); el.dataset.k = ''; paintFav(el, url, letter); });
+      img.addEventListener('load', () => { if (img.naturalWidth < 2) img.dispatchEvent(new Event('error')); });
+      el.classList.add('has-img'); el.append(img);
+      return;
+    }
+    el.textContent = letter;
+  }
+
+  /* ---------- widgets ---------- */
+  const widgetDefaults = (t) => ({
+    notes: { text: '' }, todo: { items: [] }, countdown: { label: '', date: '' }, timer: { mins: 25, left: 1500 },
+    weather: { place: '', lat: 0, lon: 0, unit: 'c' },
+  }[t] || {});
+  const newWidget = (type) => ({ id: 'w' + uid(), type, data: widgetDefaults(type) });
+  const timers = new Map(); /* id -> { running, end }, survives leaving the start page */
+  const weatherCache = new Map();
+  const WX = (code) => (code === 0 ? ['Clear', 'sun'] : code <= 2 ? ['Partly cloudy', 'partly'] : code === 3 ? ['Overcast', 'cloud']
+    : code === 45 || code === 48 ? ['Fog', 'fog'] : (code >= 51 && code <= 67) || (code >= 80 && code <= 82) ? ['Rain', 'rain']
+      : (code >= 71 && code <= 77) || code === 85 || code === 86 ? ['Snow', 'snow'] : code >= 95 ? ['Thunderstorm', 'storm'] : ['Cloudy', 'cloud']);
+  const dayName = (iso) => { try { return new Date(iso + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' }); } catch { return ''; } };
+
+  function wClock() {
+    const t = h('div', { class: 'w-big' }), d = h('div', { class: 'w-sub' });
+    const tick = () => { t.textContent = clockText(); d.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }); };
+    tick();
+    const iv = setInterval(() => { if (!t.isConnected) clearInterval(iv); else tick(); }, 1000);
+    return h('div', {}, t, d);
+  }
+  function wCalendar() {
+    const ref = new Date(); ref.setDate(1);
+    const title = h('strong'), grid = h('div', { class: 'cal-g' });
+    const draw = () => {
+      title.textContent = ref.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      const first = (ref.getDay() + 6) % 7, dim = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
+      const now = new Date();
+      const cells = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((x) => h('span', { class: 'dow', text: x }));
+      for (let i = 0; i < first; i++) cells.push(h('span'));
+      for (let d = 1; d <= dim; d++) cells.push(h('span', { class: now.getDate() === d && now.getMonth() === ref.getMonth() && now.getFullYear() === ref.getFullYear() ? 'today' : '', text: String(d) }));
+      grid.replaceChildren(...cells);
+    };
+    draw();
+    const step = (n) => () => { ref.setMonth(ref.getMonth() + n); draw(); };
+    return h('div', {}, h('div', { class: 'cal-h' }, title, h('span', { class: 'sp' }), ibtn('left', 'Previous month', step(-1)), ibtn('right', 'Next month', step(1))), grid);
+  }
+  function wNotes(w) {
+    let t = 0;
+    const ta = h('textarea', { class: 'w-notes', placeholder: 'Write something…', maxlength: 5000, 'aria-label': 'Notes', text: w.data.text, spellcheck: 'false',
+      oninput: () => { w.data.text = ta.value; clearTimeout(t); t = setTimeout(save, 400); } });
+    ta.addEventListener('blur', () => { clearTimeout(t); save(); });
+    return ta;
+  }
+  function wTodo(w) {
+    const list = h('div', { class: 'todo' });
+    const draw = () => {
+      list.replaceChildren(...w.data.items.map((it, i) => h('div', { class: 'todo-i' + (it.d ? ' done' : '') },
+        h('button', { class: 'w-chk', 'aria-pressed': String(it.d), 'aria-label': 'Done', onclick: () => { it.d = !it.d; save(); draw(); } }, ico('check')),
+        h('span', { text: it.t }),
+        h('button', { class: 'x-mini', 'aria-label': 'Delete', title: 'Delete', onclick: () => { w.data.items.splice(i, 1); save(); draw(); } }, ico('x')))));
+    };
+    draw();
+    const inp = h('input', { type: 'text', placeholder: 'Add a task', maxlength: 120, 'aria-label': 'New task',
+      onkeydown: (e) => { if (e.key === 'Enter' && inp.value.trim()) { if (w.data.items.length >= 50) { toast('Limit of 50 tasks'); return; } w.data.items.push({ t: inp.value.trim(), d: false }); inp.value = ''; save(); draw(); } } });
+    return h('div', { class: 'w-col' }, inp, list);
+  }
+  function wCountdown(w) {
+    const out = h('div', { class: 'w-big' }), sub = h('div', { class: 'w-sub' });
+    const show = () => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(w.data.date)) { out.textContent = '—'; sub.textContent = 'Pick a date'; return; }
+      const days = Math.round((new Date(w.data.date + 'T00:00:00') - new Date(new Date().toDateString())) / 864e5);
+      out.textContent = String(Math.abs(days));
+      sub.textContent = (days === 0 ? 'Today' : (Math.abs(days) === 1 ? 'day' : 'days') + (days > 0 ? ' to go' : ' ago')) + (w.data.label ? ' · ' + w.data.label : '');
+    };
+    show();
+    const lab = h('input', { type: 'text', value: w.data.label, placeholder: 'Event name', maxlength: 40, 'aria-label': 'Event name', oninput: () => { w.data.label = lab.value; save(); show(); } });
+    const dt = h('input', { type: 'date', value: w.data.date, 'aria-label': 'Date', oninput: () => { w.data.date = dt.value; save(); show(); } });
+    return h('div', { class: 'w-col' }, out, sub, lab, dt);
+  }
+  function wTimer(w) {
+    const d = w.data, st = timers.get(w.id) || { running: false, end: 0 };
+    timers.set(w.id, st);
+    if (st.running) d.left = Math.max(0, (st.end - Date.now()) / 1000);
+    if (st.running && d.left <= 0) st.running = false;
+    const disp = h('div', { class: 'w-big' });
+    const fmt = (s) => pad2(Math.floor(s / 60)) + ':' + pad2(Math.floor(s % 60));
+    const show = () => { disp.textContent = fmt(Math.max(0, Math.ceil(d.left))); };
+    const go = h('button', { class: 'btn' });
+    const sync = () => { go.replaceChildren(ico(st.running ? 'pause' : 'play'), h('span', { text: st.running ? 'Pause' : 'Start' })); };
+    show(); sync();
+    go.addEventListener('click', () => {
+      if (st.running) { st.running = false; d.left = Math.max(0, (st.end - Date.now()) / 1000); save(); }
+      else { if (d.left <= 0) d.left = d.mins * 60; st.end = Date.now() + d.left * 1000; st.running = true; }
+      sync(); show();
+    });
+    const iv = setInterval(() => {
+      if (!disp.isConnected) { clearInterval(iv); return; }
+      if (!st.running) return;
+      d.left = Math.max(0, (st.end - Date.now()) / 1000); show();
+      if (d.left <= 0) { st.running = false; sync(); save(); toast('Timer finished'); }
+    }, 250);
+    const mins = h('input', { type: 'number', min: 1, max: 180, value: d.mins, 'aria-label': 'Minutes', style: 'width:70px',
+      onchange: () => { d.mins = Math.min(180, Math.max(1, Math.round(+mins.value) || 25)); mins.value = d.mins; if (!st.running) { d.left = d.mins * 60; show(); } save(); } });
+    return h('div', { class: 'w-col' }, disp, h('div', { class: 'w-row' }, go, ibtn('reset', 'Reset', () => { st.running = false; d.left = d.mins * 60; show(); sync(); save(); }), mins, h('span', { class: 'w-sub', text: 'min' })));
+  }
+  function wWeather(w) {
+    const d = w.data, box = h('div', { class: 'w-col' });
+    const ask = (msg) => {
+      const inp = h('input', { type: 'text', placeholder: 'City', maxlength: 60, 'aria-label': 'City', value: d.place });
+      const find = async () => {
+        const q = inp.value.trim(); if (!q) return;
+        box.replaceChildren(h('div', { class: 'w-sub', text: 'Searching…' }));
+        try {
+          const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=' + encodeURIComponent(q));
+          const j = await r.json(); const p = j.results && j.results[0];
+          if (!p || !Number.isFinite(+p.latitude)) { ask('No match for “' + q + '”'); return; }
+          d.place = [p.name, p.country].filter(Boolean).join(', ').slice(0, 60); d.lat = +p.latitude; d.lon = +p.longitude; save(); load2();
+        } catch { ask('Couldn’t reach the weather service'); }
+      };
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') find(); });
+      box.replaceChildren(h('div', { class: 'w-sub', text: msg || 'Choose a city. Weather comes from Open-Meteo.' }), inp, h('div', { class: 'w-row' }, btn('Show weather', find)));
+    };
+    async function load2() {
+      if (!d.place) { ask(); return; }
+      box.replaceChildren(h('div', { class: 'w-sub', text: 'Loading…' }));
+      const key = [d.lat, d.lon, d.unit].join();
+      try {
+        let c = weatherCache.get(key);
+        if (!c || Date.now() - c.t > 6e5) {
+          const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${d.lat}&longitude=${d.lon}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4&temperature_unit=${d.unit === 'f' ? 'fahrenheit' : 'celsius'}`);
+          if (!r.ok) throw new Error('bad');
+          c = { t: Date.now(), j: await r.json() }; weatherCache.set(key, c);
+        }
+        const j = c.j, cur0 = j.current, dl = j.daily;
+        const [label, icn] = WX(+cur0.weather_code);
+        box.replaceChildren(
+          h('div', { class: 'wx-main' }, ico(icn), h('div', { class: 'w-big', text: Math.round(+cur0.temperature_2m) + '°' }), h('div', { class: 'w-sub', text: label })),
+          h('div', { class: 'w-sub', text: d.place }),
+          h('div', { class: 'wx-days' }, [1, 2, 3].map((i) => h('div', {}, h('span', { text: dayName(dl.time[i]) }), ico(WX(+dl.weather_code[i])[1]), h('b', { text: Math.round(+dl.temperature_2m_max[i]) + '°' }), h('span', { text: Math.round(+dl.temperature_2m_min[i]) + '°' })))),
+          h('div', { class: 'w-row' }, btn(d.unit === 'f' ? '°F' : '°C', () => { d.unit = d.unit === 'f' ? 'c' : 'f'; save(); load2(); }), btn('Change city', () => ask())));
+      } catch {
+        box.replaceChildren(h('div', { class: 'w-sub', text: 'Couldn’t load the weather. Check your connection.' }), h('div', { class: 'w-row' }, btn('Retry', load2), btn('Change city', () => ask())));
+      }
+    }
+    load2();
+    return box;
+  }
+  const WIDGET_VIEW = { clock: wClock, calendar: wCalendar, notes: wNotes, todo: wTodo, countdown: wCountdown, timer: wTimer, weather: wWeather };
+
+  function widgetCard(w, onRemove) {
+    const [name, icn] = WIDGET_TYPES[w.type];
+    const card = h('div', { class: 'widget glass', 'data-type': w.type },
+      h('div', { class: 'w-head' }, ico(icn), h('span', { text: name }),
+        h('button', { class: 'x-mini', title: 'Remove widget', 'aria-label': 'Remove ' + name, onclick: () => { onRemove(); card.remove(); } }, ico('x'))),
+      WIDGET_VIEW[w.type](w));
+    return card;
+  }
+  function widgetsBlock() {
+    const box = h('div', { class: 'widgets rise', style: '--i:9' });
+    const menu = h('div', { class: 'w-menu', hidden: true }, Object.entries(WIDGET_TYPES).map(([t, [n, i]]) => h('button', {
+      class: 'btn', onclick: () => {
+        if (S.widgets.length >= 12) { toast('Limit of 12 widgets'); return; }
+        const w = newWidget(t); S.widgets.push(w); save();
+        box.insertBefore(widgetCard(w, () => { S.widgets = S.widgets.filter((x) => x !== w); save(); }), bar);
+        menu.hidden = true;
+      } }, ico(i), h('span', { text: n }))));
+    const bar = h('div', { class: 'w-add' }, h('button', { class: 'btn', onclick: () => { menu.hidden = !menu.hidden; } }, ico('plus'), h('span', { text: 'Add widget' })), menu);
+    S.widgets.forEach((w) => box.append(widgetCard(w, () => { S.widgets = S.widgets.filter((x) => x !== w); save(); })));
+    box.append(bar);
+    return box;
+  }
+
   /* ---------- start page ---------- */
   const pad2 = (x) => String(x).padStart(2, '0');
   function clockText() {
@@ -492,10 +710,24 @@
     const ap = hr >= 12 ? ' PM' : ' AM'; hr = hr % 12 || 12;
     return hr + ':' + pad2(d.getMinutes()) + ap;
   }
+  const GREETINGS = {
+    night: ['Good night', 'Still up?', 'Burning the midnight oil?'],
+    morning: ['Good morning', 'Rise and shine', 'Morning', 'Fresh start today'],
+    afternoon: ['Good afternoon', 'Hope your day is going well', 'Afternoon'],
+    evening: ['Good evening', 'Winding down?', 'Evening'],
+    any: ['Welcome back', 'Hello there', 'Hey', 'Good to see you', 'Ready when you are', 'What are we exploring today?', 'Nice to see you', 'Hi'],
+  };
   function greetText() {
     const hr = new Date().getHours();
-    const g = hr < 5 ? 'Good night' : hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
-    return S.userName.trim() ? g + ', ' + S.userName.trim() : g;
+    const part = hr < 5 ? 'night' : hr < 12 ? 'morning' : hr < 18 ? 'afternoon' : 'evening';
+    const pool = [...GREETINGS[part], ...GREETINGS.any];
+    let last = ''; try { last = sessionStorage.getItem('vitreous.greet') || ''; } catch { /* no storage */ }
+    const opts = pool.filter((g) => g !== last);
+    const g = opts[Math.floor(Math.random() * opts.length)];
+    try { sessionStorage.setItem('vitreous.greet', g); } catch { /* no storage */ }
+    const n = S.userName.trim();
+    if (!n) return g;
+    return g.endsWith('?') ? `${n}, ${g[0].toLowerCase()}${g.slice(1)}` : `${g}, ${n}`;
   }
   function startPage() {
     const input = h('input', {
@@ -514,14 +746,40 @@
     if (S.startLogo) kids.push(h('img', { ...rise(), src: 'assets/vitreous-mark.svg', alt: 'Vitreous' }));
     if (S.startTitle.trim()) kids.push(h('h1', { ...rise(), text: S.startTitle }));
     if (S.startSearch) kids.push(h('label', rise('address'), input));
-    if (S.startTiles && S.bookmarks.length) {
-      kids.push(h('div', { class: 'tiles' }, S.bookmarks.map((b) => h('button', { ...rise('tile'), onclick: () => navigate(cur(), b.url) },
-        h('span', { class: 'fav', text: (b.name[0] || '?').toUpperCase(), 'aria-hidden': 'true' }), b.name))));
+    if (S.startTiles) {
+      const tiles = h('div', rise('tiles'));
+      const drawTiles = () => {
+        tiles.replaceChildren(...S.bookmarks.map((b, i) => {
+          const fav = h('span', { class: 'fav', 'aria-hidden': 'true' });
+          paintFav(fav, b.url, (b.name[0] || '?').toUpperCase());
+          return h('div', { class: 'tile-wrap' },
+            h('button', { class: 'tile', onclick: () => navigate(cur(), b.url) }, fav, b.name),
+            h('button', { class: 'tile-x', title: 'Remove', 'aria-label': 'Remove ' + b.name, onclick: () => { S.bookmarks.splice(i, 1); save(); drawTiles(); } }, ico('x')));
+        }), h('div', { class: 'tile-wrap' }, h('button', { class: 'tile add', onclick: addForm }, h('span', { class: 'fav' }, ico('plus')), 'Add')));
+      };
+      const addForm = () => {
+        const n = h('input', { type: 'text', placeholder: 'Name', maxlength: 40, 'aria-label': 'Name' });
+        const u = h('input', { type: 'text', placeholder: 'https://…', maxlength: 500, spellcheck: 'false', 'aria-label': 'Address' });
+        const ok = () => {
+          let v = u.value.trim(); if (!v) return;
+          if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
+          try { v = new URL(v).href; } catch { toast('That is not a valid address'); return; }
+          if (S.bookmarks.length >= 24) { toast('Limit of 24 bookmarks'); return; }
+          S.bookmarks.push({ name: n.value.trim() || hostOf(v).replace(/^www\./, ''), url: v }); save(); drawTiles();
+        };
+        [n, u].forEach((x) => x.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); else if (e.key === 'Escape') drawTiles(); }));
+        tiles.replaceChildren(h('div', { class: 'tile-form' }, n, u, btn('Add', ok), btn('Cancel', drawTiles)));
+        n.focus();
+      };
+      drawTiles();
+      kids.push(tiles);
     }
     if (S.startHint) {
-      kids.push(h('p', rise('hint'), h('kbd', { text: keyText(S.keys.palette) }), ' palette  ·  ', h('kbd', { text: keyText(S.keys.newTab) }), ' new tab  ·  ', h('kbd', { text: keyText(S.keys.sidebar) }), ' sidebar'));
+      const hint = h('p', rise('hint'), h('kbd', { text: keyText(S.keys.palette) }), ' palette  ·  ', h('kbd', { text: keyText(S.keys.newTab) }), ' new tab  ·  ', h('kbd', { text: keyText(S.keys.sidebar) }), ' sidebar',
+        h('button', { class: 'x-mini', title: 'Hide this hint', 'aria-label': 'Hide hint', onclick: () => { set('startHint', false); hint.remove(); } }, ico('x')));
+      kids.push(hint);
     }
-    return h('div', { class: 'page' }, h('div', { class: 'start' }, kids));
+    return h('div', { class: 'page' }, h('div', { class: 'start' }, kids), S.startWidgets ? widgetsBlock() : null);
   }
 
   /* ---------- settings page ---------- */
@@ -577,6 +835,7 @@
     if (width) i.style.width = width;
     return i;
   }
+  const ibtn = (name, label, fn, cls = '') => { const b = h('button', { class: 'btn ibtn ' + cls, title: label, 'aria-label': label, onclick: fn }); b.append(ico(name)); return b; };
   const btn = (label, fn, cls = '') => h('button', { class: 'btn ' + cls, text: label, onclick: fn });
   const row = (label, sub, control, cls = '') => h('div', { class: 'row ' + cls }, h('div', {}, label, sub ? h('small', { text: sub }) : null), control);
   const ICONS = {
@@ -595,17 +854,37 @@
     code: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
     bookmark: '<path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    circle: '<circle cx="12" cy="12" r="7"/>',
+    command: '<path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/>',
+    grid: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
+    up: '<path d="M6 14l6-6 6 6"/>', down: '<path d="M6 10l6 6 6-6"/>', left: '<path d="M15 6l-6 6 6 6"/>', right: '<path d="M9 6l6 6-6 6"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    note: '<path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 13h7M8.5 17h5"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M9.5 3h5"/>',
+    play: '<path d="M8 5.5v13l11-6.5z"/>', pause: '<path d="M8 5v14M16 5v14"/>', reset: '<path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+    cloud: '<path d="M6.5 18a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.6-1.3A4.4 4.4 0 0 1 17 18z"/>',
+    partly: '<circle cx="8" cy="8" r="2.5"/><path d="M8 2.5v1M2.5 8h1M4.1 4.1l.7.7M11.9 4.1l-.7.7"/><path d="M8 20a3.5 3.5 0 0 1-.4-7A5 5 0 0 1 17 12a3.8 3.8 0 0 1 0 8z"/>',
+    rain: '<path d="M6.5 15a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.6-1.3A4.4 4.4 0 0 1 17 15z"/><path d="M8 18l-1 2.5M12 18l-1 2.5M16 18l-1 2.5"/>',
+    snow: '<path d="M6.5 15a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.6-1.3A4.4 4.4 0 0 1 17 15z"/><path d="M8 18.5h.01M12 20h.01M16 18.5h.01M10 22h.01M14 22h.01"/>',
+    storm: '<path d="M6.5 14a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.6-1.3A4.4 4.4 0 0 1 17 14z"/><path d="M12.5 14l-2.5 4h3l-2 4"/>',
+    fog: '<path d="M4 9h16M6 13h12M4 17h16"/>',
   };
   const ico = (n) => { const t = document.createElement('template'); t.innerHTML = `<svg viewBox="0 0 24 24" class="ico" aria-hidden="true">${ICONS[n]}</svg>`; return t.content.firstChild; };
-  const GROUP_ICON = { appearance: 'palette', wallpaper: 'image', glass: 'drop', type: 'type', layout: 'layout', tabs: 'tabs', spaces: 'layers', toolbar: 'sliders', start: 'home', search: 'search', privacy: 'shield', shortcuts: 'keyboard', advanced: 'code' };
+  const GROUP_ICON = { appearance: 'palette', wallpaper: 'image', glass: 'drop', type: 'type', layout: 'layout', tabs: 'tabs', spaces: 'layers', toolbar: 'sliders', start: 'home', widgets: 'grid', search: 'search', privacy: 'shield', shortcuts: 'keyboard', palette: 'command', advanced: 'code' };
   const SECTIONS = [
     ['appearance', 'Appearance', 'palette', 'Themes, colors, wallpaper, glass and fonts', ['appearance', 'wallpaper', 'glass', 'type']],
     ['layout', 'Layout and tabs', 'layout', 'Sidebar, tab style, density and spaces', ['layout', 'tabs', 'spaces']],
     ['toolbar', 'Toolbar', 'sliders', 'Buttons and the address bar', ['toolbar']],
-    ['start', 'Start page', 'home', 'What you see on a new tab', ['start']],
+    ['start', 'Start page', 'home', 'Greeting, shortcuts and widgets on a new tab', ['start', 'widgets']],
     ['search', 'Search and startup', 'search', 'Search engines, new tabs and homepage', ['search']],
     ['privacy', 'Privacy and security', 'shield', 'Tracking, HTTPS and fingerprinting', ['privacy']],
-    ['shortcuts', 'Shortcuts', 'keyboard', 'Keyboard bindings', ['shortcuts']],
+    ['shortcuts', 'Shortcuts and palette', 'keyboard', 'Keyboard bindings and your own palette commands', ['shortcuts', 'palette']],
     ['advanced', 'Advanced', 'code', 'Custom CSS, backup and reset', ['advanced']],
   ];
   let lastSection = 'appearance';
@@ -711,7 +990,7 @@
           onchange: () => { let v = u.value.trim(); if (!/^https?:\/\//i.test(v)) v = 'https://' + v; try { b.url = new URL(v).href; save(); } catch { toast('That is not a valid URL'); } u.value = b.url; },
         });
         const mv = (d) => () => { const j = i + d; if (j < 0 || j >= S.bookmarks.length) return; [S.bookmarks[i], S.bookmarks[j]] = [S.bookmarks[j], S.bookmarks[i]]; save(); drawBm(); };
-        return h('div', { class: 'er' }, n, u, btn('↑', mv(-1)), btn('↓', mv(1)), btn('Remove', () => { S.bookmarks.splice(i, 1); save(); drawBm(); }, 'danger'));
+        return h('div', { class: 'er' }, n, u, ibtn('up', 'Move up', mv(-1)), ibtn('down', 'Move down', mv(1)), ibtn('x', 'Remove', () => { S.bookmarks.splice(i, 1); save(); drawBm(); }, 'danger'));
       }), h('div', { class: 'btns' }, btn('Add bookmark', () => {
         if (S.bookmarks.length >= 24) { toast('Limit of 24 bookmarks'); return; }
         S.bookmarks.push({ name: 'New bookmark', url: 'https://example.com' }); save(); drawBm();
@@ -766,6 +1045,40 @@
         return h('div', { class: 'row' }, h('div', { text: label }), b);
       }), h('div', { class: 'row' }, h('div', { text: 'Reset all shortcuts' }), btn('Reset', () => { S.keys = { ...DEFAULT_KEYS }; save(); drawKeys(); })));
     };
+
+    /* widgets list */
+    const wBox = h('div', { class: 'ed' });
+    const drawW = () => {
+      wBox.replaceChildren(...S.widgets.map((w, i) => {
+        const mv = (d) => () => { const j = i + d; if (j < 0 || j >= S.widgets.length) return; [S.widgets[i], S.widgets[j]] = [S.widgets[j], S.widgets[i]]; save(); drawW(); };
+        return h('div', { class: 'er' }, ico(WIDGET_TYPES[w.type][1]), h('span', { text: WIDGET_TYPES[w.type][0], style: 'flex:1' }),
+          ibtn('up', 'Move up', mv(-1)), ibtn('down', 'Move down', mv(1)), ibtn('x', 'Remove', () => { S.widgets.splice(i, 1); save(); drawW(); }, 'danger'));
+      }), h('div', { class: 'btns' }, Object.entries(WIDGET_TYPES).map(([t, [n, ic]]) => h('button', {
+        class: 'btn', onclick: () => { if (S.widgets.length >= 12) { toast('Limit of 12 widgets'); return; } S.widgets.push(newWidget(t)); save(); drawW(); },
+      }, ico(ic), h('span', { text: n })))));
+    };
+    /* custom palette commands */
+    const cmdBox = h('div', { class: 'ed' });
+    const drawCmds = () => {
+      cmdBox.replaceChildren(...S.commands.map((cm, i) => {
+        const name = h('input', { type: 'text', value: cm.name, maxlength: 40, 'aria-label': 'Command name', style: 'max-width:170px', oninput: () => { cm.name = name.value || 'Command'; save(); } });
+        const kind = h('select', { 'aria-label': 'Type', onchange: () => { cm.kind = kind.value; cm.target = kind.value === 'action' ? 'newTab' : kind.value === 'toggle' ? 'motion' : 'https://example.com'; save(); drawCmds(); } },
+          [['url', 'Open address'], ['newtab', 'Open in new tab'], ['action', 'Run action'], ['toggle', 'Toggle setting']].map(([v, l]) => h('option', { value: v, text: l, selected: cm.kind === v })));
+        let target;
+        if (cm.kind === 'action' || cm.kind === 'toggle') {
+          const opts = cm.kind === 'action' ? actions().map(([id, l]) => [id, l]) : TOGGLES;
+          target = h('select', { 'aria-label': 'Target', onchange: () => { cm.target = target.value; save(); } }, opts.map(([v, l]) => h('option', { value: v, text: l, selected: cm.target === v })));
+        } else {
+          target = h('input', { type: 'text', value: cm.target, maxlength: 500, spellcheck: 'false', 'aria-label': 'Address',
+            onchange: () => { let v = target.value.trim(); if (!/^(https?:\/\/|vitreous:\/\/(newtab|settings))/i.test(v)) v = 'https://' + v; try { new URL(v); cm.target = v; save(); } catch { toast('That is not a valid address'); } target.value = cm.target; } });
+        }
+        return h('div', { class: 'er' }, name, kind, target, ibtn('x', 'Remove', () => { S.commands.splice(i, 1); save(); drawCmds(); }, 'danger'));
+      }), h('div', { class: 'btns' }, btn('Add command', () => {
+        if (S.commands.length >= 30) { toast('Limit of 30 commands'); return; }
+        S.commands.push({ id: 'c' + uid(), name: 'My command', kind: 'url', target: 'https://example.com' }); save(); drawCmds();
+      })));
+    };
+    drawW(); drawCmds();
 
     const wallFile = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: () => { uploadWallpaper(wallFile.files[0]); wallFile.value = ''; } });
     const importFile = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: () => { importSettings(importFile.files[0]); importFile.value = ''; } });
@@ -825,7 +1138,8 @@
       group('tabs', 'Tabs', gi++,
         row('Tab style', null, seg([['round', 'Rounded'], ['flat', 'Flat'], ['underline', 'Underline']], 'tabShape')),
         row('Top tab width', 'Applies when tabs are on top', range('tabWidth', 110, 320, 'px')),
-        row('Show favicons', null, toggle('favs')),
+        row('Show tab icons', null, toggle('favs')),
+        row('Site icons', 'Load each site’s own icon straight from that site. Off shows a letter badge', toggle('siteIcons')),
         row('Close button', null, seg([['hover', 'On hover'], ['always', 'Always'], ['never', 'Hidden']], 'closeBtn'))),
 
       group('toolbar', 'Toolbar & address bar', gi++,
@@ -849,9 +1163,12 @@
         row('Search box', null, toggle('startSearch')),
         row('Bookmark tiles', null, toggle('startTiles')),
         row('Tile size', null, range('tileSize', 80, 160, 'px')),
-        row('Shortcut hint', null, toggle('startHint')),
-        h('div', { class: 'row' }, h('div', {}, 'Bookmarks', h('small', { text: 'Shown as tiles and in the command palette' }))),
+        row('Shortcut hint', 'Can also be dismissed with the × on the start page', toggle('startHint')),
+        row('Widgets', null, toggle('startWidgets')),
+        h('div', { class: 'row' }, h('div', {}, 'Bookmarks', h('small', { text: 'Shown as tiles and in the command palette. You can also remove or add tiles right on the start page' }))),
         bmBox),
+
+      group('widgets', 'Widgets', gi++, h('div', { class: 'warn', text: 'Widgets show on the start page. You can also add or remove them there. The weather widget contacts open-meteo.com only when you add it.' }), wBox),
 
       group('search', 'Search & behavior', gi++,
         engineBox, engineEd,
@@ -870,6 +1187,8 @@
         h('div', { class: 'warn', text: 'Prototype note: HTTPS-only and the search engine already work. Tracker blocking, fingerprint resistance and Do Not Track switch on once the engine layer is connected.' })),
 
       group('shortcuts', 'Shortcuts', gi++, h('div', { class: 'warn', text: 'Click a shortcut, then press the new keys. Shortcuts need Ctrl or Alt.' }), keyBox),
+
+      group('palette', 'Command palette', gi++, h('div', { class: 'warn', text: 'Add your own entries to the palette (Ctrl K by default): open a site, run any action, or flip a setting.' }), cmdBox),
 
       group('advanced', 'Advanced', gi++,
         h('div', { class: 'row col' }, h('div', {}, 'Custom CSS', h('small', { text: 'Applied on top of everything else. Variables like --accent, --radius and --blur are available.' })), css),
@@ -923,6 +1242,12 @@
       ['Toggle top / side tab layout', '', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
       ['Export settings', '', () => { openSettings('grp-advanced'); }],
     );
+    S.commands.forEach((cm) => c.push([cm.name, 'custom', () => {
+      if (cm.kind === 'url') navigate(cur(), cm.target);
+      else if (cm.kind === 'newtab') newTab(cm.target);
+      else if (cm.kind === 'action') { const a = actions().find((x) => x[0] === cm.target); a && a[2](); }
+      else if (cm.kind === 'toggle') { set(cm.target, !S[cm.target]); toast((TOGGLES.find((x) => x[0] === cm.target) || [0, cm.target])[1] + (S[cm.target] ? ' on' : ' off')); }
+    }]));
     S.spaces.forEach((s) => c.push(['Space: ' + s.name, 'space', () => switchSpace(s.id)]));
     S.bookmarks.forEach((b) => c.push(['Open: ' + b.name, 'bookmark', () => navigate(cur(), b.url)]));
     tabs.forEach((t) => c.push(['Tab: ' + titleOf(t), (S.spaces.find((s) => s.id === t.ws) || S.spaces[0]).name, () => activate(t.id)]));
