@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitreous</title>
+<meta name="description" content="Vitreous: a private, fast, fully customizable browser with a liquid-glass interface.">
+<link rel="icon" href="assets/favicon.ico">
+<link rel="stylesheet" href="css/vitreous.css">
+</head>
+<body data-theme="dark">
+<div class="backdrop" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<div class="app">
+  <aside class="sidebar glass" id="sidebar" aria-label="Sidebar">
+    <div class="brand"><img src="assets/vitreous-mark.svg" alt=""><span>vitreous</span></div>
+
+    <section class="side-sec tabs-sec">
+      <h4>Tabs <button class="icon-btn" id="sideNewTab" title="New tab" style="width:24px;height:24px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></h4>
+      <div class="side-list" id="sideTabs"></div>
+    </section>
+
+    <section class="side-sec">
+      <h4>Spaces</h4>
+      <div class="side-list" id="spaces"></div>
+    </section>
+
+    <section class="side-sec">
+      <h4>Bookmarks</h4>
+      <div class="side-list" id="bookmarks"></div>
+    </section>
+
+    <div class="spacer"></div>
+    <button class="side-btn" id="openSettings">Settings</button>
+  </aside>
+
+  <main class="main" id="main" data-tabs="top">
+    <div class="tabstrip glass">
+      <button class="icon-btn" id="toggleSidebar" title="Toggle sidebar"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M9 4v16"/></svg></button>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <button class="icon-btn" id="newTab" title="New tab (Alt+T)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+
+    <div class="toolbar glass">
+      <button class="icon-btn" id="sideToggle2" title="Toggle sidebar" hidden><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M9 4v16"/></svg></button>
+      <button class="icon-btn" id="back" title="Back"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button class="icon-btn" id="forward" title="Forward"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button class="icon-btn" id="reload" title="Reload"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>
+      <label class="address">
+        <svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <input id="addr" type="text" spellcheck="false" autocomplete="off" placeholder="Search or enter address" aria-label="Address bar">
+      </label>
+      <button class="icon-btn" id="shield" title="Privacy"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></button>
+      <button class="icon-btn" id="palBtn" title="Command palette (Ctrl+K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></svg></button>
+    </div>
+
+    <div class="viewport glass" id="viewport"></div>
+  </main>
+</div>
+
+<div class="pal" id="pal" role="dialog" aria-label="Command palette">
+  <div class="pal-box glass">
+    <input id="palInput" placeholder="Type a command or tab name" autocomplete="off" spellcheck="false">
+    <div class="pal-list" id="palList"></div>
+  </div>
+</div>
+<div class="toast glass" id="toast" role="status"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
