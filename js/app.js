@@ -819,23 +819,25 @@
     const trigger = h('button', { type: 'button', class: 'drop-trigger', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-label': label },
       h('span', { class: 'drop-value', text: current() }), ico('down'));
     const menu = h('div', { class: 'drop-menu', role: 'listbox', hidden: true, 'aria-label': label });
-    const close = () => { menu.hidden = true; wrap.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); };
+    const close = () => { menu.hidden = true; if (menu.parentNode !== wrap) wrap.append(menu); wrap.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); removeEventListener('scroll', close, true); removeEventListener('resize', close); };
+    /* fixed positioning so the menu is never clipped by its settings card; flips upward near the bottom */
+    const place = () => {
+      const r = trigger.getBoundingClientRect(), below = innerHeight - r.bottom - 14, above = r.top - 14, up = below < 190 && above > below;
+      Object.assign(menu.style, { position: 'fixed', left: r.left + 'px', right: 'auto', width: Math.max(r.width, 180) + 'px', maxHeight: Math.min(280, up ? above : below) + 'px', zIndex: '60',
+        top: up ? 'auto' : r.bottom + 7 + 'px', bottom: up ? innerHeight - r.top + 7 + 'px' : 'auto', transformOrigin: up ? 'bottom center' : 'top center' });
+    };
+    const open = () => { menu.hidden = false; document.body.append(menu); place(); wrap.classList.add('open'); trigger.setAttribute('aria-expanded', 'true'); addEventListener('scroll', close, true); addEventListener('resize', close); };
     const draw = () => {
       menu.replaceChildren(...options.map(([v, name]) => h('button', {
-        type: 'button', class: 'drop-option', role: 'option', 'aria-selected': String(String(v) === String(value)), text: name,
+        type: 'button', class: 'drop-option', role: 'option', 'aria-selected': String(String(v) === String(value)),
         onclick: () => { value = v; trigger.querySelector('.drop-value').textContent = name; onChange(v); draw(); close(); trigger.focus(); },
-      })));
+      }, h('span', { text: name }), ico('check'))));
     };
     draw();
-    trigger.addEventListener('click', () => {
-      const opening = menu.hidden;
-      menu.hidden = !opening;
-      wrap.classList.toggle('open', opening);
-      trigger.setAttribute('aria-expanded', String(opening));
-    });
+    trigger.addEventListener('click', () => { if (menu.hidden) open(); else close(); });
     trigger.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault(); menu.hidden = false; wrap.classList.add('open'); trigger.setAttribute('aria-expanded', 'true');
+        e.preventDefault(); if (menu.hidden) open();
         menu.querySelector('[aria-selected="true"]')?.focus();
       } else if (e.key === 'Escape') close();
     });
@@ -846,7 +848,10 @@
         items[Math.max(0, Math.min(items.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1))) ]?.focus();
       }
     });
-    wrap.addEventListener('focusout', (e) => { if (!wrap.contains(e.relatedTarget)) close(); });
+    const away = (e) => { if (!wrap.contains(e.relatedTarget) && !menu.contains(e.relatedTarget)) close(); };
+    wrap.addEventListener('focusout', away);
+    menu.addEventListener('focusout', away);
+    document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !wrap.contains(e.target) && !menu.contains(e.target)) close(); });
     wrap.append(trigger, menu);
     return wrap;
   }
@@ -868,14 +873,58 @@
     });
     return s;
   }
+  /* Liquid-glass slider: custom control (no native <input type=range>), pointer + keyboard + ARIA. */
+  function glassSlider({ min, max, step = 1, value, label, onInput }) {
+    const TW = 36; /* thumb width, must match --tw in CSS */
+    const fill = h('div', { class: 'gs-fill' });
+    const thumb = h('div', { class: 'gs-thumb' });
+    const el = h('div', { class: 'gs', role: 'slider', tabindex: '0', 'aria-label': label, 'aria-valuemin': min, 'aria-valuemax': max },
+      h('div', { class: 'gs-track' }, fill), thumb);
+    let v = value, onThumb = false, dragTimer = 0;
+    const snap = (x) => Math.min(max, Math.max(min, +(Math.round((x - min) / step) * step + min).toFixed(6)));
+    const paint = () => {
+      el.style.setProperty('--pf', String((v - min) / (max - min || 1)));
+      el.setAttribute('aria-valuenow', String(v));
+    };
+    const put = (n) => { n = snap(n); if (n === v) return; v = n; paint(); onInput(v); };
+    const fromX = (x) => {
+      const r = el.getBoundingClientRect();
+      return min + Math.min(1, Math.max(0, (x - r.left - TW / 2) / ((r.width - TW) || 1))) * (max - min);
+    };
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      onThumb = thumb.contains(e.target);
+      el.classList.add('active');
+      if (onThumb) el.classList.add('dragging');
+      else { put(fromX(e.clientX)); dragTimer = setTimeout(() => el.classList.add('dragging'), 220); } /* track tap: spring to it, then drag */
+      el.focus({ preventScroll: true });
+    });
+    el.addEventListener('pointermove', (e) => { if (el.classList.contains('active')) put(fromX(e.clientX)); });
+    const end = () => { clearTimeout(dragTimer); el.classList.remove('active', 'dragging'); };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('lostpointercapture', end);
+    el.addEventListener('keydown', (e) => {
+      const big = Math.max(step, (max - min) / 10);
+      const d = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step, PageUp: big, PageDown: -big }[e.key];
+      if (d !== undefined) { e.preventDefault(); put(v + d); }
+      else if (e.key === 'Home') { e.preventDefault(); put(min); }
+      else if (e.key === 'End') { e.preventDefault(); put(max); }
+    });
+    paint();
+    return el;
+  }
   function range(key, min, max, fmt, step = 1) {
     const f = typeof fmt === 'function' ? fmt : (v) => v + fmt;
-    const out = h('span', { text: f(S[key]), style: 'min-width:52px;text-align:right;color:var(--muted);font-size:13px' });
-    const r = h('input', {
-      type: 'range', min, max, step, value: S[key], 'aria-label': key,
-      oninput: () => { set(key, +r.value); out.textContent = f(+r.value); },
+    const out = h('span', { text: f(S[key]), class: 'gs-out' });
+    const sl = glassSlider({
+      min, max, step, value: S[key], label: key,
+      onInput: (n) => { set(key, n); out.textContent = f(n); sl.setAttribute('aria-valuetext', f(n)); },
     });
-    return h('div', { style: 'display:flex;align-items:center;gap:12px' }, r, out);
+    sl.setAttribute('aria-valuetext', f(S[key]));
+    return h('div', { style: 'display:flex;align-items:center;gap:14px' }, sl, out);
   }
   function swatches(items, key, bg, extraFn) {
     const wrap = h('div', { class: 'swatches' });
