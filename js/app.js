@@ -55,6 +55,13 @@
     { id: 'dl4', name: 'wallpaper-prism-4k.png', url: 'https://example.com/img/wallpaper-prism-4k.png', size: 12 * MB, got: 4 * MB, state: 'failed', ts: T0 - DAY - HOUR },
     { id: 'dl5', name: 'icons-glass.svg', url: 'https://example.com/icons/icons-glass.svg', size: 86 * 1024, got: 86 * 1024, state: 'done', ts: T0 - 2 * DAY },
   ];
+  const MOCK_EXTENSIONS = [
+    { id: 'glass-shield', name: 'Glass Shield', desc: 'Blocks ads and trackers with community filter lists.', ver: '2.4.1', on: true },
+    { id: 'night-tint', name: 'Night Tint', desc: 'Warms page colors in the evening to reduce eye strain.', ver: '1.2.0', on: true },
+    { id: 'reader-view', name: 'Reader View', desc: 'Strips pages down to clean, readable text.', ver: '3.0.2', on: false },
+    { id: 'vault-lite', name: 'Vault Lite', desc: 'Local-only password manager with autofill.', ver: '0.9.7', on: true },
+  ];
+  const VERSION = '0.4.0 prototype';
   const DEFAULT_KEYS = {
     newTab: 'Alt+KeyT', closeTab: 'Alt+KeyW', focusAddr: 'Alt+KeyL', sidebar: 'Alt+KeyB', settings: 'Alt+Comma',
     palette: 'Ctrl+KeyK', reload: 'Alt+KeyR', back: 'Alt+ArrowLeft', forward: 'Alt+ArrowRight',
@@ -83,6 +90,17 @@
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
+    startup: 'start', startupPages: [], suggest: true, searchSuggest: true,
+    /* privacy and security (mock until the engine layer) */
+    cookies: 'third', clearOnExit: false, blockPopups: true, permLocation: 'ask', permCamera: 'ask', permMic: 'ask', permNotify: 'block',
+    safeBrowsing: 'standard', secureDns: true, dnsProvider: 'cloudflare', webrtc: 'public', gpc: true,
+    /* downloads */
+    dlDir: '~/Downloads', dlAsk: false, dlOpen: false, dlShelf: true, dlParallel: 3,
+    /* languages and accessibility */
+    lang: 'en-US', spellcheck: true, translate: true, pageZoom: 100, minFont: 0, highContrast: false, focusRing: false, caret: false,
+    /* system */
+    hwAccel: true, memorySaver: true, sleepAfter: '15', preload: true, bgRun: false, proxy: 'system', proxyAddr: '',
+    extensions: MOCK_EXTENSIONS, extDev: false, channel: 'stable',
     /* privacy */
     trackers: true, https: true, fingerprint: true, dnt: true, saveHistory: true,
     /* advanced */
@@ -93,11 +111,15 @@
     font: ['system', 'inter', 'serif', 'mono', 'rounded', 'custom'], density: ['compact', 'cozy', 'roomy'],
     tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['round', 'flat', 'underline'],
     closeBtn: ['hover', 'always', 'never'], addrShape: ['pill', 'round', 'square'], addrAlign: ['center', 'left'],
-    newTabMode: ['start', 'blank', 'home'],
+    newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'],
+    cookies: ['all', 'third', 'block'], permLocation: ['ask', 'allow', 'block'], permCamera: ['ask', 'allow', 'block'], permMic: ['ask', 'allow', 'block'], permNotify: ['ask', 'allow', 'block'],
+    safeBrowsing: ['off', 'standard', 'enhanced'], dnsProvider: ['cloudflare', 'quad9', 'mullvad', 'nextdns'], webrtc: ['default', 'public', 'off'],
+    lang: ['en-US', 'en-GB', 'sv-SE', 'de-DE', 'fr-FR', 'es-ES', 'pt-BR', 'ja-JP', 'zh-CN'], sleepAfter: ['5', '15', '30', '60'], proxy: ['system', 'none', 'manual'], channel: ['stable', 'beta', 'nightly'],
   };
   const RANGES = {
     wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], blur: [0, 60], tint: [2, 40], radius: [4, 36],
     saturate: [100, 260], rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
+    dlParallel: [1, 8], pageZoom: [50, 300], minFont: [0, 24],
     iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
   };
   const FONTS = {
@@ -255,6 +277,12 @@
     if (Array.isArray(src.bookmarks)) {
       out.bookmarks = src.bookmarks.filter((x) => x && typeof x.url === 'string' && /^https?:\/\//i.test(x.url)).slice(0, 24)
         .map((x) => ({ name: str(x.name, 40) || str(x.url, 40), url: x.url.slice(0, 500) }));
+    }
+    if (Array.isArray(src.startupPages)) out.startupPages = src.startupPages.filter((x) => typeof x === 'string' && /^https?:\/\//i.test(x)).slice(0, 8).map((x) => x.slice(0, 500));
+    if (Array.isArray(src.extensions)) {
+      const seenE = new Set();
+      out.extensions = src.extensions.filter((x) => x && /^[\w-]{1,32}$/.test(String(x.id)) && !seenE.has(x.id) && seenE.add(x.id)).slice(0, 30)
+        .map((x) => ({ id: x.id, name: str(x.name, 40) || 'Extension', desc: str(x.desc, 140), ver: str(x.ver, 12), on: x.on === true }));
     }
     if (Array.isArray(src.history)) {
       out.history = src.history.filter((x) => x && typeof x.u === 'string' && /^https?:\/\//i.test(x.u) && Number.isFinite(+x.ts)).slice(0, 1000)
@@ -1250,18 +1278,27 @@
     snow: '<path d="M6.5 15a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.6-1.3A4.4 4.4 0 0 1 17 15z"/><path d="M8 18.5h.01M12 20h.01M16 18.5h.01M10 22h.01M14 22h.01"/>',
     storm: '<path d="M6.5 14a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.6-1.3A4.4 4.4 0 0 1 17 14z"/><path d="M12.5 14l-2.5 4h3l-2 4"/>',
     fog: '<path d="M4 9h16M6 13h12M4 17h16"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.500 5.600 12 3z"/>',
+    cpu: '<rect x="6" y="6" width="12" height="12" rx="3"/><rect x="9.500" y="9.500" width="5" height="5" rx="1"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/>',
+    puzzle: '<path d="M10 4a2 2 0 1 1 4 0v1.500h3.500a1 1 0 0 1 1 1V10H20a2 2 0 1 1 0 4h-1.500v4.500a1 1 0 0 1-1 1H14V18a2 2 0 1 0-4 0v1.500H6.500a1 1 0 0 1-1-1V14H4a2 2 0 1 1 0-4h1.500V6.500a1 1 0 0 1 1-1H10z"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.500M12 7.500h.01"/>',
+    power: '<path d="M12 3v8M6.500 6.500a8 8 0 1 0 11 0"/>',
+    lock: '<rect x="5" y="11" width="14" height="9" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    access: '<circle cx="12" cy="5" r="1.800"/><path d="M5 9l7 1.500L19 9M12 10.500V15l-3 5M12 15l3 5"/>',
   };
   const ico = (n) => { const t = document.createElement('template'); t.innerHTML = `<svg viewBox="0 0 24 24" class="ico" aria-hidden="true">${ICONS[n]}</svg>`; return t.content.firstChild; };
-  const GROUP_ICON = { appearance: 'palette', wallpaper: 'image', glass: 'drop', type: 'type', layout: 'layout', tabs: 'tabs', spaces: 'layers', toolbar: 'sliders', start: 'home', widgets: 'grid', search: 'search', privacy: 'shield', shortcuts: 'keyboard', palette: 'command', advanced: 'code' };
+  const GROUP_ICON = { appearance: 'palette', wallpaper: 'image', glass: 'drop', type: 'type', layout: 'layout', tabs: 'tabs', spaces: 'layers', toolbar: 'sliders', start: 'home', widgets: 'grid', search: 'search', privacy: 'shield',
+    startup: 'power', addrbar: 'search', cookies: 'drop', perms: 'lock', secure: 'shield', clear: 'trash', dlset: 'download', lang: 'globe', a11y: 'access', perf: 'cpu', network: 'globe', extensions: 'puzzle', about: 'info', shortcuts: 'keyboard', palette: 'command', advanced: 'code' };
   const SECTIONS = [
-    ['appearance', 'Appearance', 'palette', 'Themes, colors, wallpaper, glass and fonts', ['appearance', 'wallpaper', 'glass', 'type']],
-    ['layout', 'Layout and tabs', 'layout', 'Sidebar, tab style, density and spaces', ['layout', 'tabs', 'spaces']],
-    ['toolbar', 'Toolbar', 'sliders', 'Buttons and the address bar', ['toolbar']],
-    ['start', 'Start page', 'home', 'Greeting, shortcuts and widgets on a new tab', ['start', 'widgets']],
-    ['search', 'Search and startup', 'search', 'Search engines, new tabs and homepage', ['search']],
-    ['privacy', 'Privacy and security', 'shield', 'Tracking, HTTPS and fingerprinting', ['privacy']],
-    ['shortcuts', 'Shortcuts and palette', 'keyboard', 'Keyboard bindings and your own palette commands', ['shortcuts', 'palette']],
-    ['advanced', 'Advanced', 'code', 'Custom CSS, backup and reset', ['advanced']],
+    ['appearance', 'Appearance', 'palette', 'Themes, colors, wallpaper, glass, fonts, layout and toolbar', ['appearance', 'wallpaper', 'glass', 'type', 'layout', 'tabs', 'toolbar', 'spaces']],
+    ['startup', 'On Startup', 'power', 'What opens when Vitreous starts and on new tabs', ['startup', 'start', 'widgets']],
+    ['search', 'Search Engine', 'search', 'Default and custom search engines, address bar suggestions', ['search', 'addrbar']],
+    ['privacy', 'Privacy & Security', 'shield', 'Tracking, cookies, permissions, secure connections and clearing data', ['privacy', 'cookies', 'perms', 'secure', 'clear']],
+    ['downloads', 'Downloads', 'download', 'Where files are saved and how downloads behave', ['dlset']],
+    ['access', 'Languages & Accessibility', 'globe', 'Language, spell check, zoom, contrast, keyboard shortcuts', ['lang', 'a11y', 'shortcuts', 'palette']],
+    ['system', 'System & Performance', 'cpu', 'Hardware, memory, network, backup and reset', ['perf', 'network', 'advanced']],
+    ['extensions', 'Extensions', 'puzzle', 'Installed extensions and developer options', ['extensions']],
+    ['about', 'About Vitreous', 'info', 'Version, updates and project information', ['about']],
   ];
   let lastSection = 'appearance';
   let settingsGoto = null;
@@ -1460,6 +1497,31 @@
 
     const search = h('input', { type: 'search', placeholder: 'Search settings', 'aria-label': 'Search settings' });
     drawEngines(); drawBm(); drawSpaces(); drawKeys();
+    const ddrop = (key, opts, label) => dropdown(opts, S[key], (v) => set(key, v), label);
+    const permOpts = [['ask', 'Ask'], ['allow', 'Allow'], ['block', 'Block']];
+    const spBoxPages = h('div', { class: 'ed' });
+    const drawPages = () => {
+      spBoxPages.replaceChildren(...S.startupPages.map((u, i) => {
+        const inp = h('input', { type: 'text', value: u, maxlength: 500, spellcheck: 'false', 'aria-label': 'Startup page',
+          onchange: () => { const v = toUrl(inp.value); if (!v) { toast('Enter a valid web address'); inp.value = S.startupPages[i]; return; } S.startupPages[i] = v; save(); inp.value = v; } });
+        return h('div', { class: 'er' }, inp, ibtn('x', 'Remove', () => { S.startupPages.splice(i, 1); save(); drawPages(); }, 'danger'));
+      }), h('div', { class: 'btns' },
+        btn('Add page', () => { if (S.startupPages.length >= 8) { toast('Limit of 8 pages'); return; } S.startupPages.push('https://example.com'); save(); drawPages(); }),
+        btn('Use open tabs', () => { const us = tabs.map(urlOf).filter((u) => /^https?:\/\//i.test(u)).slice(0, 8); if (!us.length) { toast('No web pages are open'); return; } S.startupPages = us; save(); drawPages(); })));
+    };
+    const extBox = h('div', { class: 'ed' });
+    const drawExt = () => {
+      extBox.replaceChildren(...S.extensions.map((x) => {
+        const sw = h('button', { class: 'switch', role: 'switch', 'aria-label': x.name, 'aria-checked': String(x.on), onclick: () => { x.on = !x.on; sw.setAttribute('aria-checked', String(x.on)); save(); } });
+        return h('div', { class: 'er ext' }, h('span', { class: 'ext-ico', text: x.name[0].toUpperCase() }),
+          h('div', { class: 'ext-meta' }, h('b', { text: x.name }), h('small', { text: `${x.desc} · v${x.ver}` })), sw,
+          ibtn('x', 'Remove ' + x.name, () => { if (!confirm(`Remove “${x.name}”?`)) return; S.extensions = S.extensions.filter((y) => y !== x); save(); drawExt(); }, 'danger'));
+      }), h('div', { class: 'btns' },
+        btn('Browse extensions', () => toast('The extension store arrives with the engine layer')),
+        S.extDev ? btn('Load unpacked…', () => toast('Unpacked extensions need the engine layer')) : null,
+        S.extensions.length ? null : h('span', { class: 'lib-url', text: 'No extensions installed.' })));
+    };
+    drawPages(); drawExt();
     const auroraSw = swatches(Object.keys(AURORA), 'aurora', (k) => (k === 'custom' ? 'conic-gradient(#ff5e62, #ffd93b, #2fd180, #2b7fff, #b57bff, #ff5e62)' : `linear-gradient(135deg, ${AURORA[k].join(',')})`));
 
     const page = h('div', { class: 'settings' },
@@ -1547,14 +1609,8 @@
 
       group('widgets', 'Widgets', gi++, h('div', { class: 'warn', text: 'Widgets show on the start page. You can also add or remove them there. The weather widget contacts open-meteo.com only when you add it.' }), wBox),
 
-      group('search', 'Search & behavior', gi++,
-        engineBox, engineEd,
-        row('New tabs open', null, seg([['start', 'Start page'], ['blank', 'Blank'], ['home', 'Homepage']], 'newTabMode')),
-        row('Homepage', 'http(s) address, used by the home button and new tabs', (() => {
-          const i = h('input', { type: 'text', value: S.homepage, placeholder: 'https://…', spellcheck: 'false', maxlength: 300, 'aria-label': 'Homepage',
-            onchange: () => { let v = i.value.trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; try { if (v) v = new URL(v).href; set('homepage', v); } catch { toast('That is not a valid URL'); } i.value = S.homepage; } });
-          return i;
-        })())),
+      group('search', 'Search engines', gi++,
+        engineBox, engineEd),
 
       group('privacy', 'Privacy', gi++,
         row('Block trackers and ads', null, toggle('trackers')),
@@ -1572,6 +1628,92 @@
         h('div', { class: 'row col' }, h('div', {}, 'Custom CSS', h('small', { text: 'Applied on top of everything else. Variables like --accent, --radius and --blur are available.' })), css),
         row('Back up settings', 'Export to a file, or load one from another device', h('div', { class: 'btns' }, importFile, btn('Export', exportSettings), btn('Import…', () => importFile.click()))),
         row('Reset all settings', 'Restores every default. Tabs stay open', btn('Reset…', () => { if (confirm('Reset every setting to its default?')) { setWall(''); replaceSettings(clone(DEFAULTS)); toast('Settings reset'); } }, 'danger'))),
+
+
+      group('startup', 'When Vitreous starts', gi++,
+        row('On startup', 'Session restore and specific pages apply once the engine layer is connected', ddrop('startup', [['start', 'Open the start page'], ['restore', 'Continue where you left off'], ['pages', 'Open specific pages']], 'On startup')),
+        spBoxPages,
+        row('New tabs open', null, seg([['start', 'Start page'], ['blank', 'Blank'], ['home', 'Homepage']], 'newTabMode')),
+        row('Homepage', 'http(s) address, used by the home button and new tabs', (() => {
+          const i = h('input', { type: 'text', value: S.homepage, placeholder: 'https://…', spellcheck: 'false', maxlength: 300, 'aria-label': 'Homepage',
+            onchange: () => { let v = i.value.trim(); if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v; try { if (v) v = new URL(v).href; set('homepage', v); } catch { toast('That is not a valid URL'); } i.value = S.homepage; } });
+          return i;
+        })())),
+
+      group('addrbar', 'Address bar', gi++,
+        row('Address bar suggestions', 'Show matching bookmarks, history and commands as you type', toggle('suggest')),
+        row('Search suggestions', 'Send what you type to the search engine to get suggestions', toggle('searchSuggest'))),
+
+      group('cookies', 'Cookies and site data', gi++,
+        row('Cookies', null, ddrop('cookies', [['all', 'Allow all cookies'], ['third', 'Block third-party cookies'], ['block', 'Block all cookies']], 'Cookies')),
+        row('Clear cookies and site data when Vitreous closes', null, toggle('clearOnExit')),
+        row('Block pop-ups and redirects', null, toggle('blockPopups'))),
+
+      group('perms', 'Site permissions', gi++,
+        row('Location', null, ddrop('permLocation', permOpts, 'Location')),
+        row('Camera', null, ddrop('permCamera', permOpts, 'Camera')),
+        row('Microphone', null, ddrop('permMic', permOpts, 'Microphone')),
+        row('Notifications', null, ddrop('permNotify', permOpts, 'Notifications'))),
+
+      group('secure', 'Security', gi++,
+        row('Safe browsing', 'Warn about dangerous sites and downloads', ddrop('safeBrowsing', [['off', 'Off'], ['standard', 'Standard'], ['enhanced', 'Enhanced']], 'Safe browsing')),
+        row('Use secure DNS', 'Encrypts the lookup of site addresses', toggle('secureDns')),
+        row('DNS provider', null, ddrop('dnsProvider', [['cloudflare', 'Cloudflare'], ['quad9', 'Quad9'], ['mullvad', 'Mullvad'], ['nextdns', 'NextDNS']], 'DNS provider')),
+        row('WebRTC IP handling', 'Stops sites learning your local network address', ddrop('webrtc', [['default', 'Default'], ['public', 'Public interface only'], ['off', 'Disable non-proxied UDP']], 'WebRTC')),
+        row('Global Privacy Control', 'Tells sites not to sell or share your data', toggle('gpc'))),
+
+      group('clear', 'Clear browsing data', gi++,
+        row('Browsing history', 'Everything on the History page', dangerBtn('Clear', () => { S.history = []; save(); toast('History cleared'); })),
+        row('Download list', 'Removes entries, not the files', dangerBtn('Clear', () => { S.downloads = S.downloads.filter((x) => x.state === 'progress' || x.state === 'paused'); save(); toast('Download list cleared'); })),
+        row('Cookies and site data', null, dangerBtn('Clear', () => toast('Cookies cleared (mock until the engine layer)'))),
+        row('Cached images and files', null, dangerBtn('Clear', () => toast('Cache cleared (mock until the engine layer)')))),
+
+      group('dlset', 'Downloads', gi++,
+        row('Location', 'Where files are saved', text('dlDir', '~/Downloads', '240px', 200)),
+        row('Ask where to save each file', null, toggle('dlAsk')),
+        row('Open files when they finish', null, toggle('dlOpen')),
+        row('Show the Downloads page when one starts', null, toggle('dlShelf')),
+        row('Simultaneous downloads', null, range('dlParallel', 1, 8, '')),
+        row('Download list', 'Active, finished and failed downloads', btn('Open Downloads', () => navigate(cur(), 'vitreous://downloads')))),
+
+      group('lang', 'Languages', gi++,
+        row('Browser language', null, ddrop('lang', [['en-US', 'English (US)'], ['en-GB', 'English (UK)'], ['sv-SE', 'Svenska'], ['de-DE', 'Deutsch'], ['fr-FR', 'Français'], ['es-ES', 'Español'], ['pt-BR', 'Português (Brasil)'], ['ja-JP', '日本語'], ['zh-CN', '中文 (简体)']], 'Language')),
+        row('Spell check', null, toggle('spellcheck')),
+        row('Offer to translate pages', 'When a page is not in your language', toggle('translate'))),
+
+      group('a11y', 'Accessibility', gi++,
+        row('Default page zoom', null, range('pageZoom', 50, 300, '%', 10)),
+        row('Minimum font size', '0 leaves sites in control', range('minFont', 0, 24, (v) => (v ? v + 'px' : 'None'))),
+        row('High contrast', 'Stronger text and borders on pages', toggle('highContrast')),
+        row('Always show focus outlines', null, toggle('focusRing')),
+        row('Caret browsing', 'Move through pages with the keyboard cursor', toggle('caret')),
+        row('Follow system reduced-motion', 'Respect your OS setting for animations', toggle('respectReducedMotion'))),
+
+      group('perf', 'Performance', gi++,
+        row('Hardware acceleration', 'Use the GPU when available', toggle('hwAccel')),
+        row('Memory saver', 'Put tabs you are not using to sleep', toggle('memorySaver')),
+        row('Sleep inactive tabs after', null, ddrop('sleepAfter', [['5', '5 minutes'], ['15', '15 minutes'], ['30', '30 minutes'], ['60', '1 hour']], 'Sleep after')),
+        row('Preload pages', 'Speeds up navigation to pages you are likely to open', toggle('preload')),
+        row('Keep running in the background', 'Lets downloads finish after the last window closes', toggle('bgRun')),
+        row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
+        row('Open tabs', null, h('span', { class: 'gs-out', text: `${tabs.length} open` }))),
+
+      group('network', 'Network', gi++,
+        row('Proxy', null, ddrop('proxy', [['system', 'Use system settings'], ['none', 'No proxy'], ['manual', 'Manual']], 'Proxy')),
+        row('Proxy address', 'host:port, used when Proxy is Manual', text('proxyAddr', 'proxy.example.com:8080', '240px', 120))),
+
+      group('extensions', 'Extensions', gi++,
+        h('div', { class: 'warn', text: 'Preview list. Extensions run once the engine layer is connected.' }), extBox,
+        row('Developer mode', 'Shows options for loading unpacked extensions', toggle('extDev', () => drawExt()))),
+
+      group('about', 'About Vitreous', gi++,
+        row('Version', null, h('span', { class: 'gs-out', text: VERSION })),
+        row('Rendering engine', null, h('span', { class: 'gs-out', text: 'Mock engine (sandboxed preview)' })),
+        row('Update channel', null, ddrop('channel', [['stable', 'Stable'], ['beta', 'Beta'], ['nightly', 'Nightly']], 'Update channel')),
+        row('Updates', 'Last checked just now', (() => { const b = btn('Check for updates', () => { b.disabled = true; b.textContent = 'Checking…'; setTimeout(() => { b.disabled = false; b.textContent = 'Check for updates'; toast('Vitreous is up to date'); }, 900); }); return b; })()),
+        row('Platform', null, h('span', { class: 'gs-out', text: (navigator.platform || 'Unknown').slice(0, 30) })),
+        row('Usage data', 'Vitreous collects no analytics or crash reports', h('span', { class: 'gs-out', text: 'None' })),
+        row('Source code', 'github.com/yazoniplay/Vitreous-browser', btn('Open', () => newTab('https://github.com/yazoniplay/Vitreous-browser')))),
 
       h('div', { class: 'nores', hidden: true, text: 'No settings match your search.' }));
 

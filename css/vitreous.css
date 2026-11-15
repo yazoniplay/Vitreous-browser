@@ -1889,3 +1889,10 @@ body[data-fx="low"] .drop-menu { background: color-mix(in srgb, var(--base) 94%,
 .dl-bar.paused i { opacity: .45; }
 @media (max-width: 640px) { .lib-act { opacity: 1; } .lib-search { flex: 1; min-width: 0; } }
 body[data-fx="low"] .dl-bar i { transition: none; }
+
+/* ---------- settings: extensions ---------- */
+.er.ext { align-items: center; gap: 12px; }
+.ext-ico { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 700; }
+.ext-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ext-meta b { font-weight: 550; font-size: 14px; }
+.ext-meta small { color: var(--muted); font-size: 12px; }
