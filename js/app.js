@@ -1540,10 +1540,15 @@
 
   /* ---------- boot ---------- */
   load();
-  if (!hasSavedState && Number.isFinite(navigator.deviceMemory) && navigator.deviceMemory <= 4) {
-    S.lowfx = true;
-    autoLowSpecNotice = true;
-  }
+  /* Low-Spec Mode is opt-in only. It used to switch on by itself for devices reporting <= 4 GB,
+     which stripped the animations and glass. One-time reset for profiles where that already happened. */
+  try {
+    if (localStorage.getItem('vitreous.lowSpecNoticeShown') === '1' && localStorage.getItem('vitreous.lowSpecReset') !== '1') {
+      S.lowfx = false;
+      localStorage.setItem('vitreous.lowSpecReset', '1');
+      save();
+    }
+  } catch { /* storage unavailable */ }
   buildSpaces();
   apply();
   if (!tabs.length) tabs.push({ id: uid(), ws, hist: ['vitreous://newtab'], i: 0, reload: 0 });

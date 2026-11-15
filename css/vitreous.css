@@ -477,12 +477,8 @@ select { appearance: none; -webkit-appearance: none; }
 
 /* Low-Spec Mode: prioritize predictable frame times over effects */
 body[data-fx="low"] .backdrop { display: none; }
-body[data-fx="low"] .glass { transition: none !important; }
 body[data-fx="low"] .glass::before,
 body[data-fx="low"] .glass::after { display: none !important; }
-body[data-fx="low"] *,
-body[data-fx="low"] *::before,
-body[data-fx="low"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 body[data-fx="low"] .address { -webkit-backdrop-filter: none; backdrop-filter: none; }
 body[data-fx="low"] .sidebar { border-right: 1px solid rgba(255,255,255,.1); }
 body[data-side="right"][data-fx="low"] .sidebar { border-right: 0; border-left: 1px solid rgba(255,255,255,.1); }
