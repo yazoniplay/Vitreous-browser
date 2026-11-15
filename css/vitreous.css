@@ -913,3 +913,91 @@ body[data-theme="light"] .context-item:hover:not(:disabled) {
 *:hover {
   scrollbar-color: color-mix(in srgb, var(--accent) 68%, transparent) transparent;
 }
+
+/* ---------- Transparency + Low-Spec color refinement ---------- */
+body[data-theme="light"] {
+  --tint: .42;
+  --glass-light-top: rgba(255,255,255,.6);
+  --glass-light-bottom: rgba(255,255,255,.3);
+  --glass-light-rim: rgba(255,255,255,.7);
+}
+body[data-theme="light"] .backdrop i {
+  opacity: calc(var(--blob) * var(--blob-mul) * 1.2) !important;
+}
+body[data-theme="light"] .glass,
+body[data-theme="light"] .drop-menu,
+body[data-theme="light"] .context-menu,
+body[data-theme="light"] .address {
+  background: linear-gradient(140deg, rgba(255,255,255,.6), rgba(255,255,255,.3)) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.08),
+    inset 0 0 0 1px rgba(255,255,255,.7),
+    inset 0 1px 0 rgba(255,255,255,.82) !important;
+}
+
+/* Low-Spec: translucent color-mixed panels; no blur or animated texture. */
+body[data-theme][data-fx="low"] .glass,
+body[data-theme][data-fx="low"] .drop-menu,
+body[data-theme][data-fx="low"] .context-menu,
+body[data-theme][data-fx="low"] .address,
+body[data-theme][data-fx="low"] .sidebar,
+body[data-theme][data-fx="low"] .toolbar {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.025)),
+    color-mix(in srgb, var(--base) 80%, transparent) !important;
+}
+body[data-fx="low"] .backdrop i { opacity: .9 !important; }
+
+/* Keep Light Low-Spec cool and bright while allowing background color through. */
+body[data-theme="light"][data-fx="low"] .glass,
+body[data-theme="light"][data-fx="low"] .drop-menu,
+body[data-theme="light"][data-fx="low"] .context-menu,
+body[data-theme="light"][data-fx="low"] .address {
+  background:
+    linear-gradient(140deg, rgba(255,255,255,.6), rgba(255,255,255,.3)),
+    color-mix(in srgb, var(--base) 80%, transparent) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.08),
+    inset 0 0 0 1px rgba(255,255,255,.7),
+    inset 0 1px 0 rgba(255,255,255,.78) !important;
+}
+
+/* Search input: no browser outline; the container owns the focus treatment. */
+.address input:focus { outline: none !important; }
+body[data-fx="high"] .address:focus-within {
+  box-shadow: inset 0 0 0 2px var(--accent),
+    0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent) !important;
+}
+body[data-fx="low"] .address:focus-within {
+  border: 1px solid var(--accent) !important;
+  box-shadow: inset 0 0 0 2px var(--accent) !important;
+}
+
+/* High-Fidelity Light Mode: brighter moving sheen and colored cursor light. */
+body[data-theme="light"][data-fx="high"] .glass::before {
+  background: linear-gradient(115deg,
+    rgba(255,255,255,.9) 0%,
+    rgba(255,255,255,.38) 26%,
+    transparent 49%,
+    rgba(255,255,255,.56) 68%,
+    transparent 84%) !important;
+  background-size: 220% 220% !important;
+  animation: vitreousSheen 13s ease-in-out infinite alternate;
+}
+body[data-theme="light"][data-fx="high"] .glass::after {
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--accent) 30%, transparent),
+    color-mix(in srgb, var(--accent) 12%, transparent) 34%,
+    transparent 70%) !important;
+}
+
+/* Thin translucent scrollbars with an accent hover state. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text) 22%, transparent);
+  border: 2px solid transparent;
+  border-radius: 99px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 68%, transparent);
+  background-clip: padding-box;
+}
