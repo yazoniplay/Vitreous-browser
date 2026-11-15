@@ -352,6 +352,7 @@
     b.dataset.motion = S.motion ? 'on' : 'off';
     b.dataset.fx = S.lowfx ? 'low' : 'high';
     b.dataset.dynamicTheme = S.dynamicTheme ? '1' : '0';
+    b.dataset.tabs = S.tabs;
     b.dataset.side = S.sideSide;
     b.dataset.hover = S.hoverExpand ? '1' : '0';
     b.dataset.navbtns = S.navBtns ? '1' : '0';
@@ -499,7 +500,7 @@
       navigate(cur(), target);
     };
     return h('div', { class: 'error-page' },
-      h('div', { class: 'error-mark' }, ico('wifi-off')),
+      h('div', { class: 'error-mark' }, ico('cloud')),
       h('h1', { text: 'Site unreachable' }),
       h('p', { text: cur()?.errorMessage || 'Vitreous could not complete this navigation. Check the address or your connection, then try again.' }),
       h('div', { class: 'btns' }, btn('Retry', retry), btn('Back to start', () => navigate(cur(), 'vitreous://newtab'))));
@@ -811,7 +812,7 @@
     const current = () => options.find((x) => String(x[0]) === String(value))?.[1] || label;
     const wrap = h('div', { class: 'dropdown' });
     const trigger = h('button', { type: 'button', class: 'drop-trigger', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-label': label },
-      h('span', { class: 'drop-value', text: current() }), ico('chevron-down'));
+      h('span', { class: 'drop-value', text: current() }), ico('down'));
     const menu = h('div', { class: 'drop-menu', role: 'listbox', hidden: true, 'aria-label': label });
     const close = () => { menu.hidden = true; wrap.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); };
     const draw = () => {
