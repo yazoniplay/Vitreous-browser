@@ -33,6 +33,28 @@
     { name: 'GitHub', url: 'https://github.com' },
     { name: 'Vitreous', url: 'https://github.com/yazoniplay/Vitreous-browser' },
   ];
+  const DL_STATES = ['done', 'progress', 'paused', 'failed', 'canceled'];
+  const T0 = Date.now(), MIN = 60000, HOUR = 3600000, DAY = 86400000, MB = 1048576;
+  const MOCK_HISTORY = [
+    { u: 'https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter', t: 'backdrop-filter - CSS | MDN', ts: T0 - 6 * MIN },
+    { u: 'https://developer.mozilla.org/en-US/docs/Web/CSS/color-mix', t: 'color-mix() - CSS | MDN', ts: T0 - 19 * MIN },
+    { u: 'https://github.com/yazoniplay/Vitreous-browser', t: 'yazoniplay/Vitreous-browser', ts: T0 - 52 * MIN },
+    { u: 'https://www.wikipedia.org', t: 'Wikipedia', ts: T0 - 2 * HOUR },
+    { u: 'https://ladybird.org', t: 'Ladybird', ts: T0 - 3 * HOUR },
+    { u: 'https://github.com', t: 'GitHub', ts: T0 - DAY - 40 * MIN },
+    { u: 'https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver', t: 'ResizeObserver - Web APIs | MDN', ts: T0 - DAY - 2 * HOUR },
+    { u: 'https://www.wikipedia.org/wiki/Glassmorphism', t: 'Glassmorphism - Wikipedia', ts: T0 - DAY - 5 * HOUR },
+    { u: 'https://duckduckgo.com', t: 'DuckDuckGo', ts: T0 - 3 * DAY },
+    { u: 'https://www.wikipedia.org/wiki/Web_browser', t: 'Web browser - Wikipedia', ts: T0 - 3 * DAY - HOUR },
+    { u: 'https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment', t: 'CSS containment - CSS | MDN', ts: T0 - 6 * DAY },
+  ];
+  const MOCK_DOWNLOADS = [
+    { id: 'dl1', name: 'vitreous-brand-kit.zip', url: 'https://example.com/files/vitreous-brand-kit.zip', size: 48 * MB, got: 19 * MB, state: 'progress', ts: T0 - 2 * MIN },
+    { id: 'dl2', name: 'inter-variable.woff2', url: 'https://example.com/fonts/inter-variable.woff2', size: 348 * 1024, got: 348 * 1024, state: 'done', ts: T0 - 35 * MIN },
+    { id: 'dl3', name: 'engine-notes.pdf', url: 'https://example.com/docs/engine-notes.pdf', size: Math.round(2.4 * MB), got: Math.round(2.4 * MB), state: 'done', ts: T0 - 3 * HOUR },
+    { id: 'dl4', name: 'wallpaper-prism-4k.png', url: 'https://example.com/img/wallpaper-prism-4k.png', size: 12 * MB, got: 4 * MB, state: 'failed', ts: T0 - DAY - HOUR },
+    { id: 'dl5', name: 'icons-glass.svg', url: 'https://example.com/icons/icons-glass.svg', size: 86 * 1024, got: 86 * 1024, state: 'done', ts: T0 - 2 * DAY },
+  ];
   const DEFAULT_KEYS = {
     newTab: 'Alt+KeyT', closeTab: 'Alt+KeyW', focusAddr: 'Alt+KeyL', sidebar: 'Alt+KeyB', settings: 'Alt+Comma',
     palette: 'Ctrl+KeyK', reload: 'Alt+KeyR', back: 'Alt+ArrowLeft', forward: 'Alt+ArrowRight',
@@ -58,10 +80,11 @@
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startHint: true,
     startClock: false, clock24: true, startGreeting: false, userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
     bookmarks: DEFAULT_BOOKMARKS, spaces: DEFAULT_SPACES,
+    history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
     /* privacy */
-    trackers: true, https: true, fingerprint: true, dnt: true,
+    trackers: true, https: true, fingerprint: true, dnt: true, saveHistory: true,
     /* advanced */
     css: '', keys: DEFAULT_KEYS, widgets: [], commands: [],
   };
@@ -128,7 +151,7 @@
     const enc = encodeURIComponent(q);
     return e[1].includes('%s') ? e[1].replace('%s', enc) : e[1] + enc;
   };
-  const INTERNAL = ['vitreous://newtab', 'vitreous://settings', 'vitreous://blank', 'vitreous://error'];
+  const INTERNAL = ['vitreous://newtab', 'vitreous://settings', 'vitreous://blank', 'vitreous://error', 'vitreous://downloads', 'vitreous://history', 'vitreous://bookmarks'];
 
   /* ---------- state ---------- */
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -177,6 +200,9 @@
     if (u === 'vitreous://settings') return 'Settings';
     if (u === 'vitreous://blank') return 'Blank';
     if (u === 'vitreous://error') return 'Site unreachable';
+    if (u === 'vitreous://downloads') return 'Downloads';
+    if (u === 'vitreous://history') return 'History';
+    if (u === 'vitreous://bookmarks') return 'Bookmarks';
     if (t.titleOverride) return t.titleOverride;
     try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; }
   }
@@ -185,6 +211,9 @@
     if (u === 'vitreous://newtab') return 'V';
     if (u === 'vitreous://settings') return '•';
     if (u === 'vitreous://blank') return '○';
+    if (u === 'vitreous://downloads') return '↓';
+    if (u === 'vitreous://history') return '◷';
+    if (u === 'vitreous://bookmarks') return '★';
     return (titleOf(t)[0] || '?').toUpperCase();
   }
   function pretty(u) {
@@ -227,13 +256,25 @@
       out.bookmarks = src.bookmarks.filter((x) => x && typeof x.url === 'string' && /^https?:\/\//i.test(x.url)).slice(0, 24)
         .map((x) => ({ name: str(x.name, 40) || str(x.url, 40), url: x.url.slice(0, 500) }));
     }
+    if (Array.isArray(src.history)) {
+      out.history = src.history.filter((x) => x && typeof x.u === 'string' && /^https?:\/\//i.test(x.u) && Number.isFinite(+x.ts)).slice(0, 1000)
+        .map((x) => ({ u: x.u.slice(0, 500), t: str(x.t, 120), ts: +x.ts }));
+    }
+    if (Array.isArray(src.downloads)) {
+      const seenD = new Set();
+      out.downloads = src.downloads.filter((x) => x && /^[\w-]{1,24}$/.test(String(x.id)) && !seenD.has(x.id) && seenD.add(x.id) && typeof x.url === 'string' && /^https?:\/\//i.test(x.url)).slice(0, 200)
+        .map((x) => {
+          const size = Math.max(0, Math.round(+x.size) || 0);
+          return { id: x.id, name: str(x.name, 140) || 'download', url: x.url.slice(0, 500), size, got: Math.min(size, Math.max(0, Math.round(+x.got) || 0)), state: DL_STATES.includes(x.state) ? x.state : 'done', ts: Number.isFinite(+x.ts) ? +x.ts : Date.now() };
+        });
+    }
     if (Array.isArray(src.engines)) {
       out.engines = src.engines.filter((x) => x && /^[\w-]{1,24}$/.test(x.id) && !(x.id in ENGINES) && /^https?:\/\//i.test(String(x.url)))
         .slice(0, 10).map((x) => ({ id: x.id, name: str(x.name, 30) || 'Custom', url: x.url.slice(0, 400) }));
     }
     const allE = { ...ENGINES }; out.engines.forEach((e) => { allE[e.id] = 1; });
     if (!allE[out.search]) out.search = typeof src.search === 'string' && allE[src.search] ? src.search : 'ddg';
-    const cleanUrl = (u) => (typeof u === 'string' && /^(https?:\/\/|vitreous:\/\/(newtab|settings))/i.test(u) ? u.slice(0, 500) : '');
+    const cleanUrl = (u) => (typeof u === 'string' && /^(https?:\/\/|vitreous:\/\/(newtab|settings|downloads|history|bookmarks))/i.test(u) ? u.slice(0, 500) : '');
     if (Array.isArray(src.widgets)) {
       const seenW = new Set();
       out.widgets = src.widgets.slice(0, 12).map((w) => {
@@ -328,7 +369,15 @@
     t.hist = t.hist.slice(0, t.i + 1);
     if (t.hist[t.i] !== u) { t.hist.push(u); t.i++; }
     t.reload++;
+    recordVisit(u);
     render();
+  }
+  function recordVisit(u) {
+    if (!S.saveHistory || !/^https?:\/\//i.test(u)) return;
+    const now = Date.now(), dup = S.history.find((x) => x.u === u && now - x.ts < 30000);
+    if (dup) { dup.ts = now; return; }
+    S.history.unshift({ u, t: hostOf(u).replace(/^www\./, ''), ts: now });
+    if (S.history.length > 1000) S.history.length = 1000;
   }
   function go(delta) {
     const t = cur();
@@ -511,6 +560,208 @@
       h('div', { class: 'btns' }, btn('Retry', retry), btn('Back to start', () => navigate(cur(), 'vitreous://newtab'))));
   }
 
+
+  /* ---------- library pages: history, bookmarks, downloads ---------- */
+  let dlTimer = 0;
+  const MAX_BM = 24;
+  const hostName = (u) => hostOf(u).replace(/^www\./, '');
+  const timeLabel = (ts) => new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const dayStart = (ts) => { const d = new Date(ts); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+  function dayLabel(ts) {
+    const k = dayStart(ts), y = new Date(); y.setDate(y.getDate() - 1);
+    if (k === dayStart(Date.now())) return 'Today';
+    if (k === dayStart(y.getTime())) return 'Yesterday';
+    return new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    const u = ['KB', 'MB', 'GB']; let i = -1;
+    do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+    return (n >= 100 ? n.toFixed(0) : n.toFixed(1)) + ' ' + u[i];
+  }
+  const toUrl = (v) => {
+    v = String(v || '').trim();
+    if (!v) return '';
+    if (!/^https?:\/\//i.test(v)) v = 'https://' + v;
+    try { const u = new URL(v); return /^https?:$/.test(u.protocol) && (u.hostname.includes('.') || u.hostname === 'localhost') ? u.href : ''; } catch { return ''; }
+  };
+  const openUrl = (e, url) => { if (e.ctrlKey || e.metaKey || e.button === 1) newTab(url); else navigate(cur(), url); };
+  const empty = (icon, msg) => h('div', { class: 'lib-empty' }, h('span', { class: 'lib-mark' }, ico(icon)), h('span', { text: msg }));
+  const actBtn = (icon, label, fn) => h('button', { class: 'icon-btn lib-act', title: label, 'aria-label': label, onclick: (e) => { e.stopPropagation(); fn(e); } }, ico(icon));
+  function favFor(url) {
+    const el = h('span', { class: 'fav lib-fav', 'aria-hidden': 'true' });
+    paintFav(el, url, (hostName(url)[0] || '?').toUpperCase());
+    return el;
+  }
+  const rowMain = (url, title, sub, meta) => h('button', {
+    class: 'lib-main', title: url, onclick: (e) => openUrl(e, url), onauxclick: (e) => { if (e.button === 1) openUrl(e, url); },
+  }, favFor(url), h('span', { class: 'lib-text' }, h('span', { class: 'lib-name', text: title }), h('span', { class: 'lib-url', text: sub })),
+  meta ? h('span', { class: 'lib-meta', text: meta }) : null);
+  function libSearch(placeholder, onInput) {
+    const input = h('input', { type: 'text', placeholder, spellcheck: 'false', autocomplete: 'off', 'aria-label': placeholder, oninput: () => onInput(input.value) });
+    return h('label', { class: 'lib-search' }, ico('search'), input);
+  }
+  function dangerBtn(label, fn) {
+    let armed = false, timer = 0;
+    const text = h('span', { text: label });
+    const reset = () => { armed = false; text.textContent = label; };
+    return h('button', { class: 'btn danger', onclick: () => {
+      if (!armed) { armed = true; text.textContent = 'Click again to confirm'; timer = setTimeout(reset, 3000); return; }
+      clearTimeout(timer); reset(); fn();
+    } }, ico('trash'), text);
+  }
+  const dayGroups = (items, rowFn) => {
+    const m = new Map();
+    items.forEach((x) => { const k = dayLabel(x.ts); if (!m.has(k)) m.set(k, []); m.get(k).push(x); });
+    return [...m].map(([d, xs]) => h('section', { class: 'lib-group' }, h('h3', { class: 'lib-day', text: d }), h('div', { class: 'lib-card' }, xs.map(rowFn))));
+  };
+  function libPage(icon, title, sub, tools, body, banner) {
+    return h('div', { class: 'page' }, h('div', { class: 'lib' },
+      h('div', { class: 'lib-head rise', style: '--i:0' },
+        h('div', { class: 'lib-title' }, h('span', { class: 'lib-mark' }, ico(icon)), h('div', {}, h('h2', { text: title }), sub)),
+        h('div', { class: 'lib-tools' }, ...tools)),
+      banner || null,
+      h('div', { class: 'rise', style: '--i:2' }, body)));
+  }
+
+  function historyPage() {
+    let q = '';
+    const sub = h('span', { class: 'lib-sub' });
+    const body = h('div');
+    const draw = () => {
+      const n = q.trim().toLowerCase();
+      const items = S.history.filter((x) => !n || x.u.toLowerCase().includes(n) || (x.t || '').toLowerCase().includes(n)).sort((a, b) => b.ts - a.ts).slice(0, 400);
+      sub.textContent = `${S.history.length} ${S.history.length === 1 ? 'visit' : 'visits'}${S.saveHistory ? '' : ' · not recording'}`;
+      body.replaceChildren(...(items.length
+        ? dayGroups(items, (x) => h('div', { class: 'lib-row' },
+          rowMain(x.u, x.t || hostName(x.u), pretty(x.u), timeLabel(x.ts)),
+          actBtn('ext', 'Open in new tab', () => newTab(x.u)),
+          actBtn('x', 'Remove from history', () => { S.history = S.history.filter((y) => y !== x); save(); draw(); })))
+        : [empty('clock', n ? 'No matches in your history.' : 'Nothing here yet. Pages you visit will show up here.')]));
+    };
+    draw();
+    return libPage('clock', 'History', sub, [
+      libSearch('Search history', (v) => { q = v; draw(); }),
+      dangerBtn('Clear history', () => { S.history = []; save(); draw(); toast('History cleared'); }),
+    ], body, S.saveHistory ? null : h('div', { class: 'lib-note', text: 'History is off, so new visits are not being saved. Turn it back on in Settings, under Privacy.' }));
+  }
+
+  function bookmarksPage() {
+    let q = '', editing = null;
+    const sub = h('span', { class: 'lib-sub' });
+    const body = h('div');
+    const nameIn = h('input', { class: 'lib-input', placeholder: 'Name', maxlength: '40', 'aria-label': 'Bookmark name' });
+    const urlIn = h('input', { class: 'lib-input', placeholder: 'Address, e.g. example.com', 'aria-label': 'Bookmark address' });
+    const addBtn = h('button', { class: 'btn', onclick: () => add() }, ico('plus'), h('span', { text: 'Add' }));
+    function add() {
+      if (S.bookmarks.length >= MAX_BM) return toast(`Bookmark limit reached (${MAX_BM})`);
+      const u = toUrl(urlIn.value);
+      if (!u) { urlIn.focus(); return toast('Enter a valid web address'); }
+      S.bookmarks.push({ name: nameIn.value.trim().slice(0, 40) || hostName(u), url: u });
+      nameIn.value = ''; urlIn.value = ''; save(); draw(); toast('Bookmark added');
+    }
+    [nameIn, urlIn].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); }));
+    const move = (i, d) => { const j = i + d; if (j < 0 || j >= S.bookmarks.length) return; [S.bookmarks[i], S.bookmarks[j]] = [S.bookmarks[j], S.bookmarks[i]]; save(); draw(); };
+    function editRow(b) {
+      const nIn = h('input', { class: 'lib-input', value: b.name, maxlength: '40', 'aria-label': 'Name' });
+      const uIn = h('input', { class: 'lib-input', value: b.url, 'aria-label': 'Address' });
+      const done = () => {
+        const u = toUrl(uIn.value);
+        if (!u) { uIn.focus(); return toast('Enter a valid web address'); }
+        b.name = nIn.value.trim().slice(0, 40) || hostName(u); b.url = u; editing = null; save(); draw();
+      };
+      const cancel = () => { editing = null; draw(); };
+      [nIn, uIn].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(); else if (e.key === 'Escape') cancel(); }));
+      setTimeout(() => nIn.focus(), 0);
+      return h('div', { class: 'lib-row lib-edit' }, nIn, uIn, btn('Save', done), btn('Cancel', cancel));
+    }
+    function draw() {
+      const n = q.trim().toLowerCase();
+      sub.textContent = `${S.bookmarks.length} of ${MAX_BM} saved`;
+      addBtn.disabled = S.bookmarks.length >= MAX_BM;
+      const rows = S.bookmarks.map((b, i) => [b, i]).filter(([b]) => !n || b.name.toLowerCase().includes(n) || b.url.toLowerCase().includes(n));
+      body.replaceChildren(rows.length
+        ? h('div', { class: 'lib-card' }, rows.map(([b, i]) => (b === editing ? editRow(b) : h('div', { class: 'lib-row' },
+          rowMain(b.url, b.name, pretty(b.url), ''),
+          !n && i > 0 ? actBtn('up', 'Move up', () => move(i, -1)) : null,
+          !n && i < S.bookmarks.length - 1 ? actBtn('down', 'Move down', () => move(i, 1)) : null,
+          actBtn('edit', 'Edit bookmark', () => { editing = b; draw(); }),
+          actBtn('x', 'Delete bookmark', () => { S.bookmarks = S.bookmarks.filter((y) => y !== b); save(); draw(); })))))
+        : empty('bookmark', n ? 'No bookmarks match your search.' : 'No bookmarks yet. Add one above.'));
+    }
+    draw();
+    return libPage('bookmark', 'Bookmarks', sub, [libSearch('Search bookmarks', (v) => { q = v; draw(); })],
+      body, h('div', { class: 'lib-add rise', style: '--i:1' }, nameIn, urlIn, addBtn));
+  }
+
+  function downloadsPage() {
+    let q = '', saves = 0;
+    const sub = h('span', { class: 'lib-sub' });
+    const body = h('div');
+    const refs = new Map();
+    const pct = (x) => (x.size ? Math.min(100, Math.floor((x.got / x.size) * 100)) : 0);
+    const status = (x) => ({
+      done: `${fmtBytes(x.size)} · ${timeLabel(x.ts)}`,
+      progress: `${pct(x)}% · ${fmtBytes(x.got)} of ${fmtBytes(x.size)}`,
+      paused: `Paused · ${pct(x)}% of ${fmtBytes(x.size)}`,
+      failed: 'Failed · connection lost',
+      canceled: 'Canceled',
+    }[x.state]);
+    const ext = (n) => ((n.match(/\.([A-Za-z0-9]{1,5})$/) || [0, 'file'])[1]).toUpperCase();
+    const setState = (x, s2) => { x.state = s2; save(); draw(); };
+    const remove = (x) => { S.downloads = S.downloads.filter((y) => y !== x); save(); draw(); };
+    function row(x) {
+      const bar = h('i'), wrap = h('div', { class: 'dl-bar' }, bar), st = h('span', { class: 'lib-url' });
+      const paint = () => {
+        st.textContent = hostName(x.url) + ' · ' + status(x);
+        st.classList.toggle('bad', x.state === 'failed');
+        bar.style.width = pct(x) + '%';
+        wrap.hidden = !(x.state === 'progress' || x.state === 'paused');
+        wrap.classList.toggle('paused', x.state === 'paused');
+      };
+      const acts = x.state === 'progress' ? [actBtn('pause', 'Pause', () => setState(x, 'paused')), actBtn('x', 'Cancel download', () => setState(x, 'canceled'))]
+        : x.state === 'paused' ? [actBtn('play', 'Resume', () => setState(x, 'progress')), actBtn('x', 'Cancel download', () => setState(x, 'canceled'))]
+          : x.state === 'done' ? [actBtn('ext', 'Open source page', () => newTab(x.url)), actBtn('trash', 'Remove from list', () => remove(x))]
+            : [actBtn('reset', 'Retry', () => { x.got = 0; setState(x, 'progress'); }), actBtn('trash', 'Remove from list', () => remove(x))];
+      paint(); refs.set(x.id, paint);
+      return h('div', { class: 'lib-row' },
+        h('div', { class: 'lib-main static' }, h('span', { class: 'dl-type', text: ext(x.name) }),
+          h('span', { class: 'lib-text' }, h('span', { class: 'lib-name', text: x.name }), st, wrap)),
+        ...acts);
+    }
+    const section = (label, items) => h('section', { class: 'lib-group' }, h('h3', { class: 'lib-day', text: label }), h('div', { class: 'lib-card' }, items.map(row)));
+    function draw() {
+      const n = q.trim().toLowerCase();
+      refs.clear();
+      const items = S.downloads.filter((x) => !n || x.name.toLowerCase().includes(n) || x.url.toLowerCase().includes(n)).sort((a, b) => b.ts - a.ts);
+      const active = items.filter((x) => x.state === 'progress' || x.state === 'paused');
+      const rest = items.filter((x) => !active.includes(x));
+      const nActive = S.downloads.filter((x) => x.state === 'progress').length;
+      sub.textContent = `${S.downloads.length} ${S.downloads.length === 1 ? 'download' : 'downloads'}${nActive ? ` · ${nActive} active` : ''}`;
+      body.replaceChildren(...(items.length
+        ? [active.length ? section('Active', active) : null, ...dayGroups(rest, row)].filter(Boolean)
+        : [empty('download', n ? 'No downloads match your search.' : 'No downloads yet. Files you download will show up here.')]));
+    }
+    draw();
+    const page = libPage('download', 'Downloads', sub, [
+      libSearch('Search downloads', (v) => { q = v; draw(); }),
+      dangerBtn('Clear finished', () => { S.downloads = S.downloads.filter((x) => x.state === 'progress' || x.state === 'paused'); save(); draw(); toast('Finished downloads cleared'); }),
+    ], body);
+    /* mock engine: active downloads advance while this page is open */
+    dlTimer = setInterval(() => {
+      if (!page.isConnected) { clearInterval(dlTimer); return; }
+      let finished = false;
+      S.downloads.forEach((x) => {
+        if (x.state !== 'progress') return;
+        x.got = Math.min(x.size, x.got + Math.max(1, Math.round(x.size * (0.015 + Math.random() * 0.04))));
+        if (x.got >= x.size) { x.state = 'done'; x.ts = Date.now(); finished = true; } else { const p = refs.get(x.id); if (p) p(); }
+      });
+      if (finished || ++saves % 5 === 0) save();
+      if (finished) draw();
+    }, 800);
+    return page;
+  }
+
   function renderViewport() {
     const t = cur();
     const u = urlOf(t);
@@ -518,12 +769,16 @@
     if (key === viewKey) return;
     viewKey = key;
     const v = $('#content');
+    clearInterval(dlTimer);
     v.replaceChildren();
     loadStart();
     if (u === 'vitreous://newtab') { v.append(startPage()); setTimeout(loadEnd, 380); }
     else if (u === 'vitreous://blank') { v.append(h('div', { class: 'page' })); setTimeout(loadEnd, 120); }
     else if (u === 'vitreous://settings') { v.append(settingsPage()); setTimeout(loadEnd, 380); }
     else if (u === 'vitreous://error') { v.append(errorPage()); setTimeout(loadEnd, 160); }
+    else if (u === 'vitreous://downloads') { v.append(downloadsPage()); setTimeout(loadEnd, 300); }
+    else if (u === 'vitreous://history') { v.append(historyPage()); setTimeout(loadEnd, 300); }
+    else if (u === 'vitreous://bookmarks') { v.append(bookmarksPage()); setTimeout(loadEnd, 300); }
     else {
       const frame = h('iframe', {
         src: u, title: titleOf(t), referrerpolicy: 'no-referrer',
@@ -557,6 +812,9 @@
     el.replaceChildren(); el.className = el.className.replace(/\b(has-img|has-ico|logo)\b/g, '').trim(); el.textContent = '';
     if (url === 'vitreous://settings') { el.classList.add('has-ico'); el.append(ico('gear')); return; }
     if (url === 'vitreous://blank') { el.classList.add('has-ico'); el.append(ico('circle')); return; }
+    if (url === 'vitreous://downloads') { el.classList.add('has-ico'); el.append(ico('download')); return; }
+    if (url === 'vitreous://history') { el.classList.add('has-ico'); el.append(ico('clock')); return; }
+    if (url === 'vitreous://bookmarks') { el.classList.add('has-ico'); el.append(ico('bookmark')); return; }
     if (url === 'vitreous://newtab') { el.classList.add('has-img', 'logo'); el.append(h('img', { src: 'assets/vitreous-mark.svg', alt: '' })); return; }
     let src = '';
     try { const u = new URL(url); if (/^https?:$/.test(u.protocol)) src = u.origin + '/favicon.ico'; } catch { /* letter */ }
@@ -982,6 +1240,8 @@
     calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
     flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
     timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M9.5 3h5"/>',
+    download: '<path d="M12 4v11M7.5 11l4.5 4.5 4.5-4.5M5 20h14"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12M9 7V4h6v3"/>',
+    ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
     play: '<path d="M8 5.5v13l11-6.5z"/>', pause: '<path d="M8 5v14M16 5v14"/>', reset: '<path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
     cloud: '<path d="M6.5 18a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.6-1.3A4.4 4.4 0 0 1 17 18z"/>',
@@ -1184,7 +1444,7 @@
           target = dropdown(opts, cm.target, (v) => { cm.target = v; save(); }, 'Command target');
         } else {
           target = h('input', { type: 'text', value: cm.target, maxlength: 500, spellcheck: 'false', 'aria-label': 'Address',
-            onchange: () => { let v = target.value.trim(); if (!/^(https?:\/\/|vitreous:\/\/(newtab|settings))/i.test(v)) v = 'https://' + v; try { new URL(v); cm.target = v; save(); } catch { toast('That is not a valid address'); } target.value = cm.target; } });
+            onchange: () => { let v = target.value.trim(); if (!/^(https?:\/\/|vitreous:\/\/(newtab|settings|downloads|history|bookmarks))/i.test(v)) v = 'https://' + v; try { new URL(v); cm.target = v; save(); } catch { toast('That is not a valid address'); } target.value = cm.target; } });
         }
         return h('div', { class: 'er' }, name, kind, target, ibtn('x', 'Remove', () => { S.commands.splice(i, 1); save(); drawCmds(); }, 'danger'));
       }), h('div', { class: 'btns' }, btn('Add command', () => {
@@ -1301,6 +1561,7 @@
         row('HTTPS-only', 'Upgrade http:// addresses to https://', toggle('https')),
         row('Fingerprint resistance', null, toggle('fingerprint')),
         row('Send Do Not Track', null, toggle('dnt')),
+        row('Remember browsing history', 'Off stops new visits being saved to History', toggle('saveHistory')),
         h('div', { class: 'warn', text: 'Prototype note: HTTPS-only and the search engine already work. Tracker blocking, fingerprint resistance and Do Not Track switch on once the engine layer is connected.' })),
 
       group('shortcuts', 'Shortcuts', gi++, h('div', { class: 'warn', text: 'Click a shortcut, then press the new keys. Shortcuts need Ctrl or Alt.' }), keyBox),
@@ -1365,6 +1626,9 @@
       ['Simulate engine title update', '', () => { window.vitreousEngine.onTitleChange('Vitreous Engine Demo'); toast('Mock engine title received'); }],
       ['Simulate engine load state', '', () => { window.vitreousEngine.onLoadStateChange('loading'); setTimeout(() => window.vitreousEngine.onLoadStateChange('complete'), 900); toast('Mock engine load started'); }],
       ['Preview site error page', '', () => { lastFailedUrl = urlOf(cur()); window.vitreousEngine.onError('Mock navigation failure'); }],
+      ['Open History', '', () => navigate(cur(), 'vitreous://history')],
+      ['Open Downloads', '', () => navigate(cur(), 'vitreous://downloads')],
+      ['Open Bookmarks', '', () => navigate(cur(), 'vitreous://bookmarks')],
       ['Toggle top / side tab layout', '', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
       ['Export settings', '', () => { openSettings('grp-advanced'); }],
     );
