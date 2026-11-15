@@ -1413,3 +1413,101 @@ body[data-fx="low"] .pal {
   backdrop-filter: none;
   background: rgba(5, 8, 20, 0.6);
 }
+
+/* ---------- High-Fidelity motion restoration ---------- */
+/* Full visual motion is enabled in High-Fidelity. The separate app motion
+   switch and OS reduced-motion preference remain respected. */
+body[data-fx="high"] .backdrop i {
+  animation: drift var(--blob-dur, 28s) ease-in-out infinite alternate !important;
+  will-change: transform;
+}
+body[data-fx="high"] .backdrop i:nth-child(2) { animation-delay: -9s !important; }
+body[data-fx="high"] .backdrop i:nth-child(3) { animation-delay: -17s !important; }
+
+body[data-fx="high"] .side-wrap,
+body[data-fx="high"] .sidebar,
+body[data-fx="high"] .lbl,
+body[data-fx="high"] .spaces,
+body[data-fx="high"] .space,
+body[data-fx="high"] .space .dot,
+body[data-fx="high"] .space .sl,
+body[data-fx="high"] .tab-list .indicator,
+body[data-fx="high"] .tab,
+body[data-fx="high"] .tab .x,
+body[data-fx="high"] .toolbar,
+body[data-fx="high"] .icon-btn,
+body[data-fx="high"] .icon-btn svg,
+body[data-fx="high"] .address,
+body[data-fx="high"] .address input,
+body[data-fx="high"] .glass,
+body[data-fx="high"] .drop-menu,
+body[data-fx="high"] .context-menu,
+body[data-fx="high"] .tile,
+body[data-fx="high"] .widget,
+body[data-fx="high"] .new-tab,
+body[data-fx="high"] .loadbar {
+  transition-timing-function: var(--spring, cubic-bezier(.2,.8,.2,1));
+}
+
+body[data-fx="high"] .icon-btn,
+body[data-fx="high"] .new-tab,
+body[data-fx="high"] .space,
+body[data-fx="high"] .tab,
+body[data-fx="high"] .tile {
+  transition-property: transform, opacity, color, background-color, box-shadow, border-color;
+  transition-duration: .32s, .25s, .25s, .25s, .3s, .25s;
+}
+body[data-fx="high"] .icon-btn:hover { transform: translateY(-1px) scale(1.06); }
+body[data-fx="high"] .icon-btn:active { transform: scale(.88); }
+body[data-fx="high"] .new-tab:hover { transform: translateX(3px); }
+body[data-fx="high"] .space:hover { transform: translateY(-1px); }
+body[data-fx="high"] .tab:hover { transform: translateX(2px) scale(1.01); }
+body[data-fx="high"] .tab:active { transform: scale(.975); }
+body[data-fx="high"] .tile:hover {
+  transform: translateY(-4px) scale(1.025);
+  box-shadow: 0 16px 34px -20px var(--shadow);
+}
+body[data-fx="high"] .address {
+  transition: width .45s var(--spring), box-shadow .3s ease,
+    background .3s ease, transform .35s var(--spring) !important;
+}
+body[data-fx="high"] .address:focus-within { transform: translateY(-1px); }
+body[data-fx="high"] .glass::before {
+  animation: vitreousSheen 13s ease-in-out infinite alternate !important;
+}
+body[data-fx="high"] .glass::after {
+  transition: opacity .2s ease-out !important;
+}
+body[data-fx="high"] .drop-menu,
+body[data-fx="high"] .context-menu,
+body[data-fx="high"] .pal {
+  animation: highGlassEnter .24s var(--spring) both;
+  transform-origin: top center;
+}
+@keyframes highGlassEnter {
+  from { opacity: 0; transform: translateY(-7px) scale(.975); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+body[data-fx="high"] .loadbar.loading {
+  animation: loadSlow 6s cubic-bezier(.1,.6,.2,1) forwards,
+    loadColorFlow 2.8s linear infinite !important;
+}
+
+/* Accessibility controls take precedence over the High-Fidelity effects. */
+body[data-motion="off"] *,
+body[data-motion="off"] *::before,
+body[data-motion="off"] *::after {
+  animation: none !important;
+  transition-duration: .01ms !important;
+  transition-delay: 0s !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-fx="high"] *,
+  body[data-fx="high"] *::before,
+  body[data-fx="high"] *::after {
+    animation: none !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
