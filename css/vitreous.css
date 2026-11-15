@@ -646,8 +646,7 @@ body[data-fx="low"] .backdrop i:nth-child(3) {
 body[data-fx="low"] .glass {
   --mx: 50%;
   --my: 50%;
-}
-body[data-fx="low"] .glass::before {
+}body[data-fx="low"] .glass::before {
   display: block !important;
   background: linear-gradient(160deg, rgba(255,255,255,.12), transparent 42%) !important;
   mix-blend-mode: normal !important;
@@ -1000,4 +999,52 @@ body[data-theme="light"][data-fx="high"] .glass::after {
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--accent) 68%, transparent);
   background-clip: padding-box;
+}
+
+/* ---------- Final Glass Polish: color bleed + protected top chrome ---------- */
+body[data-theme="light"] {
+  --tint: .25;
+  --glass-light-top: rgba(255,255,255,.35);
+  --glass-light-bottom: rgba(255,255,255,.1);
+}
+
+/* High-Fidelity panels use a translucent base instead of a white wash. */
+body[data-theme="light"][data-fx="high"] .glass {
+  background: color-mix(in srgb, var(--base) 75%, transparent) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+}
+
+/* Keep the toolbar and top tabs readable above the color atmosphere. */
+body[data-theme="light"][data-fx="high"] .toolbar,
+body[data-theme="light"][data-fx="high"] .tabstrip {
+  position: relative;
+  z-index: 10;
+  background: color-mix(in srgb, var(--base) 85%, transparent) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+}
+body[data-theme="light"] .main {
+  position: relative;
+  z-index: 5;
+}
+.backdrop { z-index: 0; }
+
+/* Stronger light-mode color atmosphere; retain each blob's own brand color. */
+body[data-theme="light"] .backdrop i {
+  opacity: calc(var(--blob) * var(--blob-mul) * 1.4) !important;
+}
+body[data-theme="light"] .backdrop i:nth-child(1) {
+  background: radial-gradient(circle, var(--b1) 0%, transparent 60%) !important;
+}
+body[data-theme="light"] .backdrop i:nth-child(2) {
+  background: radial-gradient(circle, var(--b2) 0%, transparent 60%) !important;
+}
+body[data-theme="light"] .backdrop i:nth-child(3) {
+  background: radial-gradient(circle, var(--b3) 0%, transparent 60%) !important;
+}
+
+/* Low-Spec keeps its own stronger static blob treatment and never samples blur. */
+body[data-theme="light"][data-fx="low"] .backdrop i {
+  opacity: .9 !important;
 }
