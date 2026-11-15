@@ -72,7 +72,7 @@
     theme: 'dark', accent: '#5aa9ff', aurora: 'prism', auroraCustom: ['#5aa9ff', '#b57bff', '#0ea5a0'],
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
-    blur: 28, tint: 14, glassTransparency: 0, radius: 22, saturate: 180, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
+    glassIntensity: 50, radius: 22, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
@@ -117,8 +117,8 @@
     lang: ['en-US', 'en-GB', 'sv-SE', 'de-DE', 'fr-FR', 'es-ES', 'pt-BR', 'ja-JP', 'zh-CN'], sleepAfter: ['5', '15', '30', '60'], proxy: ['system', 'none', 'manual'], channel: ['stable', 'beta', 'nightly'],
   };
   const RANGES = {
-    wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], blur: [0, 60], glassTransparency: [0, 100], tint: [2, 40], radius: [4, 36],
-    saturate: [100, 260], rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
+    wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], glassIntensity: [0, 100], radius: [4, 36],
+    rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
     dlParallel: [1, 8], pageZoom: [50, 300], minFont: [0, 24],
     iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
   };
@@ -459,14 +459,16 @@
     r.setProperty('--accent', S.accent);
     r.setProperty('--dynamic-color', engineThemeColor || S.accent);
     r.setProperty('--dynamic-intensity', String(S.dynamicTheme ? S.dynamicIntensity : 0));
-    r.setProperty('--blur', S.blur + 'px');
-    /* glass transparency: 0 = ultra-clear (default), 100 = nearly solid, like Reduce Transparency */
-    const gt = S.glassTransparency / 100;
-    r.setProperty('--tint', String(S.tint / 100));
-    console.log('[glass] apply glass-solid:', S.glassTransparency, gt);
-    r.setProperty('--glass-solid', String(gt));
+    /* glass intensity: 0 = flat solid panel, 100 = heavy frost. Only the panel's relation to the background changes. */
+    const gl = S.glassIntensity / 100;
+    const tintV = String(0.02 + gl * 0.28);
+    r.setProperty('--blur', (gl * 60) + 'px');
+    r.setProperty('--tint', tintV);
+    r.setProperty('--sat', (100 + S.glassIntensity) + '%');
+    r.setProperty('--glass-solid', String(1 - gl));
+    /* theme body rules set --tint on body, which would shadow the value above, so mirror it there */
+    if (document.body) document.body.style.setProperty('--tint', tintV);
     r.setProperty('--radius', S.radius + 'px');
-    r.setProperty('--sat', S.saturate + '%');
     r.setProperty('--rim-a', String(S.rim / 100));
     r.setProperty('--shadow-a', String(S.shadow / 100));
     r.setProperty('--bw', S.border + 'px');
@@ -501,7 +503,7 @@
   let wallCache = null;
   function wallData() { if (wallCache === null) { try { wallCache = localStorage.getItem(WALL_KEY) || ''; } catch { wallCache = ''; } } return wallCache; }
   function setWall(dataUrl) { wallCache = dataUrl; try { dataUrl ? localStorage.setItem(WALL_KEY, dataUrl) : localStorage.removeItem(WALL_KEY); } catch { toast('Image too large to store'); wallCache = ''; return false; } return true; }
-  const set = (k, v) => { if (k === 'glassTransparency') console.log('[glass] set:', v); S[k] = v; apply(); save(); };
+  const set = (k, v) => { S[k] = v; apply(); save(); };
   /* re-render the start page when a start-page setting changes while it is open */
   const refreshStart = () => { const t = cur(); if (t && urlOf(t) === 'vitreous://newtab') render(); };
 
@@ -1406,7 +1408,7 @@
     const out = h('span', { text: f(S[key]), class: 'gs-out' });
     const sl = glassSlider({
       min, max, step, value: S[key], label: key,
-      onInput: (n) => { if (key === 'glassTransparency') console.log('[glass] slider input:', n); set(key, n); out.textContent = f(n); sl.setAttribute('aria-valuetext', f(n)); },
+      onInput: (n) => { set(key, n); out.textContent = f(n); sl.setAttribute('aria-valuetext', f(n)); },
     });
     sl.setAttribute('aria-valuetext', f(S[key]));
     return h('div', { style: 'display:flex;align-items:center;gap:14px' }, sl, out);
@@ -1746,14 +1748,12 @@
         row('Blur', null, range('wallBlur', 0, 40, 'px'))),
 
       group('glass', 'Glass', gi++,
-        h('div', { class: 'tp-preview glass', 'aria-hidden': 'true' },
-          h('strong', { text: 'Preview' }),
-          h('span', { text: 'Changes apply live as you drag' }),
-          h('i', { class: 'tp-swatch' })),
-        row('Glass transparency', 'Ultra-clear by default. Raise it toward a near-solid panel, like Reduce Transparency', range('glassTransparency', 0, 100, '%')),
-        row('Glass blur', null, range('blur', 0, 60, 'px')),
-        row('Glass tint', null, range('tint', 2, 40, '%')),
-        row('Saturation', 'How vivid the background looks through glass', range('saturate', 100, 260, '%')),
+        h('div', { class: 'tp-stage', 'aria-hidden': 'true' },
+          h('div', { class: 'tp-preview glass' },
+            h('strong', { text: 'Preview' }),
+            h('span', { text: 'Changes apply live as you drag' }),
+            h('i', { class: 'tp-swatch' }))),
+        row('Glass intensity', 'How frosted the glass is. 0% is a flat panel, 100% is heavy frost.', range('glassIntensity', 0, 100, '%')),
         row('Edge highlight', null, range('rim', 0, 100, '%')),
         row('Shadow strength', null, range('shadow', 0, 100, '%')),
         row('Border width', null, range('border', 0, 3, 'px')),

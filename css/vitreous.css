@@ -747,8 +747,8 @@ body[data-pinned="1"] .main {
 
 /* High-Fidelity glass: layered blur is intentionally excluded from Low-Spec. */
 body[data-fx="high"] .glass {
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+  backdrop-filter: blur(var(--blur)) saturate(var(--sat));
   box-shadow:
     0 18px 40px -20px color-mix(in srgb, var(--shadow) calc(var(--shadow-a) * 100%), transparent),
     inset 0 0 8px rgba(255,255,255,.2),
@@ -756,8 +756,8 @@ body[data-fx="high"] .glass {
     inset 0 1px 0 var(--rim);
 }
 body[data-fx="high"] .sidebar.glass {
-  -webkit-backdrop-filter: blur(10px) saturate(170%);
-  backdrop-filter: blur(10px) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+  backdrop-filter: blur(var(--blur)) saturate(var(--sat));
 }
 
 /* Slow moving reflection: static in Low-Spec via its later override. */
@@ -1007,8 +1007,8 @@ body[data-theme="light"] {
 /* High-Fidelity panels use a translucent base instead of a white wash. */
 body[data-theme="light"][data-fx="high"] .glass {
   background: color-mix(in srgb, var(--base) 75%, transparent) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat)) !important;
+  backdrop-filter: blur(var(--blur)) saturate(var(--sat)) !important;
 }
 
 /* Keep the top tabs readable above the color atmosphere. */
@@ -2042,3 +2042,15 @@ html body .glass::before {
     linear-gradient(color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent), color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent)) !important;
 }
 html body .viewport.glass::before { display: none !important; }
+
+/* Preview stage: a fixed sample background behind the preview card so the blur is visible while dragging. */
+html body .tp-stage {
+  position: relative; margin: 4px 16px 14px; padding: 14px; border-radius: calc(var(--radius) - 4px); overflow: hidden;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 5px, transparent 5px 19px),
+    radial-gradient(circle at 18% 30%, #ff5f6d 0, transparent 46%),
+    radial-gradient(circle at 82% 18%, #36d1dc 0, transparent 48%),
+    radial-gradient(circle at 62% 92%, #ffc947 0, transparent 50%),
+    linear-gradient(135deg, #3b1d8f, #12183a);
+}
+html body .tp-stage .tp-preview { margin: 0; }
