@@ -1048,3 +1048,67 @@ body[data-theme="light"] .backdrop i:nth-child(3) {
 body[data-theme="light"][data-fx="low"] .backdrop i {
   opacity: .9 !important;
 }
+
+
+/* ---------- Emergency UI fixes: drawer hit-area, focus, and dark glass ---------- */
+
+/* Give the compact drawer a 20px invisible hover bridge on its open side.
+   The bridge is behind the expanded sidebar and keeps :hover alive while
+   the pointer travels toward controls such as the pin button. */
+body[data-pinned="0"] .side-wrap[data-rail="1"] {
+  isolation: isolate;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -20px;
+  width: 20px;
+  height: 100%;
+  z-index: 39;
+  pointer-events: auto;
+}
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]::after {
+  right: auto;
+  left: -20px;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
+  z-index: 40 !important;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
+body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+  width: var(--side-w) !important;
+}
+
+/* Remove browser-native input/button outlines; visible keyboard focus remains
+   represented by the app's existing :focus-visible accent treatment. */
+input:focus,
+input:focus-visible,
+button:focus,
+button:focus-visible {
+  outline: none !important;
+}
+.address input {
+  background: transparent !important;
+}
+.address:focus-within {
+  box-shadow: inset 0 0 0 2px var(--accent),
+    0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent) !important;
+}
+
+/* Dark glass: replace the bright white sheen layer with a restrained grey
+   reflection and a translucent base so the colored backdrop can show through. */
+body[data-theme="dark"] .glass,
+body[data-theme="dark"] .drop-menu,
+body[data-theme="dark"] .context-menu,
+body[data-theme="dark"] .address,
+body[data-theme="dark"] .toolbar,
+body[data-theme="dark"] .sidebar {
+  background:
+    linear-gradient(140deg, rgba(255,255,255,.05), rgba(255,255,255,.01)),
+    color-mix(in srgb, var(--base) 70%, transparent) !important;
+}
+
+/* Keep the backdrop behind the application chrome. */
+.backdrop { z-index: 0 !important; }
+.app { position: relative; z-index: 1 !important; }
