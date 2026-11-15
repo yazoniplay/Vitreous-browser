@@ -87,7 +87,7 @@ button { cursor: pointer; background: none; border: 0; }
   -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
   backdrop-filter: blur(var(--blur)) saturate(var(--sat));
   border: var(--bw) solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-panels, var(--radius));
   box-shadow: 0 18px 40px -20px color-mix(in srgb, var(--shadow) calc(var(--shadow-a) * 100%), transparent), inset 0 1px 0 color-mix(in srgb, var(--rim) calc(var(--rim-a) * 100%), transparent), inset 0 -1px 0 rgba(255,255,255,0.05);
 }
 .glass::before, .glass::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
@@ -137,9 +137,9 @@ body[data-fx="low"] .glass::after { display: none; }
 
 /* tabs (shared) */
 .tab-list { position: relative; }
-.indicator { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; pointer-events: none; z-index: 0; border-radius: calc(var(--radius) - 10px); background: linear-gradient(140deg, rgba(255,255,255,0.3), rgba(255,255,255,0.12)); box-shadow: inset 0 1px 0 var(--rim), 0 8px 18px -10px var(--shadow); }
+.indicator { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; pointer-events: none; z-index: 0; border-radius: var(--radius-tabs); background: linear-gradient(140deg, rgba(255,255,255,0.3), rgba(255,255,255,0.12)); box-shadow: inset 0 1px 0 var(--rim), 0 8px 18px -10px var(--shadow); }
 .tab-list.ready .indicator { transition: transform 0.5s var(--spring), width 0.5s var(--spring), height 0.5s var(--spring), opacity 0.25s; }
-.tab { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 0 10px; height: var(--tab-h); border-radius: calc(var(--radius) - 10px); font-size: 13.5px; cursor: pointer; flex: none; transition: background 0.2s, transform 0.2s var(--ease); }
+.tab { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 0 10px; height: var(--tab-h); border-radius: var(--radius-tabs); font-size: 13.5px; cursor: pointer; flex: none; transition: background 0.2s, transform 0.2s var(--ease); }
 .tab:hover { background: var(--field); }
 .tab:active { transform: scale(0.98); }
 .tab[aria-selected="true"], .tab[aria-selected="true"]:hover { background: none; }
@@ -172,7 +172,7 @@ body[data-fx="low"] .glass::after { display: none; }
 .toolbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; height: 40px; flex: none; padding: 0 2px; }
 .nav { display: flex; gap: 1px; min-width: 100px; }
 .nav:last-child { justify-content: flex-end; }
-.address { justify-self: center; width: min(var(--addr-w), 100%); display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 16px; border-radius: var(--addr-r); background: var(--field); box-shadow: inset 0 0 0 1px var(--line); -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur)); transition: box-shadow 0.3s, width 0.45s var(--spring), background 0.3s; min-width: 0; }
+.address { justify-self: center; width: min(var(--addr-w), 100%); display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 16px; border-radius: var(--radius-addr); background: var(--field); box-shadow: inset 0 0 0 1px var(--line); -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur)); transition: box-shadow 0.3s, width 0.45s var(--spring), background 0.3s; min-width: 0; }
 .address:focus-within { width: min(calc(var(--addr-w) + 100px), 100%); box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent); }
 .address input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; font-size: 14px; text-align: center; transition: text-align 0.2s; }
 .address:focus-within input { text-align: left; }
@@ -225,7 +225,7 @@ kbd { font: 600 11px var(--font); padding: 2px 6px; border-radius: 6px; backgrou
 .settings { max-width: 1020px; margin: 0 auto; }
 .settings h2 { margin: 0 0 4px; font-size: 24px; font-weight: 600; }
 .settings > p { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
-.group { margin-bottom: 20px; border-radius: calc(var(--radius) - 4px); background: var(--field); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.group { margin-bottom: 20px; border-radius: var(--radius-panels); background: var(--field); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
 .group > h3 { margin: 0; padding: 14px 18px 4px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 18px; font-size: 14px; }
 .row + .row { border-top: 1px solid var(--line); }
@@ -390,7 +390,7 @@ body[data-tabshape="underline"] .indicator { border-radius: 0; background: none;
 .x-mini:hover { opacity: 1; background: var(--field); }
 .x-mini .ico { width: 11px; height: 11px; }
 .widgets { max-width: 900px; margin: 34px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.widget { padding: 14px 16px 16px; border-radius: calc(var(--radius) - 4px); display: flex; flex-direction: column; gap: 10px; min-height: 150px; }
+.widget { padding: 14px 16px 16px; border-radius: var(--radius-panels); display: flex; flex-direction: column; gap: 10px; min-height: 150px; }
 .w-head { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
 .w-head .ico { width: 15px; height: 15px; }
 .w-head .x-mini { margin-left: auto; opacity: 0; }
@@ -2077,3 +2077,7 @@ body[data-breathe="1"] .backdrop { animation: breathe 6s ease-in-out infinite; }
 /* Cursor spotlight strength: scales the hover glow on glass panels. Low-spec mode has no spotlight. */
 html body[data-fx="high"] .glass.glass:hover::after { opacity: var(--spot-a, 0.5) !important; }
 html body[data-fx="low"] .glass.glass::after { display: none !important; }
+
+/* Independent radii: --radius-tabs, --radius-panels, --radius-addr are set from settings; --radius stays the fallback. */
+html body .tab, html body .indicator { border-radius: var(--radius-tabs, var(--radius)) !important; }
+html body .address { border-radius: var(--radius-addr, var(--radius)) !important; }
