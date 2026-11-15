@@ -700,3 +700,132 @@ body[data-fx="low"] .address {
   justify-self: center;
   transition: width .25s ease-out, box-shadow .25s ease-out !important;
 }
+
+/* ---------- True Liquid Glass: pinned push, hover overlay, and depth ---------- */
+
+/* Compact rail hover is an overlay: keep the layout slot at rail width. */
+body[data-pinned="0"] .side-wrap[data-rail="1"] {
+  width: var(--rail-w) !important;
+  transition: width .35s cubic-bezier(.2,.8,.2,1) !important;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"]:hover,
+body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within {
+  width: var(--rail-w) !important;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
+  position: absolute !important;
+  width: var(--rail-w) !important;
+  z-index: 40 !important;
+  transition: width .2s ease-out, box-shadow .2s ease-out !important;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
+body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+  width: var(--side-w) !important;
+  box-shadow: 20px 0 50px -20px rgba(0,0,0,.8) !important;
+}
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+  box-shadow: -20px 0 50px -20px rgba(0,0,0,.8) !important;
+}
+
+/* Pinning turns the drawer into a real flex column and smoothly pushes .main. */
+body[data-pinned="1"] .side-wrap {
+  width: var(--side-w) !important;
+  transition: width .35s cubic-bezier(.2,.8,.2,1) !important;
+}
+body[data-pinned="1"] .sidebar {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 5 !important;
+  box-shadow: 0 18px 44px -24px var(--shadow) !important;
+  transition: width .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s cubic-bezier(.2,.8,.2,1) !important;
+}
+body[data-pinned="1"] .main {
+  min-width: 0;
+}
+
+/* High-Fidelity glass: layered blur is intentionally excluded from Low-Spec. */
+body[data-fx="high"] .glass {
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 18px 40px -20px color-mix(in srgb, var(--shadow) calc(var(--shadow-a) * 100%), transparent),
+    inset 0 0 8px rgba(255,255,255,.2),
+    inset 0 0 0 1px rgba(255,255,255,.1),
+    inset 0 1px 0 var(--rim);
+}
+body[data-fx="high"] .sidebar.glass {
+  -webkit-backdrop-filter: blur(10px) saturate(170%);
+  backdrop-filter: blur(10px) saturate(170%);
+}
+body[data-fx="high"] .toolbar.glass {
+  -webkit-backdrop-filter: blur(4px) saturate(160%);
+  backdrop-filter: blur(4px) saturate(160%);
+}
+
+/* Slow moving reflection: static in Low-Spec via its later override. */
+body[data-fx="high"] .glass::before {
+  background: linear-gradient(115deg,
+    rgba(255,255,255,.28) 0%,
+    rgba(255,255,255,.08) 28%,
+    transparent 48%,
+    rgba(255,255,255,.12) 66%,
+    transparent 82%) !important;
+  background-size: 220% 220% !important;
+  animation: vitreousSheen 13s ease-in-out infinite alternate;
+}
+@keyframes vitreousSheen {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+/* Stronger cursor-following spotlight; app.js updates --mx and --my. */
+body[data-fx="high"] .glass::after {
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255,255,255,.34), rgba(255,255,255,.12) 32%, transparent 72%) !important;
+  opacity: 0;
+  transition: opacity .18s ease-out !important;
+}
+body[data-fx="high"] .glass:hover::after { opacity: 1; }
+
+/* Spring motion belongs to High-Fidelity only. */
+body[data-fx="high"] .side-wrap,
+body[data-fx="high"] .sidebar {
+  transition-timing-function: var(--spring);
+}
+body[data-fx="high"] .tab-list.ready .indicator {
+  transition: transform .5s var(--spring), width .5s var(--spring),
+    height .5s var(--spring), opacity .25s ease !important;
+}
+body[data-fx="high"] .tile,
+body[data-fx="high"] .tab {
+  transition: transform .3s cubic-bezier(.2,.8,.2,1),
+    background-color .25s ease, color .25s ease, box-shadow .25s ease !important;
+}
+body[data-fx="high"] .tile:hover,
+body[data-fx="high"] .tab:hover {
+  transform: scale(1.02);
+}
+
+/* Branded moving load highlight. */
+body[data-fx="high"] .loadbar {
+  background: linear-gradient(90deg, var(--b1), var(--b2), var(--b3), var(--b1));
+  background-size: 220% 100%;
+}
+body[data-fx="high"] .loadbar.loading {
+  animation: loadSlow 6s cubic-bezier(.1,.6,.2,1) forwards,
+    loadColorFlow 2.8s linear infinite;
+}
+@keyframes loadColorFlow {
+  from { background-position: 0% 50%; }
+  to { background-position: 220% 50%; }
+}
+
+/* Keyboard focus should read as an intentional part of the glass system. */
+:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 24%, transparent),
+    0 0 16px color-mix(in srgb, var(--accent) 48%, transparent);
+}
