@@ -2083,3 +2083,14 @@ html body[data-tab-shape="rounded"] .tab, html body[data-tab-shape="rounded"] .i
 html body[data-tab-shape="flat"] .tab, html body[data-tab-shape="flat"] .indicator { border-radius: 4px !important; }
 html body[data-tab-shape="pill"] .tab, html body[data-tab-shape="pill"] .indicator { border-radius: 999px !important; }
 html body[data-tab-shape="folder"] .tab, html body[data-tab-shape="folder"] .indicator { border-radius: var(--radius-tabs) var(--radius-tabs) 0 0 !important; }
+
+/* Address bar position */
+body[data-addr-pos="left"] .address,
+body[data-addr-pos="left"] .address:focus-within { justify-self: start; width: min(560px, 100%); }
+body[data-addr-pos="sidebar"] .address,
+body[data-addr-pos="sidebar"] .address:focus-within { justify-self: stretch; width: 100%; margin: 0; flex: none; }
+body[data-addr-pos="sidebar"] .side-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+/* Compact sidebar has no room for the address bar, so it appears when the sidebar expands. */
+body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"] .address { display: none; }
+body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"]:hover .address,
+body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"]:has(:focus-visible) .address { display: flex; }

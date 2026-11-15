@@ -72,7 +72,7 @@
     theme: 'dark', accent: '#5aa9ff', aurora: 'prism', auroraCustom: ['#5aa9ff', '#b57bff', '#0ea5a0'],
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
-    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
+    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, addrPosition: 'center', rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
@@ -109,7 +109,7 @@
   const ENUMS = {
     theme: ['dark', 'light', 'midnight', 'auto'], wallMode: ['none', 'url', 'upload'],
     font: ['system', 'inter', 'serif', 'mono', 'rounded', 'custom'], density: ['compact', 'cozy', 'roomy'],
-    tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['rounded', 'flat', 'pill', 'folder'],
+    tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['rounded', 'flat', 'pill', 'folder'], addrPosition: ['center', 'left', 'sidebar'],
     closeBtn: ['hover', 'always', 'never'], addrShape: ['pill', 'round', 'square'], addrAlign: ['center', 'left'],
     newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'], startLayout: ['centered', 'left', 'command'], lightDirection: ['top-left', 'top-right', 'center'],
     cookies: ['all', 'third', 'block'], permLocation: ['ask', 'allow', 'block'], permCamera: ['ask', 'allow', 'block'], permMic: ['ask', 'allow', 'block'], permNotify: ['ask', 'allow', 'block'],
@@ -451,6 +451,14 @@
     b.dataset.favs = S.favs ? '1' : '0';
     b.dataset.close = S.closeBtn;
     b.dataset.tabShape = S.tabShape;
+    /* address bar position. 'sidebar' needs the sidebar tabs, so it falls back to the toolbar when tabs are on top. */
+    const addrEl = $('.address');
+    const inSide = S.addrPosition === 'sidebar' && S.tabs !== 'top';
+    b.dataset.addrPos = inSide ? 'sidebar' : S.addrPosition === 'left' ? 'left' : 'center';
+    if (addrEl) {
+      if (inSide) { if (addrEl.nextElementSibling !== $('#sideNewTab')) $('#sidebar').insertBefore(addrEl, $('#sideNewTab')); }
+      else if (addrEl.previousElementSibling !== $('.nav-l')) $('.nav-l').insertAdjacentElement('afterend', addrEl);
+    }
     b.dataset.blobsStill = S.blobSpeed === 0 ? '1' : '0';
     const wall = S.wallMode === 'url' ? S.wallUrl : S.wallMode === 'upload' ? wallData() : '';
     b.dataset.wall = wall ? '1' : '0';
@@ -1811,7 +1819,8 @@
         row('Tab radius', 'Corner radius of tabs and their highlight', range('tabRadius', 0, 36, 'px')),
         row('Tab shape', 'Rounded, flat, pill or folder. The highlight follows the same shape', seg([['rounded', 'Rounded'], ['flat', 'Flat'], ['pill', 'Pill'], ['folder', 'Folder']], 'tabShape')),
         row('Panel radius', 'Corner radius of glass panels, sidebar and widgets', range('panelRadius', 0, 36, 'px')),
-        row('Address bar radius', 'Corner radius of the address bar', range('addrRadius', 0, 36, 'px'))),
+        row('Address bar radius', 'Corner radius of the address bar', range('addrRadius', 0, 36, 'px')),
+        row('Address bar position', 'Top center, top left, or inside the sidebar (sidebar tabs only)', seg([['center', 'Top Center'], ['left', 'Top Left'], ['sidebar', 'In Sidebar']], 'addrPosition'))),
 
       group('tabs', 'Tabs', gi++,
         row('Top tab width', 'Applies when tabs are on top', range('tabWidth', 110, 320, 'px')),
