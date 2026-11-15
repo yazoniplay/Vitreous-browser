@@ -1980,13 +1980,15 @@ html body .w-sm .ql-b:nth-child(n+5) { display: none; }
 /* Transparency overlay: an inset shadow paints above every theme background, so it works in light and dark,
    high and low fx. Specificity is higher than the theme rules that set backgrounds with !important.
    Outer shadow and highlights are kept from the high-fx rules. */
-html body .glass.glass {
+/* Transparency overlay. !important so it beats the theme and high-fx box-shadow rules on every glass element.
+   At 0% the overlay is transparent and the glass tint shows. At 100% it is an opaque slab. */
+html body .glass {
   box-shadow:
     inset 0 0 0 9999px color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent),
     0 18px 40px -20px color-mix(in srgb, var(--shadow) calc(var(--shadow-a) * 100%), transparent),
-    inset 0 0 8px rgba(255,255,255,.2),
-    inset 0 0 0 1px rgba(255,255,255,.1),
-    inset 0 1px 0 color-mix(in srgb, var(--rim) calc(var(--rim-a) * 100%), transparent);
+    inset 0 0 8px rgba(255,255,255,calc(.2 * (1 - var(--glass-solid, 0)))),
+    inset 0 0 0 1px rgba(255,255,255,calc(.1 * (1 - var(--glass-solid, 0)))),
+    inset 0 1px 0 color-mix(in srgb, var(--rim) calc(var(--rim-a) * 100%), transparent) !important;
 }
 html body .tp-preview { margin: 4px 16px 14px; padding: 16px 18px; border-radius: calc(var(--radius) - 6px); display: flex; flex-direction: column; gap: 4px; position: relative; overflow: hidden; }
 html body .tp-preview strong { font-size: 14px; font-weight: 600; }
@@ -2006,9 +2008,13 @@ html body .glass.glass {
     inset 0 0 0 1px rgba(255,255,255,calc(.1 * (1 - var(--glass-solid, 0)))),
     inset 0 1px 0 color-mix(in srgb, var(--rim) calc(var(--rim-a) * 100%), transparent);
 }
-html body .gs, html body .gs:focus, html body .gs:focus-visible, html body .gs *, html body .gs *:focus, html body .gs *:focus-visible {
+html body .gs, html body .gs:focus, html body .gs:focus-visible, html body .gs:focus-within,
+html body .gs *, html body .gs *:focus, html body .gs *:focus-visible,
+html body .gs-track, html body .gs-track:focus, html body .gs-track:focus-visible,
+html body .gs-fill, html body .gs-thumb {
   outline: none !important;
 }
+html body .gs:focus, html body .gs:focus-visible { box-shadow: none !important; }
 html body .gs:focus-visible .gs-thumb {
   outline: none !important;
   box-shadow: 0 0 0 1.5px var(--accent), 0 6px 16px -4px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.32), inset 0 1px 0 #fff, inset 0 -2px 4px rgba(110,122,160,.28) !important;
