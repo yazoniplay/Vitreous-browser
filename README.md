@@ -12,7 +12,9 @@ A private, fast, deeply customizable browser with a liquid-glass interface.
 
 | Part | State |
 |---|---|
-| Glass UI shell (tabs, spaces, sidebar, address bar) | Working |
+| Glass UI shell: vertical tabs (default) or top tabs, spaces, slim toolbar | Working |
+| Compact sidebar: collapses to an icon rail, expands on hover | Working |
+| Motion: sliding tab indicator, tab enter/leave, page transitions, load bar, cursor spotlight on glass | Working |
 | Command palette (`Ctrl K`) | Working |
 | Settings and live theming (theme, accent, background, blur, tint, radius, tab layout) | Working |
 | HTTPS-only upgrade, search engine choice | Working |
@@ -37,7 +39,7 @@ Then visit `http://localhost:8080`.
 | New tab | `Alt T` |
 | Close tab | `Alt W` |
 | Focus address bar | `Alt L` |
-| Toggle sidebar | `Alt B` |
+| Compact / pin sidebar | `Alt B` |
 | Settings | `Alt ,` |
 | Command palette | `Ctrl K` (`Cmd K` on Mac) |
 

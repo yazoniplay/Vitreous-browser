@@ -18,11 +18,12 @@
     for (const kid of kids.flat()) if (kid != null) n.append(kid);
     return n;
   };
+  const motionOn = () => document.body.dataset.motion !== 'off' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- data ---------- */
-  const KEY = 'vitreous.v1';
+  const KEY = 'vitreous.v2';
   const DEFAULTS = {
-    theme: 'dark', tabs: 'top', accent: '#5aa9ff', blur: 28, tint: 14, radius: 22,
+    theme: 'dark', tabs: 'side', accent: '#5aa9ff', blur: 28, tint: 14, radius: 22,
     aurora: 'prism', motion: true, lowfx: false, search: 'ddg',
     trackers: true, https: true, fingerprint: true, dnt: true, collapsed: false,
   };
@@ -58,6 +59,7 @@
   let activeId = null;
   let ws = 'personal';
   let viewKey = '';
+  let loadTimer = 0;
 
   const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -99,6 +101,13 @@
     if (u === 'vitreous://settings') return '•';
     return (titleOf(t)[0] || '?').toUpperCase();
   }
+  function pretty(u) {
+    if (INTERNAL.includes(u)) return '';
+    try {
+      const x = new URL(u);
+      return x.hostname.replace(/^www\./, '') + (x.pathname === '/' ? '' : x.pathname) + x.search;
+    } catch { return u; }
+  }
 
   /* ---------- persistence ---------- */
   function save() {
@@ -111,6 +120,7 @@
       S = { ...DEFAULTS, ...(raw.S || {}) };
       if (!ENGINES[S.search]) S.search = 'ddg';
       if (!AURORA[S.aurora]) S.aurora = 'prism';
+      if (S.tabs !== 'top' && S.tabs !== 'side') S.tabs = 'side';
       if (SPACES.some((x) => x.id === raw.ws)) ws = raw.ws;
       if (Array.isArray(raw.tabs)) {
         tabs = raw.tabs
@@ -118,11 +128,10 @@
           .map((t) => {
             const hist = t.hist.slice(-50).map((u) => normalize(String(u)));
             const i = Math.min(Math.max(+t.i || 0, 0), hist.length - 1);
-            return { id: uid(), ws: t.ws, hist, i, reload: 0 };
+            return { id: t.id && /^\w+$/.test(t.id) ? t.id : uid(), ws: t.ws, hist, i, reload: 0 };
           });
       }
-      const a = raw.activeId && raw.tabs && raw.tabs.findIndex((t) => t.id === raw.activeId);
-      if (a >= 0 && tabs[a]) activeId = tabs[a].id;
+      if (raw.activeId && tabs.some((t) => t.id === raw.activeId)) activeId = raw.activeId;
     } catch { /* corrupted state: start fresh */ }
   }
 
@@ -170,6 +179,7 @@
     render();
   }
   function switchSpace(id) {
+    if (id === ws) return;
     ws = id;
     const group = wsTabs();
     if (group.length) activeId = group[group.length - 1].id;
@@ -193,36 +203,77 @@
     r.setProperty('--b1', a); r.setProperty('--b2', c); r.setProperty('--b3', d);
     $('#main').dataset.tabs = S.tabs;
     $('#sidebar').dataset.hideTabs = S.tabs === 'top' ? '1' : '0';
-    $('#sidebar').classList.toggle('collapsed', S.collapsed);
-    $('#sideToggle2').hidden = S.tabs !== 'side';
+    $('#sideWrap').dataset.rail = S.tabs === 'top' || S.collapsed ? '1' : '0';
+    placeIndicators();
   }
   const set = (k, v) => { S[k] = v; apply(); save(); };
 
-  /* ---------- render ---------- */
-  function favEl(t) { return h('span', { class: 'fav', text: favLetter(t), 'aria-hidden': 'true' }); }
-
+  /* ---------- tabs rendering (keyed, animated) ---------- */
   function tabEl(t, side) {
     return h('div', {
-      class: 'tab' + (side ? ' side' : ''), role: 'tab', tabindex: '0',
-      'aria-selected': String(t.id === activeId), title: urlOf(t),
+      class: 'tab' + (side ? ' side' : ''), role: 'tab', tabindex: '0', 'data-id': t.id,
       onclick: () => activate(t.id),
       onauxclick: (e) => { if (e.button === 1) closeTab(t.id); },
       onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(t.id); } },
     },
-      favEl(t),
-      h('span', { class: 't', text: titleOf(t) }),
+      h('span', { class: 'fav', 'aria-hidden': 'true' }),
+      h('span', { class: 't' }),
       h('span', {
         class: 'x', role: 'button', 'aria-label': 'Close tab', text: '×',
         onclick: (e) => { e.stopPropagation(); closeTab(t.id); },
       }));
   }
+  function patchTab(n, t) {
+    n.setAttribute('aria-selected', String(t.id === activeId));
+    n.title = urlOf(t);
+    const title = titleOf(t), letter = favLetter(t);
+    const tt = n.querySelector('.t'), ff = n.querySelector('.fav');
+    if (tt.textContent !== title) tt.textContent = title;
+    if (ff.textContent !== letter) ff.textContent = letter;
+  }
+  function reconcile(list, items, side) {
+    const ind = list.querySelector('.indicator');
+    const existing = new Map([...list.querySelectorAll('.tab:not(.leave)')].map((n) => [n.dataset.id, n]));
+    const keep = new Set(items.map((t) => t.id));
+    existing.forEach((n, id) => {
+      if (keep.has(id)) return;
+      if (!motionOn() || list.offsetParent === null) { n.remove(); return; }
+      n.classList.add('leave');
+      n.addEventListener('animationend', () => n.remove(), { once: true });
+      setTimeout(() => n.remove(), 450);
+    });
+    let prev = ind;
+    items.forEach((t) => {
+      let n = existing.get(t.id);
+      if (!n) { n = tabEl(t, side); if (motionOn()) n.classList.add('enter'); }
+      patchTab(n, t);
+      if (prev.nextSibling !== n) list.insertBefore(n, prev.nextSibling);
+      prev = n;
+    });
+  }
+
+  function placeIndicators() {
+    [$('#sideTabs'), $('#tabs')].forEach((list) => {
+      const ind = list.querySelector('.indicator');
+      const act = list.querySelector('.tab[aria-selected="true"]:not(.leave)');
+      if (!act || list.offsetParent === null) { ind.style.opacity = '0'; return; }
+      const side = list.id === 'sideTabs';
+      ind.style.width = act.offsetWidth + 'px';
+      ind.style.height = (side ? 38 : 34) + 'px';
+      ind.style.transform = `translate(${act.offsetLeft}px, ${act.offsetTop}px)`;
+      ind.style.opacity = '1';
+      if (!list.classList.contains('ready')) requestAnimationFrame(() => requestAnimationFrame(() => list.classList.add('ready')));
+    });
+  }
 
   function renderTabs() {
-    $('#tabs').replaceChildren(...wsTabs().map((t) => tabEl(t, false)));
-    $('#sideTabs').replaceChildren(...wsTabs().map((t) => tabEl(t, true)));
-    $('#spaces').replaceChildren(...SPACES.map((s) => h('button', {
-      class: 'ws-btn', 'aria-pressed': String(s.id === ws), onclick: () => switchSpace(s.id),
-    }, h('span', { class: 'dot', style: `background:${s.color}` }), s.name)));
+    reconcile($('#tabs'), wsTabs(), false);
+    reconcile($('#sideTabs'), wsTabs(), true);
+    placeIndicators();
+    setTimeout(placeIndicators, 320);
+  }
+  function renderSpaces() {
+    document.querySelectorAll('.space').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === ws)));
   }
 
   function renderToolbar() {
@@ -231,35 +282,47 @@
     $('#forward').disabled = t.i >= t.hist.length - 1;
     const u = urlOf(t);
     const ai = $('#addr');
-    if (document.activeElement !== ai) ai.value = INTERNAL.includes(u) ? '' : u;
+    if (document.activeElement !== ai) ai.value = pretty(u);
+    $('.address .lock').style.opacity = u.startsWith('https://') ? '1' : '0.3';
     document.title = (titleOf(t) === 'New tab' ? '' : titleOf(t) + ' · ') + 'Vitreous';
   }
+
+  /* ---------- loading indicator ---------- */
+  const loadbar = () => $('#loadbar');
+  function loadStart() { clearTimeout(loadTimer); const l = loadbar(); l.className = 'loadbar'; void l.offsetWidth; l.className = 'loadbar loading'; loadTimer = setTimeout(loadEnd, 9000); }
+  function loadEnd() { clearTimeout(loadTimer); const l = loadbar(); if (l.classList.contains('loading')) l.className = 'loadbar finish'; }
 
   function renderViewport() {
     const t = cur();
     const u = urlOf(t);
-    const key = t.id + '|' + u + '|' + t.reload + '|' + (u === 'vitreous://settings' ? 's' : '');
+    const key = t.id + '|' + u + '|' + t.reload;
     if (key === viewKey) return;
     viewKey = key;
-    const v = $('#viewport');
+    const v = $('#content');
     v.replaceChildren();
-    if (u === 'vitreous://newtab') v.append(startPage());
-    else if (u === 'vitreous://settings') v.append(settingsPage());
+    loadStart();
+    if (u === 'vitreous://newtab') { v.append(startPage()); setTimeout(loadEnd, 380); }
+    else if (u === 'vitreous://settings') { v.append(settingsPage()); setTimeout(loadEnd, 380); }
     else {
-      v.append(
-        h('div', { class: 'notice' },
-          h('span', { text: 'Embedded preview. Many sites refuse to load inside a frame; the real engine has no such limit.' }),
-          h('a', { href: u, target: '_blank', rel: 'noopener noreferrer', text: 'Open in system browser ↗' })),
-        h('iframe', {
-          src: u, title: titleOf(t), referrerpolicy: 'no-referrer',
-          sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox',
+      const frame = h('iframe', {
+        src: u, title: titleOf(t), referrerpolicy: 'no-referrer',
+        sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox',
+        onload: loadEnd,
+      });
+      const chip = h('div', { class: 'chip glass', title: 'Many sites refuse to load inside a frame. The real engine has no such limit.' },
+        h('span', { text: 'Embedded preview' }),
+        h('a', { href: u, target: '_blank', rel: 'noopener noreferrer', text: 'Open in system browser ↗' }),
+        h('button', {
+          'aria-label': 'Dismiss', text: '×',
+          onclick: () => { chip.classList.add('out'); setTimeout(() => chip.remove(), 260); },
         }));
+      v.append(frame, chip);
     }
   }
 
   function render() {
     if (!cur()) { const t = { id: uid(), ws, hist: ['vitreous://newtab'], i: 0, reload: 0 }; tabs.push(t); activeId = t.id; }
-    renderTabs(); renderToolbar(); renderViewport(); save();
+    renderTabs(); renderSpaces(); renderToolbar(); renderViewport(); save();
   }
 
   /* ---------- start page ---------- */
@@ -269,12 +332,12 @@
       onkeydown: (e) => { if (e.key === 'Enter' && input.value.trim()) navigate(cur(), input.value); },
     });
     return h('div', { class: 'page' }, h('div', { class: 'start' },
-      h('img', { src: 'assets/vitreous-mark.svg', alt: 'Vitreous' }),
-      h('h1', { text: 'vitreous' }),
-      h('label', { class: 'address' }, input),
-      h('div', { class: 'tiles' }, BOOKMARKS.map((b) => h('button', { class: 'tile', onclick: () => navigate(cur(), b.url) },
+      h('img', { class: 'rise', style: '--i:0', src: 'assets/vitreous-mark.svg', alt: 'Vitreous' }),
+      h('h1', { class: 'rise', style: '--i:1', text: 'vitreous' }),
+      h('label', { class: 'address rise', style: '--i:2' }, input),
+      h('div', { class: 'tiles' }, BOOKMARKS.map((b, i) => h('button', { class: 'tile rise', style: `--i:${3 + i}`, onclick: () => navigate(cur(), b.url) },
         h('span', { class: 'fav', text: b.name[0], 'aria-hidden': 'true' }), b.name))),
-      h('p', { class: 'hint' }, h('kbd', { text: 'Ctrl K' }), ' command palette  ·  ', h('kbd', { text: 'Alt T' }), ' new tab  ·  ', h('kbd', { text: 'Alt ,' }), ' settings')));
+      h('p', { class: 'hint rise', style: '--i:7' }, h('kbd', { text: 'Ctrl K' }), ' palette  ·  ', h('kbd', { text: 'Alt T' }), ' new tab  ·  ', h('kbd', { text: 'Alt B' }), ' sidebar')));
   }
 
   /* ---------- settings page ---------- */
@@ -321,21 +384,22 @@
     const engine = h('select', { 'aria-label': 'Search engine', onchange: () => set('search', engine.value) },
       Object.entries(ENGINES).map(([k, v]) => h('option', { value: k, text: v[0], selected: S.search === k })));
     return h('div', { class: 'page' }, h('div', { class: 'settings' },
-      h('h2', { text: 'Settings' }),
-      h('p', { text: 'Every surface of Vitreous is adjustable. Changes apply instantly.' }),
+      h('h2', { class: 'rise', style: '--i:0', text: 'Settings' }),
+      h('p', { class: 'rise', style: '--i:1', text: 'Every surface of Vitreous is adjustable. Changes apply instantly.' }),
 
-      h('div', { class: 'group', id: 'grp-appearance' }, h('h3', { text: 'Appearance' }),
+      h('div', { class: 'group rise', style: '--i:2', id: 'grp-appearance' }, h('h3', { text: 'Appearance' }),
         row('Theme', null, seg([['dark', 'Dark'], ['light', 'Light'], ['auto', 'Auto']], 'theme')),
-        row('Tab layout', 'Tabs across the top, or vertical in the sidebar', seg([['top', 'Top'], ['side', 'Side']], 'tabs', () => { if (S.tabs === 'side' && S.collapsed) set('collapsed', false); })),
+        row('Tab layout', 'Vertical tabs live in the sidebar', seg([['side', 'Side'], ['top', 'Top']], 'tabs')),
+        row('Sidebar', 'Compact shows icons and expands on hover', seg([[false, 'Pinned'], [true, 'Compact']], 'collapsed')),
         row('Accent', null, swatches(ACCENTS, 'accent', (c) => c)),
         row('Background', null, swatches(Object.keys(AURORA), 'aurora', (k) => `linear-gradient(135deg, ${AURORA[k].join(',')})`)),
         row('Glass blur', null, range('blur', 0, 60, 'px')),
         row('Glass tint', null, range('tint', 2, 40, '%')),
         row('Corner radius', null, range('radius', 6, 36, 'px')),
-        row('Animated background', null, toggle('motion')),
+        row('Animations', 'Background drift, transitions and effects', toggle('motion')),
         row('Low-power glass', 'Turns off blur for older GPUs and battery saving', toggle('lowfx'))),
 
-      h('div', { class: 'group', id: 'grp-privacy' }, h('h3', { text: 'Privacy' }),
+      h('div', { class: 'group rise', style: '--i:3', id: 'grp-privacy' }, h('h3', { text: 'Privacy' }),
         row('Block trackers and ads', null, toggle('trackers')),
         row('HTTPS-only', 'Upgrade http:// addresses to https://', toggle('https')),
         row('Fingerprint resistance', null, toggle('fingerprint')),
@@ -343,9 +407,9 @@
         row('Search engine', null, engine),
         h('div', { class: 'warn', text: 'Prototype note: HTTPS-only and the search engine already work. Tracker blocking, fingerprint resistance and Do Not Track switch on once the engine layer is connected.' })),
 
-      h('div', { class: 'group' }, h('h3', { text: 'Shortcuts' }),
+      h('div', { class: 'group rise', style: '--i:4' }, h('h3', { text: 'Shortcuts' }),
         h('div', { class: 'keys' },
-          [['New tab', 'Alt T'], ['Close tab', 'Alt W'], ['Focus address bar', 'Alt L'], ['Toggle sidebar', 'Alt B'], ['Settings', 'Alt ,'], ['Command palette', 'Ctrl K']]
+          [['New tab', 'Alt T'], ['Close tab', 'Alt W'], ['Focus address bar', 'Alt L'], ['Compact / pin sidebar', 'Alt B'], ['Settings', 'Alt ,'], ['Command palette', 'Ctrl K']]
             .flatMap(([a, b]) => [h('span', { text: a }), h('kbd', { text: b })])))));
   }
 
@@ -359,8 +423,8 @@
       ['Close tab', 'Alt W', () => closeTab(activeId)],
       ['Reload', '', () => { cur().reload++; render(); }],
       ['Open settings', 'Alt ,', openSettings],
-      ['Toggle sidebar', 'Alt B', toggleSidebar],
-      ['Switch tab layout (top / side)', '', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
+      ['Compact / pin sidebar', 'Alt B', toggleSidebar],
+      ['Switch tab layout (side / top)', '', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
       ['Switch theme (dark / light)', '', () => set('theme', document.body.dataset.theme === 'dark' ? 'light' : 'dark')],
     ];
     SPACES.forEach((s) => c.push(['Space: ' + s.name, 'space', () => switchSpace(s.id)]));
@@ -374,17 +438,18 @@
     palItems = commands().filter(([n]) => !ql || n.toLowerCase().includes(ql));
     if (q) palItems.unshift(['Search or open “' + q + '”', 'Enter', () => navigate(cur(), q)]);
     palSel = Math.min(palSel, Math.max(palItems.length - 1, 0));
-    palList.replaceChildren(...palItems.map(([n, hint, fn], i) => h('button', {
-      class: 'pal-item', 'aria-selected': String(i === palSel), onclick: () => runPal(i),
+    palList.replaceChildren(...palItems.map(([n, hint], i) => h('button', {
+      class: 'pal-item', style: `--i:${Math.min(i, 12)}`, 'aria-selected': String(i === palSel), onclick: () => runPal(i),
     }, h('span', { text: n }), h('span', { text: hint }))));
   }
+  function palMark() { [...palList.children].forEach((b, i) => b.setAttribute('aria-selected', String(i === palSel))); }
   function runPal(i) { const it = palItems[i]; closePal(); if (it) it[2](); }
-  function openPal() { pal.classList.add('open'); palInput.value = ''; palSel = 0; palRender(); palInput.focus(); }
-  function closePal() { pal.classList.remove('open'); }
+  function openPal() { pal.classList.add('open'); palInput.value = ''; palSel = 0; palRender(); setTimeout(() => palInput.focus(), 30); }
+  function closePal() { pal.classList.remove('open'); palInput.blur(); }
   palInput.addEventListener('input', () => { palSel = 0; palRender(); });
   palInput.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); palSel = Math.min(palSel + 1, palItems.length - 1); palRender(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = Math.max(palSel - 1, 0); palRender(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); palSel = Math.min(palSel + 1, palItems.length - 1); palMark(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = Math.max(palSel - 1, 0); palMark(); }
     else if (e.key === 'Enter') { e.preventDefault(); runPal(palSel); }
     else if (e.key === 'Escape') closePal();
   });
@@ -396,27 +461,29 @@
   function openSettings(anchor) {
     const t = cur();
     if (urlOf(t) !== 'vitreous://settings') navigate(t, 'vitreous://settings');
-    if (typeof anchor === 'string') requestAnimationFrame(() => { const g = document.getElementById(anchor); g && g.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    if (typeof anchor === 'string') setTimeout(() => { const g = document.getElementById(anchor); g && g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);
   }
 
   /* ---------- wiring ---------- */
+  SPACES.forEach((s) => $('#spaces').append(h('button', {
+    class: 'space', 'data-id': s.id, title: s.name, 'aria-pressed': String(s.id === ws), onclick: () => switchSpace(s.id),
+  }, h('span', { class: 'dot', style: `background:${s.color};color:${s.color}` }), h('span', { class: 'sl', text: s.name }))));
+
   $('#newTab').addEventListener('click', () => newTab());
   $('#sideNewTab').addEventListener('click', () => newTab());
   $('#back').addEventListener('click', () => go(-1));
   $('#forward').addEventListener('click', () => go(1));
-  $('#reload').addEventListener('click', () => { cur().reload++; viewKey = ''; render(); });
-  $('#toggleSidebar').addEventListener('click', toggleSidebar);
-  $('#sideToggle2').addEventListener('click', toggleSidebar);
+  $('#reload').addEventListener('click', () => { cur().reload++; render(); });
+  $('#pin').addEventListener('click', toggleSidebar);
   $('#openSettings').addEventListener('click', () => openSettings());
   $('#shield').addEventListener('click', () => openSettings('grp-privacy'));
   $('#palBtn').addEventListener('click', openPal);
-  $('#addr').addEventListener('focus', (e) => e.target.select());
+  $('#addr').addEventListener('focus', (e) => { const u = urlOf(cur()); e.target.value = INTERNAL.includes(u) ? '' : u; e.target.select(); });
+  $('#addr').addEventListener('blur', renderToolbar);
   $('#addr').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.value.trim()) { navigate(cur(), e.target.value); e.target.blur(); }
-    else if (e.key === 'Escape') { renderToolbar(); e.target.blur(); }
+    else if (e.key === 'Escape') e.target.blur();
   });
-  $('#bookmarks').replaceChildren(...BOOKMARKS.map((b) => h('button', { class: 'bm', onclick: () => navigate(cur(), b.url) },
-    h('span', { class: 'fav', text: b.name[0], 'aria-hidden': 'true' }), b.name)));
 
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.code === 'KeyK') { e.preventDefault(); pal.classList.contains('open') ? closePal() : openPal(); return; }
@@ -427,10 +494,30 @@
   });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (S.theme === 'auto') apply(); });
 
+  /* glass spotlight follows the cursor */
+  let spot = 0;
+  document.addEventListener('pointermove', (e) => {
+    if (spot || !motionOn()) return;
+    spot = requestAnimationFrame(() => {
+      spot = 0;
+      const g = e.target.closest && e.target.closest('.glass');
+      if (!g) return;
+      const r = g.getBoundingClientRect();
+      g.style.setProperty('--mx', e.clientX - r.left + 'px');
+      g.style.setProperty('--my', e.clientY - r.top + 'px');
+    });
+  }, { passive: true });
+
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(() => placeIndicators());
+    ro.observe($('#sideTabs')); ro.observe($('#tabs'));
+  }
+  addEventListener('resize', placeIndicators);
+
   /* ---------- boot ---------- */
   load();
   apply();
-  if (!tabs.length) { tabs.push({ id: uid(), ws, hist: ['vitreous://newtab'], i: 0, reload: 0 }); }
+  if (!tabs.length) tabs.push({ id: uid(), ws, hist: ['vitreous://newtab'], i: 0, reload: 0 });
   if (!tabs.some((t) => t.id === activeId)) { const g = wsTabs(); activeId = (g[0] || tabs[0]).id; ws = cur().ws; }
   render();
 })();
