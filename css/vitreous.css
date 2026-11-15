@@ -1206,3 +1206,128 @@ input:focus-visible {
   box-shadow: inset 0 0 0 2px var(--accent),
     0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent) !important;
 }
+
+
+/* ---------- Final UI polish: hover overlay, pinned push, and premium motion ---------- */
+
+/* Hover is a visual peek only: keep the rail's flex footprint unchanged. */
+body[data-pinned="0"] .side-wrap[data-rail="1"] {
+  width: var(--rail-w) !important;
+  flex: 0 0 var(--rail-w) !important;
+  position: relative !important;
+  isolation: isolate;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"]:hover,
+body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within {
+  width: var(--rail-w) !important;
+  flex-basis: var(--rail-w) !important;
+}
+body[data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
+  position: absolute !important;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: auto;
+  width: var(--side-w) !important;
+  max-width: min(var(--side-w), calc(100vw - 24px));
+  z-index: 50 !important;
+  box-shadow: 0 28px 72px -18px rgba(0,0,0,.55),
+    0 8px 24px -12px var(--shadow),
+    inset 0 1px 0 var(--rim) !important;
+}
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
+  left: auto;
+  right: 0;
+}
+/* A 10px invisible bridge keeps the parent hovered as the pointer reaches
+   the outer edge of the expanded drawer and its pin control. */
+body[data-pinned="0"] .side-wrap[data-rail="1"]::after {
+  content: "";
+  display: block !important;
+  position: absolute;
+  top: 0;
+  right: -10px;
+  width: 10px;
+  height: 100%;
+  z-index: 49;
+  pointer-events: auto;
+}
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]::after {
+  right: auto;
+  left: -10px;
+}
+/* Pinning is the only state that takes sidebar width from the main column. */
+body[data-pinned="1"] .side-wrap {
+  position: relative !important;
+  width: var(--side-w) !important;
+  flex: 0 0 var(--side-w) !important;
+}
+body[data-pinned="1"] .side-wrap .sidebar {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100%;
+  z-index: 1 !important;
+  box-shadow: 0 18px 40px -20px var(--shadow),
+    inset 0 1px 0 var(--rim) !important;
+}
+body[data-pinned="1"] .side-wrap::after { display: none !important; }
+
+/* High-Fidelity keeps spring motion; Low-Spec remains deliberately restrained. */
+body[data-fx="high"] .side-wrap,
+body[data-fx="high"] .sidebar {
+  transition-duration: .45s !important;
+  transition-timing-function: var(--spring) !important;
+}
+body[data-fx="high"] .tile {
+  transition: transform .4s var(--spring), background .25s, color .25s !important;
+}
+body[data-fx="high"] .tile:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+}
+
+/* Ensure the glass sheen uses its animated background-position keyframes. */
+@keyframes vitreousSheen {
+  from { background-position: 0% 50%; }
+  to { background-position: 220% 50%; }
+}
+body[data-fx="high"] .glass::before {
+  background-size: 220% 220%;
+  animation: vitreousSheen 13s ease-in-out infinite alternate !important;
+}
+
+/* Light High-Fidelity glass: translucent white tint with the color atmosphere
+   still visible through a 24px frosted layer. Low-Spec keeps its no-blur rule. */
+body[data-theme="light"][data-fx="high"] .glass,
+body[data-theme="light"][data-fx="high"] .drop-menu,
+body[data-theme="light"][data-fx="high"] .context-menu,
+body[data-theme="light"][data-fx="high"] .address,
+body[data-theme="light"][data-fx="high"] .sidebar,
+body[data-theme="light"][data-fx="high"] .toolbar,
+body[data-theme="light"][data-fx="high"] .tabstrip {
+  background: linear-gradient(135deg,
+    rgba(255,255,255,.4) 0%,
+    rgba(255,255,255,.15) 100%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+}
+body[data-theme="light"][data-fx="high"] .backdrop i {
+  opacity: .85 !important;
+  filter: blur(100px) !important;
+}
+
+/* Address focus belongs to the glass container, not the native input. */
+#addr,
+#addr:focus,
+#addr:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+.address:focus-within {
+  background: color-mix(in srgb, var(--base) 82%, transparent) !important;
+  box-shadow: inset 0 0 0 2px var(--accent),
+    0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
