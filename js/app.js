@@ -80,7 +80,7 @@
     density: 'cozy', gap: 8, iconSize: 18, iconStroke: 18, brand: 'vitreous',
     tabs: 'side', collapsed: true, hoverExpand: true, sideWidth: 252, sideSide: 'left',
     /* tabs */
-    tabShape: 'round', tabWidth: 200, favs: true, closeBtn: 'hover',
+    tabShape: 'rounded', tabWidth: 200, favs: true, closeBtn: 'hover',
     /* toolbar */
     navBtns: true, shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
     /* start page */
@@ -109,7 +109,7 @@
   const ENUMS = {
     theme: ['dark', 'light', 'midnight', 'auto'], wallMode: ['none', 'url', 'upload'],
     font: ['system', 'inter', 'serif', 'mono', 'rounded', 'custom'], density: ['compact', 'cozy', 'roomy'],
-    tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['round', 'flat', 'underline'],
+    tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['rounded', 'flat', 'pill', 'folder'],
     closeBtn: ['hover', 'always', 'never'], addrShape: ['pill', 'round', 'square'], addrAlign: ['center', 'left'],
     newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'], startLayout: ['centered', 'left', 'command'], lightDirection: ['top-left', 'top-right', 'center'],
     cookies: ['all', 'third', 'block'], permLocation: ['ask', 'allow', 'block'], permCamera: ['ask', 'allow', 'block'], permMic: ['ask', 'allow', 'block'], permNotify: ['ask', 'allow', 'block'],
@@ -450,7 +450,7 @@
     b.dataset.addralign = S.addrAlign;
     b.dataset.favs = S.favs ? '1' : '0';
     b.dataset.close = S.closeBtn;
-    b.dataset.tabshape = S.tabShape;
+    b.dataset.tabShape = S.tabShape;
     b.dataset.blobsStill = S.blobSpeed === 0 ? '1' : '0';
     const wall = S.wallMode === 'url' ? S.wallUrl : S.wallMode === 'upload' ? wallData() : '';
     b.dataset.wall = wall ? '1' : '0';
@@ -1809,11 +1809,11 @@
         row('Sidebar width', null, range('sideWidth', 200, 380, 'px')),
         row('Sidebar side', null, seg([['left', 'Left'], ['right', 'Right']], 'sideSide')),
         row('Tab radius', 'Corner radius of tabs and their highlight', range('tabRadius', 0, 36, 'px')),
+        row('Tab shape', 'Rounded, flat, pill or folder. The highlight follows the same shape', seg([['rounded', 'Rounded'], ['flat', 'Flat'], ['pill', 'Pill'], ['folder', 'Folder']], 'tabShape')),
         row('Panel radius', 'Corner radius of glass panels, sidebar and widgets', range('panelRadius', 0, 36, 'px')),
         row('Address bar radius', 'Corner radius of the address bar', range('addrRadius', 0, 36, 'px'))),
 
       group('tabs', 'Tabs', gi++,
-        row('Tab style', null, seg([['round', 'Rounded'], ['flat', 'Flat'], ['underline', 'Underline']], 'tabShape')),
         row('Top tab width', 'Applies when tabs are on top', range('tabWidth', 110, 320, 'px')),
         row('Show tab icons', null, toggle('favs')),
         row('Site icons', 'Load each site’s own icon straight from that site. Off shows a letter badge', toggle('siteIcons')),

@@ -300,9 +300,6 @@ body[data-home="1"] #home { display: grid; }
 body[data-favs="0"] .tab .fav { display: none; }
 body[data-close="always"] .tab .x { opacity: 0.6; }
 body[data-close="never"] .tab .x { display: none; }
-body[data-tabshape="flat"] .tab, body[data-tabshape="flat"] .indicator { border-radius: 6px; }
-body[data-tabshape="underline"] .tab { border-radius: 0; }
-body[data-tabshape="underline"] .indicator { border-radius: 0; background: none; box-shadow: none; border-bottom: 2px solid var(--accent); }
 
 /* start page */
 .start .greeting { margin: 0 0 6px; color: var(--muted); font-size: 15px; letter-spacing: 0.04em; }
@@ -2079,5 +2076,10 @@ html body[data-fx="high"] .glass.glass:hover::after { opacity: var(--spot-a, 0.5
 html body[data-fx="low"] .glass.glass::after { display: none !important; }
 
 /* Independent radii: --radius-tabs, --radius-panels, --radius-addr are set from settings; --radius stays the fallback. */
-html body .tab, html body .indicator { border-radius: var(--radius-tabs, var(--radius)) !important; }
 html body .address { border-radius: var(--radius-addr, var(--radius)) !important; }
+
+/* Tab shapes: the tab and its highlight share one radius, so the highlight always matches the tab. */
+html body[data-tab-shape="rounded"] .tab, html body[data-tab-shape="rounded"] .indicator { border-radius: var(--radius-tabs) !important; }
+html body[data-tab-shape="flat"] .tab, html body[data-tab-shape="flat"] .indicator { border-radius: 4px !important; }
+html body[data-tab-shape="pill"] .tab, html body[data-tab-shape="pill"] .indicator { border-radius: 999px !important; }
+html body[data-tab-shape="folder"] .tab, html body[data-tab-shape="folder"] .indicator { border-radius: var(--radius-tabs) var(--radius-tabs) 0 0 !important; }
