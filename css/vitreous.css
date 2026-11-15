@@ -2096,8 +2096,6 @@ body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"]:hover .address,
 body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"]:has(:focus-visible) .address { display: flex; }
 
 /* Crazy Animations (only when body[data-crazy="1"], set in apply()) */
-.ripple-dot { position: fixed; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.55); pointer-events: none; z-index: 999; animation: rippleOut .7s var(--ease) forwards; }
-@keyframes rippleOut { from { transform: scale(.4); opacity: .7; } to { transform: scale(9); opacity: 0; } }
 body[data-crazy="1"] .backdrop { transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) scale(1.04); transition: transform .8s var(--ease); }
 body[data-crazy="1"] .tab .x { transition: transform .25s var(--ease), opacity .2s, background .2s !important; }
 
@@ -2153,7 +2151,6 @@ html body .row::before {
 html body .row:focus-within::before { opacity: 1; transform: translateX(0); }
 
 /* Ripple duration follows the low-spec scale */
-body[data-fx="low"] .ripple-dot { animation-duration: .49s; }
 
 /* Reduced motion: no springs, near-instant transitions */
 @media (prefers-reduced-motion: reduce) {
@@ -2162,4 +2159,96 @@ body[data-fx="low"] .ripple-dot { animation-duration: .49s; }
     transition-duration: 0.01ms !important; transition-timing-function: linear !important;
   }
 }
-body[data-respect-rm="1"] .ripple-dot { animation: none; }
+
+/* ======================================================================
+   Motion pass: every interactive element. Scale, translate, opacity and box-shadow only.
+   Springs use --m-spring; Low-Spec swaps in a gentler curve and 30% shorter durations (--m-scale).
+   ====================================================================== */
+@keyframes tabBreathe { 0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 0 transparent; } 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 14px 0 color-mix(in srgb, var(--accent) 30%, transparent); } }
+@keyframes iconPulse { 0%, 100% { scale: 1; } 50% { scale: 1.08; } }
+@keyframes dotBreathe { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 10px 1px currentColor; } }
+@keyframes checkPop { 0% { scale: 0; opacity: 0; } 60% { scale: 1.25; opacity: 1; } 100% { scale: 1; opacity: 1; } }
+@keyframes dropSpring { from { opacity: 0; scale: .95; } to { opacity: 1; scale: 1; } }
+@keyframes secIn { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+
+/* Tabs */
+html body .tab { transition: transform calc(.18s * var(--m-scale)) var(--m-spring), background .25s var(--m-fade), box-shadow .25s var(--m-fade), opacity .2s var(--m-fade); }
+html body .tab:hover { transform: translateY(-2px) scale(1.03); }
+html body .tab:active { transform: scale(0.98); }
+html body .tab[aria-selected="true"] { animation: tabBreathe 2s ease-in-out infinite; }
+html body .tab .x { transition: transform calc(.3s * var(--m-scale)) var(--m-spring), opacity .2s, background .2s; }
+html body .tab .x:hover { transform: rotate(90deg) scale(1.1); }
+html body .tab .x:active { transform: scale(0.9); }
+
+/* Address bar */
+html body .address:hover:not(:focus-within) { width: min(calc(var(--addr-w) + 30px), 100%); transform: translateY(-1px); transition: width calc(.2s * var(--m-scale)) ease-out, transform .2s ease-out, box-shadow .2s ease-out; }
+html body .address:focus-within { transform: none; transition: width calc(.55s * var(--m-scale)) var(--m-overshoot), box-shadow calc(.3s * var(--m-scale)) var(--m-fade), background .3s var(--m-fade); }
+html body[data-addr-pos="left"] .address:hover:not(:focus-within) { width: min(600px, 100%); }
+html body[data-addr-pos="sidebar"] .address:hover:not(:focus-within) { width: 100%; transform: none; }
+.addr-clear { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex: none; opacity: 0; scale: .6; pointer-events: none; transition: opacity .2s var(--m-fade), scale calc(.35s * var(--m-scale)) var(--m-spring), background .2s; }
+.addr-clear:hover { background: var(--field); }
+.addr-clear svg { width: 11px; height: 11px; stroke: var(--muted); fill: none; stroke-width: 2.2; stroke-linecap: round; }
+.address:has(#addr:not(:placeholder-shown)) .addr-clear { opacity: 1; scale: 1; pointer-events: auto; }
+
+/* Buttons: hover tint and scale, press 0.97, no ripple */
+html body .btn, html body .icon-btn, html body .ibtn { transition: scale calc(.18s * var(--m-scale)) var(--m-spring), background .2s var(--m-fade), filter .2s var(--m-fade); }
+html body .btn:hover, html body .icon-btn:hover, html body .ibtn:hover { scale: 1.03; filter: brightness(1.12); }
+html body .btn:active, html body .icon-btn:active, html body .ibtn:active { scale: .97; transform: none; }
+
+/* Toggles */
+html body .switch::after { transition: transform calc(.4s * var(--m-scale)) var(--m-overshoot), box-shadow .25s var(--m-fade); }
+html body .switch:hover::after { box-shadow: 0 2px 6px rgba(0,0,0,.3), 0 0 10px rgba(255,255,255,.55); }
+
+/* Sliders: thumb grows on hover and drag, springs back on release */
+html body .gs .gs-thumb { transition: scale calc(.4s * var(--m-scale)) var(--m-spring), box-shadow .25s var(--m-fade); }
+html body .gs:hover .gs-thumb { scale: 1.1; }
+html body .gs.dragging .gs-thumb { scale: 1.2; }
+html body .gs.dragging .gs-track { filter: brightness(1.15); transition: filter .2s var(--m-fade); }
+
+/* Dropdowns */
+html body .drop-trigger { transition: scale calc(.2s * var(--m-scale)) var(--m-spring), background .2s var(--m-fade); }
+html body .drop-trigger:hover { scale: 1.01; background: color-mix(in srgb, var(--field) 140%, transparent); }
+html body .drop-menu:not([hidden]) { animation: dropSpring calc(.3s * var(--m-scale)) var(--m-overshoot); }
+html body .drop-option { position: relative; overflow: hidden; }
+html body .drop-option::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--field); transform: translateX(-101%); transition: transform calc(.3s * var(--m-scale)) var(--m-spring); z-index: 0; }
+html body .drop-option:hover::before, html body .drop-option[aria-selected="true"]::before { transform: translateX(0); }
+html body .drop-option:hover, html body .drop-option[aria-selected="true"] { background: transparent; }
+html body .drop-option > * { position: relative; }
+html body .drop-option[aria-selected="true"]::after { content: "\2713"; position: absolute; right: 10px; top: 50%; translate: 0 -50%; font-size: 12px; color: var(--accent); animation: checkPop calc(.35s * var(--m-scale)) var(--m-overshoot); }
+
+/* Settings rows: tint, accent bar slides in (2px), brightens on focus */
+html body .row::before { width: 2px; }
+html body .row:focus-within::before { filter: brightness(1.3); }
+
+/* Settings panel nav */
+html body .set-nav button { transition: scale calc(.2s * var(--m-scale)) var(--m-spring), background .2s var(--m-fade); }
+html body .set-nav button:hover { scale: 1.02; background: color-mix(in srgb, var(--field) 140%, transparent); }
+html body .set-nav button[aria-current="true"] .ico { animation: iconPulse 2.4s ease-in-out infinite; }
+html body .sec.on { animation: secIn calc(.2s * var(--m-scale)) ease-out backwards !important; }
+html[data-switching] .glass { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* Widgets */
+html body .widget { transition: translate .2s var(--m-fade), scale .2s var(--m-fade), box-shadow .25s var(--m-fade); }
+html body .widget:hover { translate: 0 -2px; scale: 1.01; }
+html body .widget.dragging { box-shadow: 0 30px 60px -18px rgba(0,0,0,.5), 0 8px 18px -8px rgba(0,0,0,.35); }
+
+/* Space dots */
+html body .space .dot { transition: scale calc(.3s * var(--m-scale)) var(--m-spring), box-shadow .3s var(--m-fade); }
+html body .space:hover .dot { scale: 1.15; box-shadow: 0 0 10px currentColor; }
+html body .space[aria-pressed="true"] .dot { animation: dotBreathe 2.4s ease-in-out infinite; }
+
+/* Dialogs: the command palette opens with a spring and closes with a short ease-out */
+html body .pal .pal-box { opacity: 0; transition: transform calc(.3s * var(--m-scale)) var(--m-overshoot), opacity .2s ease-out; }
+html body .pal.open .pal-box { opacity: 1; transform: none; transition: transform calc(.3s * var(--m-scale)) var(--m-overshoot), opacity .2s ease-out; }
+
+/* Low-Spec: gentler curves, 30% shorter */
+body[data-fx="low"] { --m-overshoot: cubic-bezier(0.2, 0.8, 0.2, 1); }
+body[data-fx="low"] .ripple-dot { display: none; }
+
+/* Reduced motion: no springs, no bounces, instant transitions */
+@media (prefers-reduced-motion: reduce) {
+  html body *, html body *::before, html body *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; transition-timing-function: linear !important;
+  }
+}

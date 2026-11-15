@@ -342,9 +342,15 @@
     return out;
   }
 
-  function save() {
+  let saveTimer = 0;
+  function writeStore() {
     try { localStorage.setItem(KEY, JSON.stringify({ S, tabs, activeId, ws })); } catch { /* storage unavailable */ }
   }
+  /* saves are batched: a burst of slider moves writes once, 300ms after the last change */
+  function save() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveTimer = 0; writeStore(); }, 300); }
+  function flushSave() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; writeStore(); } }
+  addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
   function load() {
     try {
       const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -1133,7 +1139,7 @@
       }
       d.x = e.clientX; d.y = e.clientY;
       const { card, ph } = d;
-      card.style.transform = `translate(${d.x - d.ox - d.r.left}px, ${d.y - d.oy - d.r.top}px) scale(1.02)`;
+      card.style.transform = `translate(${d.x - d.ox - d.r.left}px, ${d.y - d.oy - d.r.top - 8}px) scale(1.05)`;
 
       const hit = [...box.children].find((el) => el !== card && el !== ph && el.classList.contains('widget') && inZone(el.getBoundingClientRect(), d.x, d.y));
       if (!hit) { d.over = null; return; }
@@ -1158,7 +1164,7 @@
       const to = card.getBoundingClientRect();
       const dx = from.left - to.left, dy = from.top - to.top;
       const anim = card.animate([
-        { transform: `translate(${dx}px, ${dy}px) scale(1.02)` },
+        { transform: `translate(${dx}px, ${dy}px) scale(1.05)` },
         { transform: 'translate(0px, 0px) scale(1)' },
       ], { duration: 320, easing: FLIP_EASE });
       anim.onfinish = () => card.classList.remove('dragging');
@@ -1531,6 +1537,13 @@
   ];
   let lastSection = 'appearance';
   let settingsGoto = null;
+  let switchTimer = 0;
+  function panelSwitchFx() {
+    const el = document.documentElement;
+    el.dataset.switching = '1';
+    clearTimeout(switchTimer);
+    switchTimer = setTimeout(() => delete el.dataset.switching, 200);
+  }
   const group = (id, title, i, ...kids) => h('div', { class: 'group rise', style: `--i:${Math.min(i, 5)}`, id: 'grp-' + id }, h('h3', {}, ico(GROUP_ICON[id]), title), ...kids);
 
   /* ----- settings: replace everything in one go (import / reset) ----- */
@@ -1977,6 +1990,7 @@
     const select = (id, scroll) => {
       lastSection = id;
       root.querySelectorAll('.sec').forEach((x) => x.classList.toggle('on', x.dataset.sec === id));
+      panelSwitchFx();
       nav.querySelectorAll('button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.sec === id)));
       if (search.value) { search.value = ''; filterSettings(root, ''); }
       const pg = root.closest('.page'); if (pg && scroll !== false) pg.scrollTop = 0;
@@ -2210,6 +2224,7 @@
   $('#palBtn').addEventListener('click', openPal);
   $('#addr').addEventListener('focus', (e) => { const u = urlOf(cur()); e.target.value = INTERNAL.includes(u) ? '' : u; e.target.select(); });
   $('#addr').addEventListener('blur', renderToolbar);
+  $('#addrClear').addEventListener('mousedown', (e) => { e.preventDefault(); const i = $('#addr'); i.value = ''; i.dispatchEvent(new Event('input')); i.focus(); });
   $('#addr').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.value.trim()) { navigate(cur(), e.target.value); e.target.blur(); }
     else if (e.key === 'Escape') e.target.blur();
@@ -2241,16 +2256,6 @@
 
   /* ---------- Crazy Animations: ripple clicks, parallax background, magnetic close buttons ---------- */
   const crazyOn = () => motionOn();
-  addEventListener('pointerdown', (e) => {
-    if (!crazyOn() || e.button !== 0) return;
-    const g = e.target.closest && e.target.closest('.glass');
-    if (!g) return;
-    const d = h('span', { class: 'ripple-dot', 'aria-hidden': 'true' });
-    d.style.left = e.clientX + 'px';
-    d.style.top = e.clientY + 'px';
-    document.body.append(d);
-    d.addEventListener('animationend', () => d.remove(), { once: true });
-  }, { passive: true });
 
   let parallaxFrame = 0;
   addEventListener('pointermove', (e) => {
@@ -2268,12 +2273,12 @@
   addEventListener('pointermove', (e) => {
     const on = crazyOn();
     document.querySelectorAll('.tab .x').forEach((x) => {
-      if (!on) { if (x.style.transform) x.style.transform = ''; return; }
+      if (!on) { if (x.style.translate) x.style.translate = ''; return; }
       const r = x.getBoundingClientRect();
       const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
       const d = Math.hypot(dx, dy);
-      if (d > 0 && d < 40) x.style.transform = `translate(${(dx / d * 4).toFixed(2)}px, ${(dy / d * 4).toFixed(2)}px)`;
-      else if (x.style.transform) x.style.transform = '';
+      if (d > 0 && d < 40) x.style.translate = `${(dx / d * 4).toFixed(2)}px ${(dy / d * 4).toFixed(2)}px`;
+      else if (x.style.translate) x.style.translate = '';
     });
   }, { passive: true });
 
