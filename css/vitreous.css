@@ -2104,7 +2104,7 @@ body[data-crazy="1"] .tab .x { transition: transform .25s var(--ease), opacity .
    Material ease-out for colour and opacity. Low-Spec keeps the same motion,
    with a gentler curve and 30% shorter durations. Reduced motion turns it off.
    ====================================================================== */
-:root { --m-spring: cubic-bezier(0.34, 1.56, 0.64, 1); --m-fade: cubic-bezier(0.4, 0, 0.2, 1); --m-out: ease-out; --m-scale: 1; }
+:root { --m-overshoot: cubic-bezier(0.34, 1.7, 0.64, 1); --m-spring: cubic-bezier(0.34, 1.56, 0.64, 1); --m-fade: cubic-bezier(0.4, 0, 0.2, 1); --m-out: ease-out; --m-scale: 1; }
 body[data-fx="low"] { --m-spring: cubic-bezier(0.2, 0.8, 0.2, 1); --m-scale: 0.7; }
 
 /* Address bar: hover grows 20px, focus springs open, the ring fades in, blur snaps back */
@@ -2196,7 +2196,7 @@ html body .btn:hover, html body .icon-btn:hover, html body .ibtn:hover { scale: 
 html body .btn:active, html body .icon-btn:active, html body .ibtn:active { scale: .97; transform: none; }
 
 /* Toggles */
-html body .switch::after { transition: transform calc(.4s * var(--m-scale)) var(--m-overshoot), box-shadow .25s var(--m-fade); }
+html body .switch::after { transition: transform calc(.4s * var(--m-scale)) var(--m-spring), box-shadow .25s var(--m-fade); }
 html body .switch:hover::after { box-shadow: 0 2px 6px rgba(0,0,0,.3), 0 0 10px rgba(255,255,255,.55); }
 
 /* Sliders: thumb grows on hover and drag, springs back on release */
@@ -2208,13 +2208,13 @@ html body .gs.dragging .gs-track { filter: brightness(1.15); transition: filter 
 /* Dropdowns */
 html body .drop-trigger { transition: scale calc(.2s * var(--m-scale)) var(--m-spring), background .2s var(--m-fade); }
 html body .drop-trigger:hover { scale: 1.01; background: color-mix(in srgb, var(--field) 140%, transparent); }
-html body .drop-menu:not([hidden]) { animation: dropSpring calc(.3s * var(--m-scale)) var(--m-overshoot); }
+html body .drop-menu:not([hidden]) { animation: dropSpring calc(.3s * var(--m-scale)) var(--m-spring); }
 html body .drop-option { position: relative; overflow: hidden; }
 html body .drop-option::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--field); transform: translateX(-101%); transition: transform calc(.3s * var(--m-scale)) var(--m-spring); z-index: 0; }
 html body .drop-option:hover::before, html body .drop-option[aria-selected="true"]::before { transform: translateX(0); }
 html body .drop-option:hover, html body .drop-option[aria-selected="true"] { background: transparent; }
 html body .drop-option > * { position: relative; }
-html body .drop-option[aria-selected="true"]::after { content: "\2713"; position: absolute; right: 10px; top: 50%; translate: 0 -50%; font-size: 12px; color: var(--accent); animation: checkPop calc(.35s * var(--m-scale)) var(--m-overshoot); }
+html body .drop-option[aria-selected="true"]::after { content: "\2713"; position: absolute; right: 10px; top: 50%; translate: 0 -50%; font-size: 12px; color: var(--accent); animation: checkPop calc(.35s * var(--m-scale)) var(--m-spring); }
 
 /* Settings rows: tint, accent bar slides in (2px), brightens on focus */
 html body .row::before { width: 2px; }
@@ -2238,8 +2238,8 @@ html body .space:hover .dot { scale: 1.15; box-shadow: 0 0 10px currentColor; }
 html body .space[aria-pressed="true"] .dot { animation: dotBreathe 2.4s ease-in-out infinite; }
 
 /* Dialogs: the command palette opens with a spring and closes with a short ease-out */
-html body .pal .pal-box { opacity: 0; transition: transform calc(.3s * var(--m-scale)) var(--m-overshoot), opacity .2s ease-out; }
-html body .pal.open .pal-box { opacity: 1; transform: none; transition: transform calc(.3s * var(--m-scale)) var(--m-overshoot), opacity .2s ease-out; }
+html body .pal .pal-box { opacity: 0; transition: transform calc(.3s * var(--m-scale)) var(--m-spring), opacity .2s ease-out; }
+html body .pal.open .pal-box { opacity: 1; transform: none; transition: transform calc(.3s * var(--m-scale)) var(--m-spring), opacity .2s ease-out; }
 
 /* Low-Spec: gentler curves, 30% shorter */
 body[data-fx="low"] { --m-overshoot: cubic-bezier(0.2, 0.8, 0.2, 1); }
