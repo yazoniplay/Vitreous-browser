@@ -1488,6 +1488,9 @@
     }, h('span', { class: 'dot', style: `background:${sp.color};color:${sp.color}` }), h('span', { class: 'sl', text: sp.name }))));
   }
 
+  const sideWrapEl = $('#sideWrap');
+  sideWrapEl.addEventListener('pointerenter', (e) => { if (e.pointerType !== 'touch') document.body.classList.add('side-hot'); });
+  sideWrapEl.addEventListener('pointerleave', () => document.body.classList.remove('side-hot'));
   $('#newTab').addEventListener('click', () => newTab());
   $('#sideNewTab').addEventListener('click', () => newTab());
   $('#back').addEventListener('click', () => go(-1));

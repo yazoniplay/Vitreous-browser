@@ -100,7 +100,7 @@ body[data-fx="low"][data-theme="light"] .glass { background: rgba(255,255,255,0.
 body[data-fx="low"] .glass::after { display: none; }
 
 /* layout */
-.app { position: relative; z-index: 1; height: calc(100% / var(--fs)); zoom: var(--fs); display: flex; gap: var(--gap); padding: var(--gap); }
+.app { position: relative; z-index: 1; height: calc(100vh / var(--fs)); zoom: var(--fs); display: flex; gap: var(--gap); padding: var(--gap); }
 .side-wrap { position: relative; flex: none; width: var(--side-w); transition: width 0.5s var(--spring); z-index: 5; }
 .side-wrap[data-rail="1"] { width: var(--rail-w); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--gap); }
@@ -108,16 +108,16 @@ body[data-fx="low"] .glass::after { display: none; }
 /* sidebar */
 .sidebar { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; padding: 12px 9px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; transition: width 0.5s var(--spring), box-shadow 0.4s; }
 .side-wrap[data-rail="1"]:hover .sidebar,
-.side-wrap[data-rail="1"]:focus-within .sidebar { width: var(--side-w); box-shadow: 0 30px 70px -20px var(--shadow), inset 0 1px 0 var(--rim); }
+.side-wrap[data-rail="1"]:has(:focus-visible) .sidebar { width: var(--side-w); box-shadow: 0 30px 70px -20px var(--shadow), inset 0 1px 0 var(--rim); }
 .lbl { white-space: nowrap; transition: opacity 0.3s 0.08s; }
-.side-wrap[data-rail="1"]:not(:hover):not(:focus-within) .lbl { opacity: 0; transition-delay: 0s; pointer-events: none; }
+.side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .lbl { opacity: 0; transition-delay: 0s; pointer-events: none; }
 .side-head { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 5px; flex: none; }
 .side-head .mark { width: 26px; height: 26px; flex: none; }
 .brand-name { font-weight: 300; font-size: 18px; letter-spacing: 0.22em; flex: 1; }
 .sidebar[data-hide-tabs="1"] .tab-list, .sidebar[data-hide-tabs="1"] .new-tab, .sidebar[data-hide-tabs="1"] #pin { display: none; }
 
 .spaces { display: flex; gap: 4px; flex: none; padding: 0 2px; }
-.side-wrap[data-rail="1"]:not(:hover):not(:focus-within) .spaces { flex-direction: column; align-items: flex-start; }
+.side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .spaces { flex-direction: column; align-items: flex-start; }
 .space { display: flex; align-items: center; height: 30px; padding: 0 9px; border-radius: 999px; font-size: 12.5px; transition: background 0.25s, box-shadow 0.25s; flex: none; }
 .space:hover { background: var(--field); }
 .space[aria-pressed="true"] { background: var(--field); box-shadow: inset 0 0 0 1px var(--line); }
@@ -125,7 +125,7 @@ body[data-fx="low"] .glass::after { display: none; }
 .space[aria-pressed="true"] .dot { transform: scale(1.2); box-shadow: 0 0 12px currentColor; }
 .space .sl { max-width: 0; overflow: hidden; white-space: nowrap; transition: max-width 0.45s var(--spring), margin 0.45s var(--spring), opacity 0.3s; opacity: 0; }
 .space[aria-pressed="true"] .sl { max-width: 90px; margin-left: 8px; opacity: 1; }
-.side-wrap[data-rail="1"]:not(:hover):not(:focus-within) .space .sl { max-width: 0; margin-left: 0; opacity: 0; }
+.side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .space .sl { max-width: 0; margin-left: 0; opacity: 0; }
 
 .new-tab { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: calc(var(--radius) - 10px); color: var(--muted); font-size: 13.5px; flex: none; transition: background 0.2s, color 0.2s; }
 .new-tab svg, .icon-btn svg { width: var(--icon); height: var(--icon); fill: none; stroke: currentColor; stroke-width: var(--stroke); stroke-linecap: round; stroke-linejoin: round; flex: none; }
@@ -181,6 +181,11 @@ body[data-fx="low"] .glass::after { display: none; }
 
 /* viewport */
 .viewport { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+/* A page frame swallows mouse-leave events, which left the sidebar stuck open.
+   While the pointer is on the sidebar this invisible layer sits over the page,
+   so leaving the sidebar always lands on something the shell can see. */
+.frame-guard { display: none; position: absolute; inset: 0; z-index: 30; }
+body.side-hot .frame-guard { display: block; }
 .content { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
 .content > * { animation: pageIn 0.5s var(--ease) backwards; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(10px) scale(0.992); } }
@@ -678,16 +683,16 @@ body[data-fx="low"] .side-wrap[data-rail="1"] {
   transition: width .35s ease-out !important;
 }
 body[data-fx="low"] .side-wrap[data-rail="1"]:hover,
-body[data-fx="low"] .side-wrap[data-rail="1"]:focus-within {
+body[data-fx="low"] .side-wrap[data-rail="1"]:has(:focus-visible) {
   width: var(--side-w) !important;
 }
 body[data-fx="low"] .side-wrap[data-rail="1"]:hover .sidebar,
-body[data-fx="low"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+body[data-fx="low"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar {
   width: 100% !important;
   box-shadow: 20px 0 50px -20px rgba(0,0,0,.8) !important;
 }
 body[data-side="right"][data-fx="low"] .side-wrap[data-rail="1"]:hover .sidebar,
-body[data-side="right"][data-fx="low"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+body[data-side="right"][data-fx="low"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar {
   box-shadow: -20px 0 50px -20px rgba(0,0,0,.8) !important;
 }
 
@@ -708,7 +713,7 @@ body[data-pinned="0"] .side-wrap[data-rail="1"] {
   transition: width .35s cubic-bezier(.2,.8,.2,1) !important;
 }
 body[data-pinned="0"] .side-wrap[data-rail="1"]:hover,
-body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within {
+body[data-pinned="0"] .side-wrap[data-rail="1"]:has(:focus-visible) {
   width: var(--rail-w) !important;
 }
 body[data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
@@ -718,12 +723,12 @@ body[data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
   transition: width .2s ease-out, box-shadow .2s ease-out !important;
 }
 body[data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
-body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+body[data-pinned="0"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar {
   width: var(--side-w) !important;
   box-shadow: 20px 0 50px -20px rgba(0,0,0,.8) !important;
 }
 body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
-body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar {
   box-shadow: -20px 0 50px -20px rgba(0,0,0,.8) !important;
 }
 
@@ -757,10 +762,6 @@ body[data-fx="high"] .glass {
 body[data-fx="high"] .sidebar.glass {
   -webkit-backdrop-filter: blur(10px) saturate(170%);
   backdrop-filter: blur(10px) saturate(170%);
-}
-body[data-fx="high"] .toolbar.glass {
-  -webkit-backdrop-filter: blur(4px) saturate(160%);
-  backdrop-filter: blur(4px) saturate(160%);
 }
 
 /* Slow moving reflection: static in Low-Spec via its later override. */
@@ -938,8 +939,7 @@ body[data-theme][data-fx="low"] .glass,
 body[data-theme][data-fx="low"] .drop-menu,
 body[data-theme][data-fx="low"] .context-menu,
 body[data-theme][data-fx="low"] .address,
-body[data-theme][data-fx="low"] .sidebar,
-body[data-theme][data-fx="low"] .toolbar {
+body[data-theme][data-fx="low"] .sidebar {
   background:
     linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.025)),
     color-mix(in srgb, var(--base) 80%, transparent) !important;
@@ -1015,8 +1015,7 @@ body[data-theme="light"][data-fx="high"] .glass {
   backdrop-filter: blur(20px) saturate(180%) !important;
 }
 
-/* Keep the toolbar and top tabs readable above the color atmosphere. */
-body[data-theme="light"][data-fx="high"] .toolbar,
+/* Keep the top tabs readable above the color atmosphere. */
 body[data-theme="light"][data-fx="high"] .tabstrip {
   position: relative;
   z-index: 10;
@@ -1076,7 +1075,7 @@ body[data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
   z-index: 40 !important;
 }
 body[data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
-body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+body[data-pinned="0"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar {
   width: var(--side-w) !important;
 }
 
@@ -1102,7 +1101,6 @@ body[data-theme="dark"] .glass,
 body[data-theme="dark"] .drop-menu,
 body[data-theme="dark"] .context-menu,
 body[data-theme="dark"] .address,
-body[data-theme="dark"] .toolbar,
 body[data-theme="dark"] .sidebar {
   background:
     linear-gradient(140deg, rgba(255,255,255,.05), rgba(255,255,255,.01)),
@@ -1136,7 +1134,7 @@ body[data-theme="dark"] .sidebar {
 /* Hover expansion grows the actual flex slot, keeping the toolbar beside it.
    The existing body data-pinned state makes a pinned sidebar stay expanded. */
 body[data-pinned="0"] .side-wrap[data-rail="1"]:hover,
-body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within,
+body[data-pinned="0"] .side-wrap[data-rail="1"]:has(:focus-visible),
 body[data-pinned="1"] .side-wrap {
   width: var(--side-w) !important;
   flex-basis: var(--side-w) !important;
@@ -1165,7 +1163,6 @@ body[data-theme="dark"] .glass,
 body[data-theme="dark"] .drop-menu,
 body[data-theme="dark"] .context-menu,
 body[data-theme="dark"] .address,
-body[data-theme="dark"] .toolbar,
 body[data-theme="dark"] .sidebar,
 body[data-theme="dark"] .tabstrip {
   background: color-mix(in srgb, var(--base) 60%, transparent) !important;
@@ -1187,8 +1184,7 @@ body[data-theme="light"] .sidebar {
   opacity: calc(var(--blob) * var(--blob-mul) * 1.5) !important;
 }
 
-/* High-Fidelity toolbar: distinct from page content, but still translucent. */
-body[data-fx="high"] .toolbar,
+/* High-Fidelity top tabs: distinct from page content, but still translucent. */
 body[data-fx="high"] .tabstrip {
   background: color-mix(in srgb, var(--base) 80%, transparent) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
@@ -1218,7 +1214,7 @@ body[data-pinned="0"] .side-wrap[data-rail="1"] {
   isolation: isolate;
 }
 body[data-pinned="0"] .side-wrap[data-rail="1"]:hover,
-body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within {
+body[data-pinned="0"] .side-wrap[data-rail="1"]:has(:focus-visible) {
   width: var(--rail-w) !important;
   flex-basis: var(--rail-w) !important;
 }
@@ -1303,7 +1299,6 @@ body[data-theme="light"][data-fx="high"] .drop-menu,
 body[data-theme="light"][data-fx="high"] .context-menu,
 body[data-theme="light"][data-fx="high"] .address,
 body[data-theme="light"][data-fx="high"] .sidebar,
-body[data-theme="light"][data-fx="high"] .toolbar,
 body[data-theme="light"][data-fx="high"] .tabstrip {
   background: linear-gradient(135deg,
     rgba(255,255,255,.4) 0%,
@@ -1358,7 +1353,7 @@ body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"] .sidebar {
   right: 0;
 }
 body[data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
-body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+body[data-pinned="0"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar {
   position: absolute !important;
   top: 0;
   width: var(--side-w) !important;
@@ -1369,7 +1364,7 @@ body[data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
     inset 0 1px 0 var(--rim) !important;
 }
 body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:hover .sidebar,
-body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+body[data-side="right"][data-pinned="0"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar {
   box-shadow: -20px 0 50px -20px rgba(0,0,0,.8),
     0 8px 24px -12px var(--shadow),
     inset 0 1px 0 var(--rim) !important;
@@ -1412,3 +1407,9 @@ body[data-pinned="1"] .side-wrap .sidebar {
     inset 0 0 0 2px var(--accent) !important;
 }
 
+/* Low-Spec: a full-window blur is the costliest effect there is. Dim instead. */
+body[data-fx="low"] .pal {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(5, 8, 20, 0.6);
+}
