@@ -659,3 +659,17 @@ body[data-fx="low"] .glass::after {
   opacity: .8 !important;
   transition: none !important;
 }
+
+/* Restore Vitreous' two signature size transitions in Low-Spec Mode. */
+body[data-fx="low"] .side-wrap {
+  transition: width .35s ease-out !important;
+}
+body[data-fx="low"] .sidebar {
+  transition: width .35s ease-out, box-shadow .35s ease-out !important;
+}
+body[data-fx="low"] .lbl {
+  transition: opacity .2s ease-out !important;
+}
+body[data-fx="low"] .address {
+  transition: width .25s ease-out, box-shadow .25s ease-out !important;
+}
