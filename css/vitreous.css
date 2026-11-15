@@ -270,7 +270,7 @@ select option { color: #0b1020; }
 }
 body[data-motion="off"] *, body[data-motion="off"] *::before, body[data-motion="off"] *::after { animation: none !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; }
+  body[data-respect-rm="1"] *, body[data-respect-rm="1"] *::before, body[data-respect-rm="1"] *::after { animation: none !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; }
 }
 
 /* ---------- customization layer ---------- */
@@ -1498,9 +1498,9 @@ body[data-motion="off"] *::after {
   transition-delay: 0s !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  body[data-fx="high"] *,
-  body[data-fx="high"] *::before,
-  body[data-fx="high"] *::after {
+  body[data-respect-rm="1"][data-fx="high"] *,
+  body[data-respect-rm="1"][data-fx="high"] *::before,
+  body[data-respect-rm="1"][data-fx="high"] *::after {
     animation: none !important;
     transition-duration: .01ms !important;
     transition-delay: 0s !important;
@@ -1654,9 +1654,9 @@ body[data-motion="off"] *::after {
   transition-delay: 0s !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  body[data-fx="high"] *,
-  body[data-fx="high"] *::before,
-  body[data-fx="high"] *::after {
+  body[data-respect-rm="1"][data-fx="high"] *,
+  body[data-respect-rm="1"][data-fx="high"] *::before,
+  body[data-respect-rm="1"][data-fx="high"] *::after {
     animation: none !important;
     transition-duration: .01ms !important;
     transition-delay: 0s !important;

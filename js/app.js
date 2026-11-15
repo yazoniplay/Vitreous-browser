@@ -18,7 +18,7 @@
     for (const kid of kids.flat()) if (kid != null) n.append(kid);
     return n;
   };
-  const motionOn = () => document.body.dataset.motion !== 'off' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const motionOn = () => document.body.dataset.motion !== 'off' && !(document.body.dataset.respectRm === '1' && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   /* ---------- data ---------- */
   const KEY = 'vitreous.v2';
@@ -43,7 +43,7 @@
     theme: 'dark', accent: '#5aa9ff', aurora: 'prism', auroraCustom: ['#5aa9ff', '#b57bff', '#0ea5a0'],
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
-    blur: 28, tint: 14, radius: 22, saturate: 180, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true,
+    blur: 28, tint: 14, radius: 22, saturate: 180, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
@@ -354,6 +354,7 @@
     b.dataset.oled = S.theme === 'midnight' ? '1' : '0';
     b.dataset.motion = S.motion ? 'on' : 'off';
     b.dataset.fx = S.lowfx ? 'low' : 'high';
+    b.dataset.respectRm = S.respectReducedMotion ? '1' : '0';
     b.dataset.pinned = S.tabs !== 'top' && !S.collapsed ? '1' : '0';
     b.dataset.dynamicTheme = S.dynamicTheme ? '1' : '0';
     b.dataset.tabs = S.tabs;
@@ -1181,6 +1182,7 @@
         row('Border width', null, range('border', 0, 3, 'px')),
         row('Corner radius', null, range('radius', 4, 36, 'px')),
         row('Animations', 'Background drift, transitions and effects', toggle('motion')),
+        row('Follow system reduced-motion', 'Off by default. Turn on to let your OS "reduce animations" setting disable them', toggle('respectReducedMotion')),
         row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
         row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
         row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%'))),
