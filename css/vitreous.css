@@ -2045,7 +2045,6 @@ html body[data-theme="light"]:not([data-fx="low"]) .glass.glass {
   background:
     var(--frost-noise, none),
     linear-gradient(140deg, rgba(255,255,255,calc(.6 * var(--glass-solid, 1))), rgba(255,255,255,calc(.3 * var(--glass-solid, 1)))) !important;
-  background-blend-mode: overlay, normal !important;
 }
 
 /* Preview stage: a fixed sample background behind the preview card so the blur is visible while dragging. */
@@ -2067,5 +2066,4 @@ html body[data-theme="dark"]:not([data-fx="low"]) .glass.glass {
     var(--frost-noise, none),
     linear-gradient(140deg, rgba(255,255,255,calc(.05 * var(--glass-solid, 1))), rgba(255,255,255,calc(.01 * var(--glass-solid, 1)))),
     color-mix(in srgb, var(--base) calc(70% * var(--glass-solid, 1)), transparent) !important;
-  background-blend-mode: overlay, normal, normal !important;
 }

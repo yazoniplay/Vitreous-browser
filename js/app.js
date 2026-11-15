@@ -468,7 +468,7 @@
     r.setProperty('--refraction', (S.glassRefraction * gl) + 'px');
     /* frost texture: white fractal noise whose alpha follows the slider (0 = none, 100 = light grain) */
     const frostA = (S.glassFrost / 100 * 0.22).toFixed(3);
-    const frostSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 ${frostA} 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>`;
+    const frostSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 ${frostA} 0'/></filter><rect width='160' height='160' filter='url(#n)'/></svg>`;
     r.setProperty('--frost-noise', `url("data:image/svg+xml,${encodeURIComponent(frostSvg)}")`);
     r.setProperty('--tint', tintV);
     r.setProperty('--sat', (100 + S.glassTransparency * 0.5) + '%');
