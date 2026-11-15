@@ -673,3 +673,30 @@ body[data-fx="low"] .lbl {
 body[data-fx="low"] .address {
   transition: width .25s ease-out, box-shadow .25s ease-out !important;
 }
+
+/* Low-Spec Smooth Push: expand the rail's layout slot so flexbox moves the main area. */
+body[data-fx="low"] .side-wrap[data-rail="1"] {
+  transition: width .35s ease-out !important;
+}
+body[data-fx="low"] .side-wrap[data-rail="1"]:hover,
+body[data-fx="low"] .side-wrap[data-rail="1"]:focus-within {
+  width: var(--side-w) !important;
+}
+body[data-fx="low"] .side-wrap[data-rail="1"]:hover .sidebar,
+body[data-fx="low"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+  width: 100% !important;
+  box-shadow: 20px 0 50px -20px rgba(0,0,0,.8) !important;
+}
+body[data-side="right"][data-fx="low"] .side-wrap[data-rail="1"]:hover .sidebar,
+body[data-side="right"][data-fx="low"] .side-wrap[data-rail="1"]:focus-within .sidebar {
+  box-shadow: -20px 0 50px -20px rgba(0,0,0,.8) !important;
+}
+
+/* Keep the address bar centered in the flexing main column. */
+body[data-fx="low"] .main {
+  min-width: 0;
+}
+body[data-fx="low"] .address {
+  justify-self: center;
+  transition: width .25s ease-out, box-shadow .25s ease-out !important;
+}
