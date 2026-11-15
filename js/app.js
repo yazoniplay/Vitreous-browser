@@ -1040,6 +1040,104 @@
   const WIDGET_VIEW = { clock: wClock, calendar: wCalendar, notes: wNotes, todo: wTodo, countdown: wCountdown, timer: wTimer, weather: wWeather,
     rss: wRss, sysstats: wSysStats, quicklinks: wQuickLinks };
 
+  /* ---------- widget drag-and-drop ----------
+     The dragged card is position:fixed and moved only with transform on every pointermove.
+     Its CSS transition is switched off inline, so it can't lag behind the pointer.
+     Other widgets glide with Web Animations API FLIP: measure, reorder, animate from the old spot to the new one. */
+  const FLIP_EASE = 'cubic-bezier(.32, 1.1, .4, 1)';
+  function flipAnimate(items, mutate) {
+    const first = items.map((el) => el.getBoundingClientRect());
+    mutate();
+    items.forEach((el, i) => {
+      const last = el.getBoundingClientRect();
+      const dx = first[i].left - last.left, dy = first[i].top - last.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0px, 0px)' }], { duration: 420, easing: FLIP_EASE });
+    });
+  }
+  function enableWidgetDrag(box) {
+    let d = null;
+    /* only switch places when the pointer is in the middle of a widget, so the layout can't ping-pong */
+    const inZone = (r, x, y) => x > r.left + r.width * 0.3 && x < r.right - r.width * 0.3 && y > r.top + r.height * 0.3 && y < r.bottom - r.height * 0.3;
+
+    box.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || d) return;
+      const card = e.target.closest('.widget');
+      if (!card || card.parentNode !== box || card.classList.contains('widget-ph')) return;
+      if (e.target.closest('button, input, textarea, select, a, label, [contenteditable]')) return;
+      const r = card.getBoundingClientRect();
+      d = { card, id: e.pointerId, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, r, ox: e.clientX - r.left, oy: e.clientY - r.top, ph: null, over: null, active: false };
+      addEventListener('pointermove', onMove);
+      addEventListener('pointerup', onUp);
+      addEventListener('pointercancel', onUp);
+    });
+
+    function endListeners() {
+      removeEventListener('pointermove', onMove);
+      removeEventListener('pointerup', onUp);
+      removeEventListener('pointercancel', onUp);
+      document.body.style.userSelect = '';
+    }
+
+    function activate() {
+      const { card, r } = d;
+      const size = [...card.classList].find((c) => /^w-(sm|md|lg)$/.test(c)) || 'w-sm';
+      const ph = h('div', { class: 'widget widget-ph ' + size, 'aria-hidden': 'true' });
+      box.insertBefore(ph, card);
+      d.ph = ph; d.active = true;
+      /* no entry animation or CSS transition while dragged: both would make the card lag or re-run */
+      card.style.animation = 'none';
+      card.style.setProperty('transition', 'box-shadow .25s ease', 'important');
+      Object.assign(card.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', margin: '0', zIndex: '60' });
+      card.classList.add('dragging');
+      document.body.style.userSelect = 'none';
+    }
+
+    function onMove(e) {
+      if (!d || e.pointerId !== d.id) return;
+      if (!d.active) {
+        if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 6) return;
+        activate();
+      }
+      d.x = e.clientX; d.y = e.clientY;
+      const { card, ph } = d;
+      card.style.transform = `translate(${d.x - d.ox - d.r.left}px, ${d.y - d.oy - d.r.top}px) scale(1.02)`;
+
+      const hit = [...box.children].find((el) => el !== card && el !== ph && el.classList.contains('widget') && inZone(el.getBoundingClientRect(), d.x, d.y));
+      if (!hit) { d.over = null; return; }
+      if (hit === d.over) return;
+      d.over = hit;
+      const kids = [...box.children];
+      const hitIsBefore = kids.indexOf(hit) < kids.indexOf(ph);
+      const others = kids.filter((el) => el !== card && el !== ph);
+      flipAnimate(others, () => box.insertBefore(ph, hitIsBefore ? hit : hit.nextSibling));
+    }
+
+    function onUp(e) {
+      if (!d || e.pointerId !== d.id) return;
+      const { card, ph, active } = d;
+      endListeners();
+      d = null;
+      if (!active) return;
+
+      const from = card.getBoundingClientRect();
+      Object.assign(card.style, { position: '', left: '', top: '', width: '', height: '', margin: '', zIndex: '', transform: '', transition: '' });
+      ph.replaceWith(card); /* the card takes the placeholder's grid cell */
+      const to = card.getBoundingClientRect();
+      const dx = from.left - to.left, dy = from.top - to.top;
+      const anim = card.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(1.02)` },
+        { transform: 'translate(0px, 0px) scale(1)' },
+      ], { duration: 320, easing: FLIP_EASE });
+      anim.onfinish = () => card.classList.remove('dragging');
+      anim.oncancel = () => card.classList.remove('dragging');
+
+      const ids = [...box.children].filter((el) => el.dataset.id).map((el) => el.dataset.id);
+      const next = ids.map((id) => S.widgets.find((w) => w.id === id)).filter(Boolean);
+      if (next.length === S.widgets.length) { S.widgets = next; save(); }
+    }
+  }
+
   /* glide one element from its measured old rect to its new layout position */
   function glide(el, dx, dy, dur = 520) {
     if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
