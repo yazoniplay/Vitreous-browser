@@ -2036,7 +2036,7 @@ html body .glass::before {
 html body[data-fx] .glass.glass::before {
   display: block !important;
   background-color: var(--base) !important;
-  opacity: var(--glass-solid, 0) !important;
+  opacity: calc(var(--glass-solid, 0) * var(--glass-solid, 0)) !important; /* squared curve: clearer across the whole slider */
   z-index: -1 !important;
 }
 html body .viewport.glass.glass::before { display: none !important; }
