@@ -463,6 +463,7 @@
     /* glass transparency: 0 = ultra-clear (default), 100 = nearly solid, like Reduce Transparency */
     const gt = S.glassTransparency / 100;
     r.setProperty('--tint', String(S.tint / 100));
+    console.log('[glass] apply glass-solid:', S.glassTransparency, gt);
     r.setProperty('--glass-solid', String(gt));
     r.setProperty('--radius', S.radius + 'px');
     r.setProperty('--sat', S.saturate + '%');
@@ -500,7 +501,7 @@
   let wallCache = null;
   function wallData() { if (wallCache === null) { try { wallCache = localStorage.getItem(WALL_KEY) || ''; } catch { wallCache = ''; } } return wallCache; }
   function setWall(dataUrl) { wallCache = dataUrl; try { dataUrl ? localStorage.setItem(WALL_KEY, dataUrl) : localStorage.removeItem(WALL_KEY); } catch { toast('Image too large to store'); wallCache = ''; return false; } return true; }
-  const set = (k, v) => { S[k] = v; apply(); save(); };
+  const set = (k, v) => { if (k === 'glassTransparency') console.log('[glass] set:', v); S[k] = v; apply(); save(); };
   /* re-render the start page when a start-page setting changes while it is open */
   const refreshStart = () => { const t = cur(); if (t && urlOf(t) === 'vitreous://newtab') render(); };
 
@@ -1405,7 +1406,7 @@
     const out = h('span', { text: f(S[key]), class: 'gs-out' });
     const sl = glassSlider({
       min, max, step, value: S[key], label: key,
-      onInput: (n) => { set(key, n); out.textContent = f(n); sl.setAttribute('aria-valuetext', f(n)); },
+      onInput: (n) => { if (key === 'glassTransparency') console.log('[glass] slider input:', n); set(key, n); out.textContent = f(n); sl.setAttribute('aria-valuetext', f(n)); },
     });
     sl.setAttribute('aria-valuetext', f(S[key]));
     return h('div', { style: 'display:flex;align-items:center;gap:14px' }, sl, out);
