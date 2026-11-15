@@ -72,7 +72,7 @@
     theme: 'dark', accent: '#5aa9ff', aurora: 'prism', auroraCustom: ['#5aa9ff', '#b57bff', '#0ea5a0'],
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
-    glassTransparency: 70, glassRefraction: 8, radius: 22, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
+    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, radius: 22, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
@@ -117,7 +117,7 @@
     lang: ['en-US', 'en-GB', 'sv-SE', 'de-DE', 'fr-FR', 'es-ES', 'pt-BR', 'ja-JP', 'zh-CN'], sleepAfter: ['5', '15', '30', '60'], proxy: ['system', 'none', 'manual'], channel: ['stable', 'beta', 'nightly'],
   };
   const RANGES = {
-    wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], glassTransparency: [0, 100], glassRefraction: [0, 20], radius: [4, 36],
+    wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], glassTransparency: [0, 100], glassRefraction: [0, 20], glassFrost: [0, 100], radius: [4, 36],
     rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
     dlParallel: [1, 8], pageZoom: [50, 300], minFont: [0, 24],
     iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
@@ -466,6 +466,10 @@
     r.setProperty('--blur', (gl * 4) + 'px');
     /* refraction edge glow scales with transparency: zero on a solid panel, full strength on clear glass */
     r.setProperty('--refraction', (S.glassRefraction * gl) + 'px');
+    /* frost texture: white fractal noise whose alpha follows the slider (0 = none, 100 = light grain) */
+    const frostA = (S.glassFrost / 100 * 0.22).toFixed(3);
+    const frostSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 ${frostA} 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>`;
+    r.setProperty('--frost-noise', `url("data:image/svg+xml,${encodeURIComponent(frostSvg)}")`);
     r.setProperty('--tint', tintV);
     r.setProperty('--sat', (100 + S.glassTransparency * 0.5) + '%');
     r.setProperty('--glass-solid', String(1 - gl));
@@ -1758,6 +1762,7 @@
             h('i', { class: 'tp-swatch' }))),
         row('Glass transparency', 'How see-through the glass is. 0% is solid, 100% is clear glass.', range('glassTransparency', 0, 100, '%')),
         row('Refraction', 'Edge glow that simulates thick glass.', range('glassRefraction', 0, 20, 'px')),
+        row('Frost Texture', 'Subtle grain that simulates frosted glass.', range('glassFrost', 0, 100, '%')),
         row('Edge highlight', null, range('rim', 0, 100, '%')),
         row('Shadow strength', null, range('shadow', 0, 100, '%')),
         row('Border width', null, range('border', 0, 3, 'px')),
