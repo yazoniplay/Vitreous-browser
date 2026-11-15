@@ -1180,7 +1180,7 @@
         row('Border width', null, range('border', 0, 3, 'px')),
         row('Corner radius', null, range('radius', 4, 36, 'px')),
         row('Animations', 'Background drift, transitions and effects', toggle('motion')),
-        row('Low-Spec Mode', 'Disables blur, glow, cursor spotlight and transitions for slower devices', toggle('lowfx')),
+        row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
         row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
         row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%'))),
 
@@ -1545,5 +1545,13 @@
   if (!tabs.length) tabs.push({ id: uid(), ws, hist: ['vitreous://newtab'], i: 0, reload: 0 });
   if (!tabs.some((t) => t.id === activeId)) { const g = wsTabs(); activeId = (g[0] || tabs[0]).id; ws = cur().ws; }
   render();
-  if (autoLowSpecNotice) setTimeout(() => toast('Low-Spec Mode enabled for this device. You can turn it off in Settings → Glass.'), 500);
+  if (autoLowSpecNotice) {
+    let noticeShown = false;
+    try {
+      noticeShown = localStorage.getItem('vitreous.lowSpecNoticeShown') === '1';
+      if (!noticeShown) localStorage.setItem('vitreous.lowSpecNoticeShown', '1');
+    } catch { /* show once per session if storage is unavailable */ }
+    if (!noticeShown) setTimeout(() => toast('Low-Spec Mode enabled for this device. You can turn it off in Settings.'), 500);
+    save();
+  }
 })();
