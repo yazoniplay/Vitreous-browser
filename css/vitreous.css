@@ -83,7 +83,7 @@ button { cursor: pointer; background: none; border: 0; }
 /* glass surface */
 .glass {
   position: relative;
-  background: linear-gradient(140deg, rgba(255,255,255,calc(var(--tint) + 0.08)), rgba(255,255,255,var(--tint)));
+  background: linear-gradient(140deg, rgba(255,255,255,calc((var(--tint) + 0.08) * var(--glass-solid, 1))), rgba(255,255,255,calc(var(--tint) * var(--glass-solid, 1))));
   -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
   backdrop-filter: blur(var(--blur)) saturate(var(--sat));
   border: var(--bw) solid var(--line);
@@ -1006,7 +1006,7 @@ body[data-theme="light"] {
 
 /* High-Fidelity panels use a translucent base instead of a white wash. */
 body[data-theme="light"][data-fx="high"] .glass {
-  background: color-mix(in srgb, var(--base) 75%, transparent) !important;
+  background: color-mix(in srgb, var(--base) calc(75% * var(--glass-solid, 1)), transparent) !important;
   -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat)) !important;
   backdrop-filter: blur(var(--blur)) saturate(var(--sat)) !important;
 }
@@ -1985,7 +1985,6 @@ html body .w-sm .ql-b:nth-child(n+5) { display: none; }
 html body .glass {
   box-shadow:
     0 18px 40px -20px color-mix(in srgb, var(--shadow) calc(var(--shadow-a) * 100%), transparent),
-    inset 0 0 8px rgba(255,255,255,calc(.2 * (1 - var(--glass-solid, 0)))),
     inset 0 0 0 1px rgba(255,255,255,calc(.1 * (1 - var(--glass-solid, 0)))),
     inset 0 1px 0 color-mix(in srgb, var(--rim) calc(var(--rim-a) * 100%), transparent) !important;
 }
@@ -2001,7 +2000,6 @@ html body .tp-swatch { position: absolute; right: 16px; top: 16px; width: 34px; 
    ====================================================================== */
 html body .glass.glass {
   box-shadow:
-    inset 0 0 0 9999px color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent),
     0 18px 40px -20px color-mix(in srgb, var(--shadow) calc(var(--shadow-a) * 100%), transparent),
     inset 0 0 8px rgba(255,255,255,calc(.2 * (1 - var(--glass-solid, 0)))),
     inset 0 0 0 1px rgba(255,255,255,calc(.1 * (1 - var(--glass-solid, 0)))),
@@ -2028,20 +2026,23 @@ html body .gs:focus-visible .gs-thumb {
    ====================================================================== */
 html body .glass { isolation: isolate; }
 html body .glass::before {
-  content: "" !important;
-  display: block !important;
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: inherit !important;
-  pointer-events: none !important;
-  z-index: -1 !important;
-  opacity: 1 !important;
-  mix-blend-mode: normal !important;
-  background:
-    linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 38%),
-    linear-gradient(color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent), color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent)) !important;
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background-image: linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 38%);
+  mix-blend-mode: normal;
 }
-html body .viewport.glass::before { display: none !important; }
+/* Solid layer: only background-color and opacity are set here, so theme background-image sheens still apply.
+   Opacity equals --glass-solid: 0% = opaque slab, 100% = invisible. Specificity beats the theme ::before rules. */
+html body[data-fx] .glass.glass::before {
+  display: block !important;
+  background-color: var(--base) !important;
+  opacity: var(--glass-solid, 0) !important;
+  z-index: -1 !important;
+}
+html body .viewport.glass.glass::before { display: none !important; }
+/* Light glass fill fades with --glass-solid, except in low-spec mode which stays opaque. */
+html body[data-theme="light"]:not([data-fx="low"]) .glass.glass {
+  background: linear-gradient(140deg, rgba(255,255,255,calc(.6 * var(--glass-solid, 1))), rgba(255,255,255,calc(.3 * var(--glass-solid, 1)))) !important;
+}
 
 /* Preview stage: a fixed sample background behind the preview card so the blur is visible while dragging. */
 html body .tp-stage {
