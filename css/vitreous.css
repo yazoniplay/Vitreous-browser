@@ -1896,3 +1896,21 @@ body[data-fx="low"] .dl-bar i { transition: none; }
 .ext-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ext-meta b { font-weight: 550; font-size: 14px; }
 .ext-meta small { color: var(--muted); font-size: 12px; }
+
+
+/* ======================================================================
+   Start-page widget grid: 4 columns, sizes sm (1x1), md (2x1), lg (2x2)
+   ====================================================================== */
+html body .widgets { max-width: 1040px; grid-template-columns: repeat(var(--wcols, 4), minmax(0, 1fr)); grid-auto-rows: var(--wrow, 150px); grid-auto-flow: row dense; align-items: stretch; }
+html body .widgets .widget { grid-column: span 1; grid-row: span 1; align-self: stretch; height: auto; min-height: 0; position: relative; overflow: hidden; }
+html body .widgets .widget.w-md { grid-column: span 2; grid-row: span 1; }
+html body .widgets .widget.w-lg { grid-column: span 2; grid-row: span 2; }
+html body .widgets .w-add { grid-column: 1 / -1; grid-row: auto; }
+html body .widgets .w-add .w-menu { position: relative; z-index: 2; }
+@media (max-width: 720px) { html body .widgets { --wcols: 2; } }
+
+html body .widget .w-resize { position: absolute; right: 6px; bottom: 6px; width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; padding: 0; color: var(--muted); opacity: .4; cursor: nwse-resize; z-index: 2; transition: opacity .2s ease, background-color .2s ease, color .2s ease; }
+html body .widget .w-resize:hover, html body .widget .w-resize:focus-visible { opacity: 1; color: var(--text); background: var(--field); outline: none; }
+html body .widget:hover .w-resize { opacity: .8; }
+html body .widget .w-resize .ico { width: 12px; height: 12px; stroke-width: 2; }
+html body .widget .w-resize:active { transform: scale(.9); }

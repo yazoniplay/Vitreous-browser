@@ -133,6 +133,10 @@
     clock: ['Clock', 'clock'], calendar: ['Calendar', 'calendar'], notes: ['Notes', 'note'], todo: ['To-do', 'check'],
     countdown: ['Countdown', 'flag'], timer: ['Timer', 'timer'], weather: ['Weather', 'sun'],
   };
+  /* widget sizes on the start-page grid: sm = 1x1, md = 2x1, lg = 2x2 */
+  const SIZE_LABEL = { sm: 'Small', md: 'Medium', lg: 'Large' };
+  const SIZE_NEXT = { sm: 'md', md: 'lg', lg: 'sm' };
+  const DEFAULT_SIZE = { clock: 'sm', calendar: 'md', notes: 'md', todo: 'md', countdown: 'sm', timer: 'sm', weather: 'md' };
   const TOGGLES = [['motion', 'Animations'], ['lowfx', 'Low-Spec Mode'], ['collapsed', 'Compact sidebar'], ['hoverExpand', 'Expand sidebar on hover'],
     ['favs', 'Tab icons'], ['siteIcons', 'Site icons'], ['showHome', 'Home button'], ['shield', 'Privacy shield button'], ['startHint', 'Start page hint'], ['startWidgets', 'Start page widgets']];
   const CMD_KINDS = ['url', 'newtab', 'action', 'toggle'];
@@ -314,7 +318,8 @@
         else if (w.type === 'countdown') { o.label = str(d.label, 40); o.date = /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : ''; }
         else if (w.type === 'timer') { o.mins = Math.min(180, Math.max(1, Math.round(+d.mins) || 25)); o.left = Math.min(o.mins * 60, Math.max(0, +d.left || o.mins * 60)); }
         else if (w.type === 'weather') { o.place = str(d.place, 60); o.lat = clampN(d.lat, [-90, 90]); o.lon = clampN(d.lon, [-180, 180]); o.unit = d.unit === 'f' ? 'f' : 'c'; }
-        return { id: w.id, type: w.type, data: o };
+        const size = Object.hasOwn(SIZE_LABEL, w.size) ? w.size : (DEFAULT_SIZE[w.type] || 'sm');
+        return { id: w.id, type: w.type, size, data: o };
       }).filter(Boolean);
     }
     if (Array.isArray(src.commands)) {
@@ -861,7 +866,7 @@
     notes: { text: '' }, todo: { items: [] }, countdown: { label: '', date: '' }, timer: { mins: 25, left: 1500 },
     weather: { place: '', lat: 0, lon: 0, unit: 'c' },
   }[t] || {});
-  const newWidget = (type) => ({ id: 'w' + uid(), type, data: widgetDefaults(type) });
+  const newWidget = (type) => ({ id: 'w' + uid(), type, size: DEFAULT_SIZE[type] || 'sm', data: widgetDefaults(type) });
   const timers = new Map(); /* id -> { running, end }, survives leaving the start page */
   const weatherCache = new Map();
   const WX = (code) => (code === 0 ? ['Clear', 'sun'] : code <= 2 ? ['Partly cloudy', 'partly'] : code === 3 ? ['Overcast', 'cloud']
@@ -997,10 +1002,24 @@
 
   function widgetCard(w, onRemove) {
     const [name, icn] = WIDGET_TYPES[w.type];
-    const card = h('div', { class: 'widget glass', 'data-type': w.type },
+    const card = h('div', { class: 'widget glass w-' + w.size, 'data-type': w.type, 'data-size': w.size },
       h('div', { class: 'w-head' }, ico(icn), h('span', { text: name }),
         h('button', { class: 'x-mini', title: 'Remove widget', 'aria-label': 'Remove ' + name, onclick: () => { onRemove(); card.remove(); } }, ico('x'))),
-      WIDGET_VIEW[w.type](w));
+      WIDGET_VIEW[w.type](w),
+      h('button', {
+        class: 'w-resize', type: 'button', title: 'Resize: ' + SIZE_LABEL[w.size], 'aria-label': 'Resize ' + name + ' (' + SIZE_LABEL[w.size] + ')',
+        onclick: (e) => {
+          e.stopPropagation();
+          const next = SIZE_NEXT[w.size] || 'sm';
+          card.classList.remove('w-sm', 'w-md', 'w-lg');
+          card.classList.add('w-' + next);
+          card.dataset.size = next;
+          w.size = next;
+          e.currentTarget.title = 'Resize: ' + SIZE_LABEL[next];
+          e.currentTarget.setAttribute('aria-label', 'Resize ' + name + ' (' + SIZE_LABEL[next] + ')');
+          save();
+        },
+      }, ico('resize')));
     return card;
   }
   function widgetsBlock() {
@@ -1256,6 +1275,7 @@
     code: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
     bookmark: '<path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    resize: '<path d="M19 9L9 19M19 14l-5 5"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
     circle: '<circle cx="12" cy="12" r="7"/>',
     command: '<path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/>',
