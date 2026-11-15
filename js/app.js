@@ -462,8 +462,8 @@
     r.setProperty('--blur', S.blur + 'px');
     /* glass transparency: 0 = ultra-clear (default), 100 = nearly solid, like Reduce Transparency */
     const gt = S.glassTransparency / 100;
-    r.setProperty('--tint', String(Math.min(0.9, S.tint / 100 + gt * 0.5)));
-    r.setProperty('--glass-solid', String(gt * 0.92));
+    r.setProperty('--tint', String(S.tint / 100));
+    r.setProperty('--glass-solid', String(gt));
     r.setProperty('--radius', S.radius + 'px');
     r.setProperty('--sat', S.saturate + '%');
     r.setProperty('--rim-a', String(S.rim / 100));

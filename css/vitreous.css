@@ -1992,3 +1992,24 @@ html body .tp-preview { margin: 4px 16px 14px; padding: 16px 18px; border-radius
 html body .tp-preview strong { font-size: 14px; font-weight: 600; }
 html body .tp-preview span { font-size: 12.5px; color: var(--muted); }
 html body .tp-swatch { position: absolute; right: 16px; top: 16px; width: 34px; height: 34px; border-radius: 12px; background: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 8px 18px -10px var(--shadow); }
+
+
+/* ======================================================================
+   Glass transparency: strong range. 0% = clear, 100% = opaque slab.
+   Focus: no browser or global focus rings on the slider. The thumb gets an accent edge instead.
+   ====================================================================== */
+html body .glass.glass {
+  box-shadow:
+    inset 0 0 0 9999px color-mix(in srgb, var(--base) calc(var(--glass-solid, 0) * 100%), transparent),
+    0 18px 40px -20px color-mix(in srgb, var(--shadow) calc(var(--shadow-a) * 100%), transparent),
+    inset 0 0 8px rgba(255,255,255,calc(.2 * (1 - var(--glass-solid, 0)))),
+    inset 0 0 0 1px rgba(255,255,255,calc(.1 * (1 - var(--glass-solid, 0)))),
+    inset 0 1px 0 color-mix(in srgb, var(--rim) calc(var(--rim-a) * 100%), transparent);
+}
+html body .gs, html body .gs:focus, html body .gs:focus-visible, html body .gs *, html body .gs *:focus, html body .gs *:focus-visible {
+  outline: none !important;
+}
+html body .gs:focus-visible .gs-thumb {
+  outline: none !important;
+  box-shadow: 0 0 0 1.5px var(--accent), 0 6px 16px -4px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.32), inset 0 1px 0 #fff, inset 0 -2px 4px rgba(110,122,160,.28) !important;
+}
