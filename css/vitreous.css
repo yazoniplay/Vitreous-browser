@@ -526,7 +526,7 @@ body[data-dynamic-theme="1"] .address { box-shadow: inset 0 0 0 1px color-mix(in
 body[data-fx="low"] .context-menu { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 
-/* ---------- Low-Spec Mode: selective performance profile ---------- */
+/* ---------- Low-Spec Mode: premium lightweight profile ---------- */
 body[data-fx="low"] .glass,
 body[data-fx="low"] .drop-menu,
 body[data-fx="low"] .context-menu,
@@ -537,12 +537,28 @@ body[data-fx="low"] .sidebar {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* Restore surface separation without expensive backdrop blur. */
 body[data-fx="low"] .glass,
 body[data-fx="low"] .drop-menu,
 body[data-fx="low"] .context-menu,
 body[data-fx="low"] .address {
+  background: color-mix(in srgb, var(--base) 92%, white 8%) !important;
+  box-shadow: 0 8px 20px -10px rgba(0,0,0,.5), inset 0 0 0 1px var(--line) !important;
+}
+body[data-fx="low"] .sidebar {
   background: var(--base) !important;
-  box-shadow: inset 0 0 0 1px var(--line);
+  border-right: 1px solid var(--line) !important;
+  box-shadow: none !important;
+}
+body[data-side="right"][data-fx="low"] .sidebar {
+  border-right: 0 !important;
+  border-left: 1px solid var(--line) !important;
+}
+body[data-fx="low"] .tab[aria-selected="true"],
+body[data-fx="low"] .tab[aria-selected="true"]:hover {
+  background: color-mix(in srgb, var(--accent) 9%, transparent) !important;
+  box-shadow: inset 0 0 0 1px var(--accent) !important;
 }
 body[data-fx="low"] .backdrop,
 body[data-fx="low"] .backdrop i {
@@ -552,32 +568,42 @@ body[data-fx="low"] .backdrop i {
 body[data-fx="low"] .glass::before,
 body[data-fx="low"] .glass::after { display: none !important; }
 
-body[data-fx="low"] .rise { animation: none !important; opacity: 1; transform: none; }
+/* Remove entrance and layout-changing motion, but retain cheap feedback. */
+body[data-fx="low"] .rise,
+body[data-fx="low"] .content > *,
+body[data-fx="low"] .tab.enter,
+body[data-fx="low"] .tab.leave,
+body[data-fx="low"] .pal-item {
+  animation: none !important;
+  opacity: 1;
+  transform: none !important;
+}
 body[data-fx="low"] .tile,
 body[data-fx="low"] .tile:hover,
 body[data-fx="low"] .sw,
 body[data-fx="low"] .sw:hover,
 body[data-fx="low"] .sw[aria-pressed="true"],
 body[data-fx="low"] .drop-trigger:hover,
-body[data-fx="low"] .icon-btn:hover {
+body[data-fx="low"] .icon-btn:hover,
+body[data-fx="low"] .tab:active {
   transform: none !important;
 }
 body[data-fx="low"] .tile,
-body[data-fx="low"] .sw {
-  transition: background-color .2s ease, color .2s ease, box-shadow .2s ease !important;
-}
-body[data-fx="low"] .tile:hover,
-body[data-fx="low"] .sw:hover { background-color: var(--field); }
-
+body[data-fx="low"] .sw,
 body[data-fx="low"] .tab,
 body[data-fx="low"] .space,
 body[data-fx="low"] .btn,
 body[data-fx="low"] .row,
 body[data-fx="low"] .icon-btn,
 body[data-fx="low"] .drop-option {
-  transition: background-color .2s ease, color .2s ease, opacity .16s ease !important;
+  transition: background-color .2s ease, color .2s ease, opacity .16s ease, box-shadow .2s ease !important;
 }
-body[data-fx="low"] .tab .tab-title,
+body[data-fx="low"] .tile:hover {
+  background-color: var(--field);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+body[data-fx="low"] .sw:hover { background-color: var(--field); }
+body[data-fx="low"] .tab .t,
 body[data-fx="low"] .tab svg { transition: opacity .16s ease !important; }
 body[data-fx="low"] .drop-menu {
   animation: dropIn .16s ease-out !important;
