@@ -1511,3 +1511,33 @@ body[data-motion="off"] *::after {
   }
 }
 
+
+
+/* ---------- Compact sidebar click: animated layout push in both modes ---------- */
+/* The sidebar's flex-basis is the actual space reserved in the app row.
+   Transition it so the main column is reflowed smoothly instead of jumping. */
+.side-wrap {
+  transition-property: width, flex-basis !important;
+}
+body[data-fx="high"] .side-wrap {
+  transition-duration: .48s, .48s !important;
+  transition-timing-function: var(--spring, cubic-bezier(.2,.8,.2,1)) !important;
+}
+body[data-fx="low"] .side-wrap {
+  /* Keep this one inexpensive transition even though Low-Spec disables
+     decorative motion across the rest of the interface. */
+  transition: width .32s ease-out, flex-basis .32s ease-out !important;
+}
+body[data-fx="high"] .side-wrap .sidebar {
+  transition: width .42s var(--spring, cubic-bezier(.2,.8,.2,1)),
+    box-shadow .32s ease !important;
+}
+body[data-fx="low"] .side-wrap .sidebar {
+  transition: width .28s ease-out, box-shadow .28s ease-out !important;
+}
+body[data-fx="high"] .side-wrap .lbl {
+  transition: opacity .24s ease, transform .32s var(--spring, cubic-bezier(.2,.8,.2,1)) !important;
+}
+body[data-fx="low"] .side-wrap .lbl {
+  transition: opacity .18s ease-out !important;
+}
