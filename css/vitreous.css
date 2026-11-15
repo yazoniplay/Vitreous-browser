@@ -524,3 +524,69 @@ body[data-dynamic-theme="1"] .address { box-shadow: inset 0 0 0 1px color-mix(in
 .context-item:hover:not(:disabled) { background: var(--field); }
 .context-item:disabled { opacity: .35; cursor: default; }
 body[data-fx="low"] .context-menu { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+
+/* ---------- Low-Spec Mode: selective performance profile ---------- */
+body[data-fx="low"] .glass,
+body[data-fx="low"] .drop-menu,
+body[data-fx="low"] .context-menu,
+body[data-fx="low"] .address,
+body[data-fx="low"] .viewport,
+body[data-fx="low"] .toolbar,
+body[data-fx="low"] .sidebar {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+body[data-fx="low"] .glass,
+body[data-fx="low"] .drop-menu,
+body[data-fx="low"] .context-menu,
+body[data-fx="low"] .address {
+  background: var(--base) !important;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+body[data-fx="low"] .backdrop,
+body[data-fx="low"] .backdrop i {
+  display: none !important;
+  animation: none !important;
+}
+body[data-fx="low"] .glass::before,
+body[data-fx="low"] .glass::after { display: none !important; }
+
+body[data-fx="low"] .rise { animation: none !important; opacity: 1; transform: none; }
+body[data-fx="low"] .tile,
+body[data-fx="low"] .tile:hover,
+body[data-fx="low"] .sw,
+body[data-fx="low"] .sw:hover,
+body[data-fx="low"] .sw[aria-pressed="true"],
+body[data-fx="low"] .drop-trigger:hover,
+body[data-fx="low"] .icon-btn:hover {
+  transform: none !important;
+}
+body[data-fx="low"] .tile,
+body[data-fx="low"] .sw {
+  transition: background-color .2s ease, color .2s ease, box-shadow .2s ease !important;
+}
+body[data-fx="low"] .tile:hover,
+body[data-fx="low"] .sw:hover { background-color: var(--field); }
+
+body[data-fx="low"] .tab,
+body[data-fx="low"] .space,
+body[data-fx="low"] .btn,
+body[data-fx="low"] .row,
+body[data-fx="low"] .icon-btn,
+body[data-fx="low"] .drop-option {
+  transition: background-color .2s ease, color .2s ease, opacity .16s ease !important;
+}
+body[data-fx="low"] .tab .tab-title,
+body[data-fx="low"] .tab svg { transition: opacity .16s ease !important; }
+body[data-fx="low"] .drop-menu {
+  animation: dropIn .16s ease-out !important;
+}
+body[data-fx="low"] .dropdown.open .drop-trigger .ico {
+  transition: transform .2s ease !important;
+}
+body[data-fx="low"] .new-tab svg {
+  transition: transform .2s ease !important;
+}
+body[data-fx="low"] .new-tab:hover svg { transform: rotate(90deg); }
+body[data-fx="low"] .context-menu { animation: dropIn .14s ease-out !important; }
