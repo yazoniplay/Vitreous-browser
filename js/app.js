@@ -184,6 +184,7 @@
   const clone = (o) => JSON.parse(JSON.stringify(o));
   let S = clone(DEFAULTS);
   let tabs = [];
+  let stacks = [];
   let activeId = null;
   let ws = 'personal';
   let viewKey = '';
@@ -344,7 +345,7 @@
 
   let saveTimer = 0;
   function writeStore() {
-    try { localStorage.setItem(KEY, JSON.stringify({ S, tabs, activeId, ws })); } catch { /* storage unavailable */ }
+    try { localStorage.setItem(KEY, JSON.stringify({ S, tabs, activeId, ws, stacks })); } catch { /* storage unavailable */ }
   }
   /* saves are batched: a burst of slider moves writes once, 300ms after the last change */
   function save() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveTimer = 0; writeStore(); }, 300); }
@@ -358,17 +359,143 @@
       hasSavedState = true;
       S = sanitize(raw.S);
       if (S.spaces.some((x) => x.id === raw.ws)) ws = raw.ws; else ws = S.spaces[0].id;
+      if (Array.isArray(raw.stacks)) {
+        stacks = raw.stacks
+          .filter((x) => x && /^\w+$/.test(String(x.id)) && S.spaces.some((s) => s.id === x.ws))
+          .map((x) => ({ id: String(x.id), name: String(x.name || 'Stack').slice(0, 24), color: /^#[0-9a-f]{6}$/i.test(x.color) ? x.color : '#5aa9ff', ws: x.ws, open: !!x.open }));
+      }
       if (Array.isArray(raw.tabs)) {
         tabs = raw.tabs
           .filter((t) => t && Array.isArray(t.hist) && t.hist.length && S.spaces.some((x) => x.id === t.ws))
           .map((t) => {
             const hist = t.hist.slice(-50).map((u) => normalize(String(u)));
             const i = Math.min(Math.max(+t.i || 0, 0), hist.length - 1);
-            return { id: t.id && /^\w+$/.test(t.id) ? t.id : uid(), ws: t.ws, hist, i, reload: 0 };
+            return { id: t.id && /^\w+$/.test(t.id) ? t.id : uid(), ws: t.ws, hist, i, reload: 0, stack: typeof t.stack === 'string' ? t.stack : undefined };
           });
       }
+      tabs.forEach((t) => { if (t.stack && !stacks.some((s) => s.id === t.stack)) delete t.stack; });
       if (raw.activeId && tabs.some((t) => t.id === raw.activeId)) activeId = raw.activeId;
     } catch { /* corrupted state: start fresh */ }
+  }
+
+  /* ---------- tab stacks and workspace management ---------- */
+  const STACK_NAME = 'Stack';
+  const plusIcon = () => { const t = document.createElement('template'); t.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'; return t.content.firstChild; };
+  const stackOf = (id) => stacks.find((x) => x.id === id);
+  /* sidebar and top strip share one list: a stack header, then its tabs when it is open */
+  function sideEntries() {
+    const out = [];
+    const group = wsTabs();
+    const seen = new Set();
+    group.forEach((t) => {
+      const st = t.stack && stacks.find((x) => x.id === t.stack && x.ws === t.ws);
+      if (!st) { out.push({ kind: 'tab', t }); return; }
+      if (seen.has(st.id)) return;
+      seen.add(st.id);
+      out.push({ kind: 'stack', st });
+      if (st.open) group.filter((x) => x.stack === st.id).forEach((x) => out.push({ kind: 'tab', t: x, inStack: st.id }));
+    });
+    stacks.filter((s) => s.ws === ws && !seen.has(s.id)).forEach((st) => out.push({ kind: 'stack', st }));
+    return out;
+  }
+  function stackEl(st, side) {
+    return h('div', {
+      class: 'tab stack' + (side ? ' side' : ''), role: 'tab', tabindex: '0', 'data-key': 's:' + st.id, 'data-stack': st.id,
+      onclick: () => toggleStack(st.id),
+      onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStack(st.id); } },
+    },
+      h('span', { class: 'stack-dot', 'aria-hidden': 'true' }),
+      h('span', { class: 't' }),
+      h('span', { class: 'count' }));
+  }
+  function patchStack(n, st) {
+    const kids = wsTabs().filter((x) => x.stack === st.id);
+    n.style.setProperty('--sc', st.color);
+    n.setAttribute('aria-expanded', String(!!st.open));
+    n.setAttribute('aria-selected', String(kids.some((x) => x.id === activeId)));
+    const t = n.querySelector('.t'), c = n.querySelector('.count');
+    if (t.textContent !== st.name) t.textContent = st.name;
+    const label = kids.length ? kids.length + ' tab' + (kids.length === 1 ? '' : 's') : 'Empty';
+    if (c.textContent !== label) c.textContent = label;
+    n.title = st.name;
+  }
+  function toggleStack(id) { const st = stackOf(id); if (!st) return; st.open = !st.open; render(); }
+  function newStackFrom(t) { const st = { id: uid(), name: STACK_NAME, color: ACCENTS[stacks.length % ACCENTS.length], ws: t.ws, open: true }; stacks.push(st); t.stack = st.id; render(); }
+  function addToStack(t, st) { t.stack = st.id; render(); }
+  function renameStack(id) { const st = stackOf(id); if (!st) return; const n = prompt('Stack name', st.name); if (n && n.trim()) { st.name = n.trim().slice(0, 24); render(); } }
+  function cycleStackColor(id) { const st = stackOf(id); if (!st) return; st.color = ACCENTS[(ACCENTS.indexOf(st.color) + 1) % ACCENTS.length]; render(); }
+  function ungroupStack(id) { tabs.forEach((t) => { if (t.stack === id) delete t.stack; }); stacks = stacks.filter((s) => s.id !== id); render(); }
+  function closeStackTabs(id) { tabs.filter((t) => t.stack === id).forEach((t) => closeTab(t.id)); }
+  /* dropping one tab on another makes (or joins) a stack; dropping on a header joins that stack */
+  function stackDrop(srcId, target) {
+    const src = tabs.find((t) => t.id === srcId);
+    if (!src) return;
+    if (target.dataset.stack) {
+      const st = stackOf(target.dataset.stack);
+      if (!st || st.ws !== src.ws) return;
+      src.stack = st.id;
+    } else {
+      const dst = tabs.find((t) => t.id === target.dataset.id);
+      if (!dst || dst.id === src.id || dst.ws !== src.ws) return;
+      if (dst.stack) src.stack = dst.stack;
+      else {
+        const st = { id: uid(), name: STACK_NAME, color: ACCENTS[stacks.length % ACCENTS.length], ws: dst.ws, open: false };
+        stacks.push(st); dst.stack = st.id; src.stack = st.id;
+      }
+    }
+    render();
+  }
+  function bindStackDrag(n, id) {
+    n.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || (e.target.closest && e.target.closest('.x'))) return;
+      const x0 = e.clientX, y0 = e.clientY;
+      let over = null;
+      const move = (ev) => {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return;
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const hit = el && el.closest && el.closest('.tab');
+        const next = hit && hit !== n && hit.parentElement === n.parentElement ? hit : null;
+        if (next !== over) { if (over) over.classList.remove('stack-target'); over = next; if (over) over.classList.add('stack-target'); }
+      };
+      const up = () => {
+        removeEventListener('pointermove', move);
+        removeEventListener('pointerup', up);
+        if (over) { over.classList.remove('stack-target'); stackDrop(id, over); }
+      };
+      addEventListener('pointermove', move);
+      addEventListener('pointerup', up);
+    });
+  }
+  function tabStackEntries(id) {
+    const t = tabs.find((x) => x.id === id);
+    if (!t) return [];
+    const out = stacks.filter((s) => s.ws === t.ws).map((s) => [`Add to “${s.name}”`, () => addToStack(t, s), t.stack === s.id]);
+    out.push(['New stack from tab', () => newStackFrom(t)]);
+    if (t.stack) out.push(['Remove from stack', () => { delete t.stack; render(); }]);
+    return out;
+  }
+  function renameSpace(id) { const sp = S.spaces.find((x) => x.id === id); if (!sp) return; const n = prompt('Workspace name', sp.name); if (n && n.trim()) { sp.name = n.trim().slice(0, 24); buildSpaces(); save(); } }
+  function cycleSpaceColor(id) { const sp = S.spaces.find((x) => x.id === id); if (!sp) return; sp.color = ACCENTS[(ACCENTS.indexOf(sp.color) + 1) % ACCENTS.length]; buildSpaces(); save(); }
+  function newWorkspace() {
+    const n = prompt('Workspace name', 'Workspace');
+    if (!n || !n.trim()) return;
+    const sp = { id: uid(), name: n.trim().slice(0, 24), color: ACCENTS[S.spaces.length % ACCENTS.length] };
+    S.spaces.push(sp);
+    buildSpaces(); save();
+    switchSpace(sp.id);
+  }
+  function deleteSpace(id) {
+    const sp = S.spaces.find((x) => x.id === id);
+    if (!sp || S.spaces.length < 2) return;
+    if (!confirm(`Delete “${sp.name}” and close its tabs?`)) return;
+    S.spaces = S.spaces.filter((x) => x.id !== id);
+    tabs = tabs.filter((t) => t.ws !== id);
+    stacks = stacks.filter((s) => s.ws !== id);
+    if (ws === id) ws = S.spaces[0].id;
+    buildSpaces();
+    if (!wsTabs().length) { newTab(undefined, ws); return; }
+    if (!tabs.some((t) => t.id === activeId)) activeId = wsTabs()[wsTabs().length - 1].id;
+    render();
   }
 
   /* ---------- tab actions ---------- */
@@ -541,8 +668,8 @@
 
   /* ---------- tabs rendering (keyed, animated) ---------- */
   function tabEl(t, side) {
-    return h('div', {
-      class: 'tab' + (side ? ' side' : ''), role: 'tab', tabindex: '0', 'data-id': t.id,
+    const n = h('div', {
+      class: 'tab' + (side ? ' side' : ''), role: 'tab', tabindex: '0', 'data-id': t.id, 'data-key': t.id,
       onclick: () => activate(t.id),
       onauxclick: (e) => { if (e.button === 1) closeTab(t.id); },
       onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(t.id); } },
@@ -553,6 +680,8 @@
         class: 'x', role: 'button', 'aria-label': 'Close tab', text: '×',
         onclick: (e) => { e.stopPropagation(); closeTab(t.id); },
       }));
+    bindStackDrag(n, t.id);
+    return n;
   }
   function patchTab(n, t) {
     n.setAttribute('aria-selected', String(t.id === activeId));
@@ -562,22 +691,24 @@
     if (tt.textContent !== title) tt.textContent = title;
     paintFav(ff, urlOf(t), letter);
   }
-  function reconcile(list, items, side) {
+  function reconcile(list, entries, side) {
     const ind = list.querySelector('.indicator');
-    const existing = new Map([...list.querySelectorAll('.tab:not(.leave)')].map((n) => [n.dataset.id, n]));
-    const keep = new Set(items.map((t) => t.id));
-    existing.forEach((n, id) => {
-      if (keep.has(id)) return;
+    const keyOf = (e) => (e.kind === 'stack' ? 's:' + e.st.id : e.t.id);
+    const existing = new Map([...list.querySelectorAll('.tab:not(.leave)')].map((n) => [n.dataset.key, n]));
+    const keep = new Set(entries.map(keyOf));
+    existing.forEach((n, key) => {
+      if (keep.has(key)) return;
       if (!motionOn() || list.offsetParent === null) { n.remove(); return; }
       n.classList.add('leave');
       n.addEventListener('animationend', () => n.remove(), { once: true });
       setTimeout(() => n.remove(), 450);
     });
     let prev = ind;
-    items.forEach((t) => {
-      let n = existing.get(t.id);
-      if (!n) { n = tabEl(t, side); if (motionOn()) n.classList.add('enter'); }
-      patchTab(n, t);
+    entries.forEach((e) => {
+      let n = existing.get(keyOf(e));
+      if (!n) { n = e.kind === 'stack' ? stackEl(e.st, side) : tabEl(e.t, side); if (motionOn()) n.classList.add('enter'); }
+      if (e.kind === 'stack') patchStack(n, e.st);
+      else { patchTab(n, e.t); n.classList.toggle('in-stack', !!e.inStack); }
       if (prev.nextSibling !== n) list.insertBefore(n, prev.nextSibling);
       prev = n;
     });
@@ -597,8 +728,9 @@
   }
 
   function renderTabs() {
-    reconcile($('#tabs'), wsTabs(), false);
-    reconcile($('#sideTabs'), wsTabs(), true);
+    const entries = sideEntries();
+    reconcile($('#tabs'), entries, false);
+    reconcile($('#sideTabs'), entries, true);
     placeIndicators();
     setTimeout(placeIndicators, 320);
   }
@@ -2138,9 +2270,32 @@
   document.addEventListener('contextmenu', (e) => {
     const tab = e.target.closest && e.target.closest('.tab');
     const link = e.target.closest && e.target.closest('a[href]');
+    const spaceBtn = e.target.closest && e.target.closest('.space[data-id]');
+    if (spaceBtn) {
+      const sid = spaceBtn.dataset.id;
+      openContextMenu(e, [
+        ['Rename', () => renameSpace(sid)],
+        ['Change color', () => cycleSpaceColor(sid)],
+        ['Delete', () => deleteSpace(sid), S.spaces.length < 2],
+      ]);
+      return;
+    }
+    const stackHead = e.target.closest && e.target.closest('.tab.stack');
+    if (stackHead) {
+      const sid = stackHead.dataset.stack;
+      openContextMenu(e, [
+        [stackOf(sid)?.open ? 'Collapse' : 'Expand', () => toggleStack(sid)],
+        ['Rename stack', () => renameStack(sid)],
+        ['Change color', () => cycleStackColor(sid)],
+        ['Ungroup', () => ungroupStack(sid)],
+        ['Close all tabs in stack', () => closeStackTabs(sid)],
+      ]);
+      return;
+    }
     if (tab) {
       const id = tab.dataset.id;
       openContextMenu(e, [
+        ...tabStackEntries(id),
         ['Activate tab', () => activate(id)],
         ['Close tab', () => closeTab(id)],
         ['Close other tabs', () => {
@@ -2206,7 +2361,8 @@
   function buildSpaces() {
     $('#spaces').replaceChildren(...S.spaces.map((sp) => h('button', {
       class: 'space', 'data-id': sp.id, title: sp.name, 'aria-pressed': String(sp.id === ws), onclick: () => switchSpace(sp.id),
-    }, h('span', { class: 'dot', style: `background:${sp.color};color:${sp.color}` }), h('span', { class: 'sl', text: sp.name }))));
+    }, h('span', { class: 'dot', style: `background:${sp.color};color:${sp.color}` }), h('span', { class: 'sl', text: sp.name }))),
+    h('button', { type: 'button', class: 'space space-add', title: 'New workspace', 'aria-label': 'New workspace', onclick: newWorkspace }, plusIcon()));
   }
 
   const sideWrapEl = $('#sideWrap');

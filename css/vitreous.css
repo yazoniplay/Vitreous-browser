@@ -2252,3 +2252,13 @@ body[data-fx="low"] .ripple-dot { display: none; }
     transition-duration: .01ms !important; transition-timing-function: linear !important;
   }
 }
+
+/* Workspaces and tab stacks */
+.space-add { width: 30px; justify-content: center; padding: 0; flex: none; }
+.space-add svg { width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
+.tab.stack .stack-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc, var(--accent)); flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc, var(--accent)) 25%, transparent); }
+.tab.stack .t { font-weight: 600; }
+.tab.stack .count { margin-left: auto; font-size: 11px; color: var(--muted); padding: 2px 8px; border-radius: 999px; background: var(--field); white-space: nowrap; flex: none; }
+.tab.in-stack { margin-left: 16px; }
+.tab.in-stack::before { content: ""; position: absolute; left: -9px; top: 22%; bottom: 22%; width: 2px; border-radius: 2px; background: var(--line); }
+.tab.stack-target { box-shadow: inset 0 0 0 2px var(--accent); }
