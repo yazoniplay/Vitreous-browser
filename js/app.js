@@ -72,7 +72,7 @@
     theme: 'dark', accent: '#5aa9ff', aurora: 'prism', auroraCustom: ['#5aa9ff', '#b57bff', '#0ea5a0'],
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
-    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
+    glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
@@ -117,7 +117,7 @@
     lang: ['en-US', 'en-GB', 'sv-SE', 'de-DE', 'fr-FR', 'es-ES', 'pt-BR', 'ja-JP', 'zh-CN'], sleepAfter: ['5', '15', '30', '60'], proxy: ['system', 'none', 'manual'], channel: ['stable', 'beta', 'nightly'],
   };
   const RANGES = {
-    wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], glassTransparency: [0, 100], glassRefraction: [0, 20], glassFrost: [0, 100], radius: [4, 36],
+    tabRadius: [0, 36], panelRadius: [0, 36], addrRadius: [0, 36], wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], glassTransparency: [0, 100], glassRefraction: [0, 20], glassFrost: [0, 100], radius: [4, 36],
     rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
     dlParallel: [1, 8], pageZoom: [50, 300], minFont: [0, 24],
     iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
@@ -494,7 +494,9 @@
     r.setProperty('--tab-w', S.tabWidth + 'px');
     r.setProperty('--side-w', S.sideWidth + 'px');
     r.setProperty('--addr-w', S.addrWidth + 'px');
-    r.setProperty('--addr-r', S.addrShape === 'pill' ? '999px' : S.addrShape === 'round' ? '14px' : '4px');
+    r.setProperty('--radius-tabs', S.tabRadius + 'px');
+    r.setProperty('--radius-panels', S.panelRadius + 'px');
+    r.setProperty('--radius-addr', S.addrRadius + 'px');
     r.setProperty('--tile-w', S.tileSize + 'px');
     r.setProperty('--blob-mul', String(S.blobs / 100));
     r.setProperty('--blob-dur', (S.blobSpeed ? 26 * 100 / S.blobSpeed : 26) + 's');
@@ -1805,7 +1807,10 @@
         row('Sidebar', 'Compact shows icons and expands on hover', seg([[false, 'Pinned'], [true, 'Compact']], 'collapsed')),
         row('Expand compact sidebar on hover', null, toggle('hoverExpand')),
         row('Sidebar width', null, range('sideWidth', 200, 380, 'px')),
-        row('Sidebar side', null, seg([['left', 'Left'], ['right', 'Right']], 'sideSide'))),
+        row('Sidebar side', null, seg([['left', 'Left'], ['right', 'Right']], 'sideSide')),
+        row('Tab radius', 'Corner radius of tabs and their highlight', range('tabRadius', 0, 36, 'px')),
+        row('Panel radius', 'Corner radius of glass panels, sidebar and widgets', range('panelRadius', 0, 36, 'px')),
+        row('Address bar radius', 'Corner radius of the address bar', range('addrRadius', 0, 36, 'px'))),
 
       group('tabs', 'Tabs', gi++,
         row('Tab style', null, seg([['round', 'Rounded'], ['flat', 'Flat'], ['underline', 'Underline']], 'tabShape')),
@@ -1820,7 +1825,6 @@
         row('Privacy shield button', null, toggle('shield')),
         row('Lock icon in address bar', null, toggle('lock')),
         row('Address bar width', null, range('addrWidth', 360, 1100, 'px')),
-        row('Address bar shape', null, seg([['pill', 'Pill'], ['round', 'Rounded'], ['square', 'Square']], 'addrShape')),
         row('Address text', null, seg([['center', 'Centered'], ['left', 'Left']], 'addrAlign'))),
 
       group('spaces', 'Spaces', gi++, spBox),
