@@ -2094,3 +2094,19 @@ body[data-addr-pos="sidebar"] .side-list { flex: 1 1 auto; min-height: 0; overfl
 body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"] .address { display: none; }
 body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"]:hover .address,
 body[data-addr-pos="sidebar"] .side-wrap[data-rail="1"]:has(:focus-visible) .address { display: flex; }
+
+/* Crazy Animations (only when body[data-crazy="1"], set in apply()) */
+.ripple-dot { position: fixed; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.55); pointer-events: none; z-index: 999; animation: rippleOut .7s var(--ease) forwards; }
+@keyframes rippleOut { from { transform: scale(.4); opacity: .7; } to { transform: scale(9); opacity: 0; } }
+body[data-crazy="1"] .backdrop { transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) scale(1.04); transition: transform .8s var(--ease); }
+body[data-crazy="1"] .tab .x { transition: transform .25s var(--ease), opacity .2s, background .2s !important; }
+
+/* Address bar and sidebar motion (high-fidelity only) */
+body[data-fx="high"] .address { transition: box-shadow .35s var(--ease), width .55s var(--spring), background .3s, transform .5s var(--spring); }
+body[data-fx="high"] .address:focus-within { transform: translateY(-1px) scale(1.01); }
+body[data-fx="high"] .side-list .tab { transition: transform .45s var(--spring), background .25s, box-shadow .3s; }
+body[data-fx="high"] .side-list .tab:hover { transform: translateX(3px); }
+body[data-fx="high"] .side-list .tab:active { transform: scale(.97); }
+body[data-fx="high"] .new-tab { transition: transform .4s var(--spring), background .25s; }
+body[data-fx="high"] .new-tab:hover { transform: translateX(2px); }
+body[data-fx="high"] .new-tab:active { transform: scale(.94); }
