@@ -2523,3 +2523,11 @@ html body .side-wrap .pin .fav:not(.has-img) { font-size: 28px; }
 html body .side-wrap .bmbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; margin-top: 12px; background: none; border: 0; box-shadow: none; }
 html body .side-wrap .bmbar[hidden] { display: none; }
 html body[data-tabs="side"] .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .bmbar { display: none; }
+
+/* Match the reference sidebar: nav row first, compact address field, three pinned tiles, solid white selected pill */
+html body .side-head .brand-name, html body .side-head .mark { display: none; }
+html body[data-addr-pos="sidebar"] .address { height: 34px; border-radius: 10px; }
+html body .side-wrap .quick-grid { grid-template-columns: repeat(3, 80px); gap: 8px; }
+html body .side-wrap .pin { width: 80px; height: 80px; border-radius: 20px; }
+html body .side-wrap .tab[aria-selected="true"], html body .side-wrap .tab[aria-selected="true"]:hover { background: rgba(255,255,255,.92) !important; color: #1c1c22; box-shadow: none; }
+html body .side-wrap .tab[aria-selected="true"] .t { color: #1c1c22; }
