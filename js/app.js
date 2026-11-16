@@ -470,7 +470,15 @@
       if (e.button !== 0 || (e.target.closest && e.target.closest('.x'))) return;
       const x0 = e.clientX, y0 = e.clientY;
       const list = n.parentElement;
-      const d = { active: false, over: null, ph: null, tx: 0, ty: 0 };
+      const d = { active: false, over: null, ph: null, hint: null, tx: 0, ty: 0 };
+      const showHint = (t) => {
+        if (!d.hint) return;
+        if (!t) { d.hint.classList.remove('on'); return; }
+        d.hint.textContent = t.dataset.stack ? 'Add to stack' : 'Make a stack';
+        const r = t.getBoundingClientRect();
+        Object.assign(d.hint.style, { left: (r.left + r.width / 2) + 'px', top: (r.top + r.height / 2) + 'px' });
+        d.hint.classList.add('on');
+      };
       const move = (ev) => {
         if (!d.active) {
           if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
@@ -481,7 +489,12 @@
         const el = document.elementFromPoint(ev.clientX, ev.clientY);
         const hit = el && el.closest && el.closest('.tab');
         const next = hit && hit !== n && hit.parentElement === list ? hit : null;
-        if (next !== d.over) { if (d.over) d.over.classList.remove('stack-target'); d.over = next; if (next) next.classList.add('stack-target'); }
+        if (next !== d.over) {
+          if (d.over) d.over.classList.remove('stack-target');
+          d.over = next;
+          if (next) next.classList.add('stack-target');
+          showHint(next);
+        }
       };
       function activate() {
         const r = n.getBoundingClientRect();
@@ -490,6 +503,8 @@
         d.ph.style.height = r.height + 'px';
         n.parentElement.insertBefore(d.ph, n);
         document.body.append(n);
+        d.hint = h('div', { class: 'drop-hint', 'aria-hidden': 'true' });
+        document.body.append(d.hint);
         Object.assign(n.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', margin: '0', zIndex: '60', pointerEvents: 'none' });
         n.classList.add('lifting', 'dragging');
         document.body.style.userSelect = 'none';
@@ -510,6 +525,7 @@
         setTimeout(() => n.removeEventListener('click', eat, { capture: true }), 0);
         const target = d.over;
         if (d.over) d.over.classList.remove('stack-target');
+        if (d.hint) { d.hint.remove(); d.hint = null; }
         const from = n.getBoundingClientRect();
         if (target) {
           // fly into the target tab; the tabs below glide up as this one leaves the list
