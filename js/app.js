@@ -96,7 +96,7 @@
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
-    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, quickLinksCollapsed: true, spaces: DEFAULT_SPACES,
+    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES,
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
@@ -2251,14 +2251,10 @@
   function renderQuick() {
     const q = $('#quick');
     if (!q) return;
-    const open = !S.quickLinksCollapsed;
-    q.classList.toggle('open', open);
-    $('#quickToggle').setAttribute('aria-expanded', String(open));
-    $('#quickToggle').setAttribute('aria-label', open ? 'Collapse pinned sites' : 'Expand pinned sites');
     $('#quickGrid').replaceChildren(...(S.quickLinks || []).filter((l) => l && l.url && l.name).map((l) => {
       const fav = h('span', { class: 'fav', 'aria-hidden': 'true' });
       paintFav(fav, l.url, (l.name[0] || '?').toUpperCase());
-      return h('button', { type: 'button', class: 'ql', title: l.name + '  ·  ' + l.url, 'data-url': l.url, onclick: () => navigate(cur(), l.url) }, fav);
+      return h('button', { type: 'button', class: 'pin', title: l.name + '  ·  ' + l.url, 'data-url': l.url, onclick: () => navigate(cur(), l.url) }, fav);
     }));
   }
   /* ---------- bookmark star and bookmarks bar ---------- */
@@ -2493,7 +2489,6 @@
   $('#reload').addEventListener('click', () => { cur().reload++; render(); });
   $('#home').addEventListener('click', goHome);
   $('#bmStar').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(); });
-  $('#quickToggle').addEventListener('click', () => { S.quickLinksCollapsed = !S.quickLinksCollapsed; save(); renderQuick(); });
   $('#tbSidebar').addEventListener('click', toggleSidebar);
   $('#tbPalette').addEventListener('click', openPal);
   $('#tbSettings').addEventListener('click', () => openSettings());
