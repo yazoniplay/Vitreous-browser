@@ -2525,7 +2525,6 @@ html body .side-wrap .bmbar[hidden] { display: none; }
 html body[data-tabs="side"] .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .bmbar { display: none; }
 
 /* Match the reference sidebar: nav row first, compact address field, three pinned tiles, solid white selected pill */
-html body .side-head .brand-name, html body .side-head .mark { display: none; }
 html body[data-addr-pos="sidebar"] .address { height: 34px; border-radius: 10px; }
 html body .side-wrap .quick-grid { grid-template-columns: repeat(3, 80px); gap: 8px; }
 html body .side-wrap .pin { width: 80px; height: 80px; border-radius: 20px; }
