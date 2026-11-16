@@ -145,7 +145,7 @@ body[data-fx="low"] .glass::after { display: none; }
 .tab[aria-selected="true"], .tab[aria-selected="true"]:hover { background: none; }
 .tab .t { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tab .x { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; opacity: 0; font-size: 15px; line-height: 1; transition: opacity 0.2s, background 0.2s; flex: none; }
-.tab:hover .x, .tab[aria-selected="true"] .x { opacity: 0.6; }
+.tab:hover .x { opacity: 0.6; }
 .tab .x:hover { opacity: 1; background: var(--field); }
 .tab.side { width: 100%; max-height: var(--tab-h); }
 .tab.enter { animation: tabIn 0.45s var(--spring) backwards; }
@@ -2285,3 +2285,70 @@ body[data-bm-names="0"] .bm .n { display: none; }
 #main[data-strip="compact"] .tabs .tab { height: 28px; }
 #main[data-tabfit="fit"] .tabs .tab { flex: 0 1 auto; min-width: 72px; }
 #main[data-tabfit="fixed"] .tabs .tab { flex: 0 0 auto; }
+
+/* ======================================================================
+   Phase 2: sidebar structure, address bar fix, Low-Spec transparency
+   ====================================================================== */
+
+/* Address bar: explicit background, no gradient, full coverage */
+html body .address { background: color-mix(in srgb, var(--base) 60%, transparent) !important; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+html body[data-fx="low"] .address { background: color-mix(in srgb, var(--base) 60%, transparent) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* Low-Spec: no blur, but panels, sidebar and the address bar still follow --glass-solid */
+body[data-fx="low"] .glass, body[data-fx="low"] .drop-menu, body[data-fx="low"] .context-menu {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,calc(.1 * var(--glass-solid, 1))) 0%, rgba(255,255,255,calc(.02 * var(--glass-solid, 1))) 100%),
+    color-mix(in srgb, var(--base) calc(100% * var(--glass-solid, 1)), transparent) !important;
+}
+body[data-fx="low"] .sidebar { background: color-mix(in srgb, var(--base) calc(100% * var(--glass-solid, 1)), transparent) !important; }
+
+/* Sidebar border (flips to the left edge when the sidebar is on the right) */
+html body .sidebar { border-right: 1px solid var(--line) !important; border-left: 0 !important; }
+html body[data-side="right"] .sidebar { border-left: 1px solid var(--line) !important; border-right: 0 !important; }
+
+/* Vertical rhythm */
+html body .spaces { margin-top: 16px; }
+html body .side-list { gap: 8px; }
+html body[data-addr-pos="sidebar"] .address { margin-top: 12px; }
+
+/* Settings stays bottom-right and monochrome */
+html body #openSettings { color: var(--muted); }
+html body #openSettings:hover { color: var(--text); }
+
+/* Pinned sites: 4-column grid of square icons, collapsible */
+.quick { display: flex; flex-direction: column; gap: 6px; padding: 0 2px; }
+.quick-head { display: flex; align-items: center; justify-content: space-between; min-height: 22px; }
+.quick-label { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.quick-toggle { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: none; border: 0; color: var(--muted); cursor: pointer; }
+.quick-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: rotate .35s var(--m-spring); }
+.quick:not(.open) .quick-toggle svg { rotate: -90deg; }
+.quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.quick:not(.open) .quick-grid { display: none; }
+.ql { aspect-ratio: 1; display: grid; place-items: center; border-radius: 10px; background: var(--field); box-shadow: inset 0 0 0 1px var(--line); transition: scale .2s var(--m-spring), background .2s var(--m-fade); }
+.ql:hover { scale: 1.06; background: color-mix(in srgb, var(--field) 140%, transparent); }
+.ql:active { scale: .94; }
+.ql .fav { width: 18px; height: 18px; }
+
+/* Workspace dots: pulse on hover, spring on press */
+html body .space:not([aria-pressed="true"]):hover .dot { animation: dotPulse .6s var(--m-spring); }
+html body .space:active .dot { scale: .8; }
+@keyframes dotPulse { 0% { scale: 1; } 40% { scale: 1.25; } 100% { scale: 1.15; } }
+
+/* Stacks: chevron turns 90 degrees on expand; children slide in and out on the spring */
+.tab.stack .chev { width: 12px; height: 12px; flex: none; display: grid; place-items: center; }
+.tab.stack .chev svg { width: 12px; height: 12px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: rotate .35s var(--m-spring); }
+.tab.stack[aria-expanded="true"] .chev svg { rotate: 90deg; }
+html body .tab.in-stack.enter { animation: stackIn calc(.38s * var(--m-scale)) var(--m-spring) backwards; }
+html body .tab.in-stack.leave { animation: stackOut calc(.2s * var(--m-scale)) var(--m-fade) forwards; }
+@keyframes stackIn { from { opacity: 0; translate: 0 -6px; } to { opacity: 1; translate: 0 0; } }
+@keyframes stackOut { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -6px; } }
+
+/* Workspace switch: old tabs fade out, new ones fade in and slide up */
+.ws-switch .tab:not(.leave) { animation: wsIn calc(.32s * var(--m-scale)) var(--m-spring) backwards; }
+@keyframes wsIn { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+
+/* Drag to stack: the dragged tab lifts, the target pulses, the drop springs back */
+html body .tab { transition: transform calc(.18s * var(--m-scale)) var(--m-spring), translate calc(.35s * var(--m-scale)) var(--m-spring), scale calc(.35s * var(--m-scale)) var(--m-spring), background .25s var(--m-fade), box-shadow .25s var(--m-fade), opacity .2s var(--m-fade); }
+.tab.lifting { translate: 0 -4px; scale: 1.05; z-index: 3; opacity: .95; box-shadow: 0 14px 30px -10px rgba(0,0,0,.5); }
+html body .tab.stack-target { animation: targetPulse 1s ease-in-out infinite; }
+@keyframes targetPulse { 0%, 100% { box-shadow: inset 0 0 0 2px var(--accent); } 50% { box-shadow: inset 0 0 0 2px var(--accent), 0 0 14px 2px color-mix(in srgb, var(--accent) 35%, transparent); } }

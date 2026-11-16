@@ -62,6 +62,16 @@
     { id: 'vault-lite', name: 'Vault Lite', desc: 'Local-only password manager with autofill.', ver: '0.9.7', on: true },
   ];
   const VERSION = '0.4.0 prototype';
+  const DEFAULT_QUICK = [
+    { name: 'Wikipedia', url: 'https://www.wikipedia.org' },
+    { name: 'GitHub', url: 'https://github.com' },
+    { name: 'MDN', url: 'https://developer.mozilla.org' },
+    { name: 'YouTube', url: 'https://www.youtube.com' },
+    { name: 'Twitter', url: 'https://twitter.com' },
+    { name: 'Reddit', url: 'https://www.reddit.com' },
+    { name: 'Hacker News', url: 'https://news.ycombinator.com' },
+    { name: 'ChatGPT', url: 'https://chatgpt.com' },
+  ];
   const DEFAULT_KEYS = {
     newTab: 'Alt+KeyT', closeTab: 'Alt+KeyW', focusAddr: 'Alt+KeyL', sidebar: 'Alt+KeyB', settings: 'Alt+Comma',
     palette: 'Ctrl+KeyK', reload: 'Alt+KeyR', back: 'Alt+ArrowLeft', forward: 'Alt+ArrowRight',
@@ -86,7 +96,7 @@
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
-    bookmarks: DEFAULT_BOOKMARKS, spaces: DEFAULT_SPACES,
+    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, quickOpen: true, spaces: DEFAULT_SPACES,
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
@@ -380,6 +390,7 @@
 
   /* ---------- tab stacks and workspace management ---------- */
   const STACK_NAME = 'Stack';
+  const chevIcon = () => { const t = document.createElement('template'); t.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'; return t.content.firstChild; };
   const plusIcon = () => { const t = document.createElement('template'); t.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'; return t.content.firstChild; };
   const stackOf = (id) => stacks.find((x) => x.id === id);
   /* sidebar and top strip share one list: a stack header, then its tabs when it is open */
@@ -405,6 +416,7 @@
       onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStack(st.id); } },
     },
       h('span', { class: 'stack-dot', 'aria-hidden': 'true' }),
+      h('span', { class: 'chev', 'aria-hidden': 'true' }, chevIcon()),
       h('span', { class: 't' }),
       h('span', { class: 'count' }));
   }
@@ -449,9 +461,10 @@
     n.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || (e.target.closest && e.target.closest('.x'))) return;
       const x0 = e.clientX, y0 = e.clientY;
-      let over = null;
+      let over = null, lifted = false;
       const move = (ev) => {
         if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return;
+        if (!lifted) { lifted = true; n.classList.add('lifting'); }
         const el = document.elementFromPoint(ev.clientX, ev.clientY);
         const hit = el && el.closest && el.closest('.tab');
         const next = hit && hit !== n && hit.parentElement === n.parentElement ? hit : null;
@@ -460,6 +473,7 @@
       const up = () => {
         removeEventListener('pointermove', move);
         removeEventListener('pointerup', up);
+        n.classList.remove('lifting');
         if (over) { over.classList.remove('stack-target'); stackDrop(id, over); }
       };
       addEventListener('pointermove', move);
@@ -556,6 +570,7 @@
   function switchSpace(id) {
     if (id === ws) return;
     ws = id;
+    document.querySelectorAll('.tab-list').forEach((l) => { l.classList.add('ws-switch'); setTimeout(() => l.classList.remove('ws-switch'), 360); });
     const group = wsTabs();
     if (group.length) activeId = group[group.length - 1].id;
     else { newTab(undefined, id); return; }
@@ -610,7 +625,8 @@
     const gl = S.glassTransparency / 100;
     const tintV = String(0.30 - gl * 0.28);
     /* blur capped at 4px so clear glass shows the background, not a frosted version of it */
-    r.setProperty('--blur', (gl * 4) + 'px');
+    /* Low-Spec forces blur off, but transparency (--glass-solid) still applies */
+    r.setProperty('--blur', S.lowfx ? '0px' : (gl * 4) + 'px');
     /* living light: lighting direction sets the sheen angle and the drop-shadow offset */
     const LIGHT = { 'top-left': { a: 135, x: 6 }, 'top-right': { a: 225, x: -6 }, center: { a: 180, x: 0 } }[S.lightDirection] || { a: 135, x: 6 };
     r.setProperty('--sheen-angle', LIGHT.a + 'deg');
@@ -1015,7 +1031,7 @@
 
   function render() {
     if (!cur()) { const t = { id: uid(), ws, hist: ['vitreous://newtab'], i: 0, reload: 0 }; tabs.push(t); activeId = t.id; }
-    renderTabs(); renderSpaces(); renderToolbar(); renderBookmarksBar(); renderViewport(); save();
+    renderTabs(); renderSpaces(); renderToolbar(); renderBookmarksBar(); renderQuick(); renderViewport(); save();
   }
 
   /* ---------- site icons ---------- */
@@ -2229,6 +2245,20 @@
   /* ---------- misc actions ---------- */
   function focusAddr() { const a = $('#addr'); a.focus(); a.select(); }
   function toggleSidebar() { set('collapsed', !S.collapsed); }
+  /* ---------- pinned sites grid ---------- */
+  function renderQuick() {
+    const q = $('#quick');
+    if (!q) return;
+    const open = S.quickOpen !== false;
+    q.classList.toggle('open', open);
+    $('#quickToggle').setAttribute('aria-expanded', String(open));
+    $('#quickToggle').setAttribute('aria-label', open ? 'Collapse pinned sites' : 'Expand pinned sites');
+    $('#quickGrid').replaceChildren(...(S.quickLinks || []).filter((l) => l && l.url && l.name).map((l) => {
+      const fav = h('span', { class: 'fav', 'aria-hidden': 'true' });
+      paintFav(fav, l.url, (l.name[0] || '?').toUpperCase());
+      return h('button', { type: 'button', class: 'ql', title: l.name + '  ·  ' + l.url, 'data-url': l.url, onclick: () => navigate(cur(), l.url) }, fav);
+    }));
+  }
   /* ---------- bookmark star and bookmarks bar ---------- */
   const sameUrl = (a, b) => { try { return new URL(a).href === new URL(b).href; } catch { return a === b; } };
   let bmBarKey = '';
@@ -2335,6 +2365,16 @@
   document.addEventListener('contextmenu', (e) => {
     const tab = e.target.closest && e.target.closest('.tab');
     const link = e.target.closest && e.target.closest('a[href]');
+    const qlItem = e.target.closest && e.target.closest('.ql[data-url]');
+    if (qlItem) {
+      const url = qlItem.dataset.url;
+      openContextMenu(e, [
+        ['Open', () => navigate(cur(), url)],
+        ['Open in new tab', () => newTab(url)],
+        ['Remove from pinned', () => { S.quickLinks = S.quickLinks.filter((l) => l.url !== url); save(); renderQuick(); }],
+      ]);
+      return;
+    }
     const bmItem = e.target.closest && e.target.closest('.bm[data-url]');
     if (bmItem) {
       const url = bmItem.dataset.url;
@@ -2451,6 +2491,7 @@
   $('#reload').addEventListener('click', () => { cur().reload++; render(); });
   $('#home').addEventListener('click', goHome);
   $('#bmStar').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(); });
+  $('#quickToggle').addEventListener('click', () => { S.quickOpen = S.quickOpen === false; save(); renderQuick(); });
   $('#tbSidebar').addEventListener('click', toggleSidebar);
   $('#tbPalette').addEventListener('click', openPal);
   $('#tbSettings').addEventListener('click', () => openSettings());
