@@ -2286,14 +2286,17 @@ body[data-bm-names="0"] .bm .n { display: none; }
 #main[data-tabfit="fixed"] .tabs .tab { flex: 0 0 auto; }
 
 /* ======================================================================
-   Phase 2: sidebar structure, address bar fix, Low-Spec transparency
+   SIDEBAR — single consolidated skin. Everything the sidebar needs lives
+   here: the address bar fix, the Low-Spec transparency fix, the expanded
+   layout, the collapsed rail, and the motion that goes with both. Replaces
+   many smaller, conflicting passes made while iterating on the look.
    ====================================================================== */
 
-/* Address bar: explicit background, no gradient, full coverage */
+/* Address bar: solid background, no gradient fade, independent of blur */
 html body .address { background: color-mix(in srgb, var(--base) 60%, transparent) !important; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
 html body[data-fx="low"] .address { background: color-mix(in srgb, var(--base) 60%, transparent) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
-/* Low-Spec: no blur, but panels, sidebar and the address bar still follow --glass-solid */
+/* Low-Spec: no blur, but panels, sidebar and the address bar still follow the Glass Transparency slider */
 body[data-fx="low"] .glass, body[data-fx="low"] .drop-menu, body[data-fx="low"] .context-menu {
   background:
     linear-gradient(135deg, rgba(255,255,255,calc(.1 * var(--glass-solid, 1))) 0%, rgba(255,255,255,calc(.02 * var(--glass-solid, 1))) 100%),
@@ -2301,138 +2304,159 @@ body[data-fx="low"] .glass, body[data-fx="low"] .drop-menu, body[data-fx="low"] 
 }
 body[data-fx="low"] .sidebar { background: color-mix(in srgb, var(--base) calc(100% * var(--glass-solid, 1)), transparent) !important; }
 
-/* Sidebar border (flips to the left edge when the sidebar is on the right) */
+/* Sidebar border flips to the side the sidebar is docked on */
 html body .sidebar { border-right: 1px solid var(--line) !important; border-left: 0 !important; }
 html body[data-side="right"] .sidebar { border-left: 1px solid var(--line) !important; border-right: 0 !important; }
 
+/* Expanded sidebar: extra glass on top of the base panel (high-fx only, so Low-Spec's transparency fix above is untouched) */
+body[data-fx="high"] .side-wrap .sidebar { border-radius: 22px; -webkit-backdrop-filter: blur(calc(var(--blur) + 24px)) saturate(170%); backdrop-filter: blur(calc(var(--blur) + 24px)) saturate(170%); box-shadow: 0 24px 60px -24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.22); }
+
 /* Vertical rhythm */
-html body .spaces { margin-top: 16px; }
-html body .side-list { gap: 8px; }
-html body[data-addr-pos="sidebar"] .address { margin-top: 12px; }
-
-/* Settings stays bottom-right and monochrome */
-html body #openSettings { color: var(--muted); }
-html body #openSettings:hover { color: var(--text); }
-
-/* Pinned sites: 4-column grid of square icons, collapsible */
-.quick { display: flex; flex-direction: column; gap: 6px; padding: 0 2px; }
-.quick-head { display: flex; align-items: center; justify-content: space-between; min-height: 22px; }
-.quick-label { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-.quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.ql { aspect-ratio: 1; display: grid; place-items: center; border-radius: 10px; background: var(--field); box-shadow: inset 0 0 0 1px var(--line); transition: scale .2s var(--m-spring), background .2s var(--m-fade); }
-.ql:hover { scale: 1.06; background: color-mix(in srgb, var(--field) 140%, transparent); }
-.ql:active { scale: .94; }
-.ql .fav { width: 18px; height: 18px; }
-
-/* Workspace dots: pulse on hover, spring on press */
-html body .space:not([aria-pressed="true"]):hover .dot { animation: dotPulse .6s var(--m-spring); }
-html body .space:active .dot { scale: .8; }
-@keyframes dotPulse { 0% { scale: 1; } 40% { scale: 1.25; } 100% { scale: 1.15; } }
-
-/* Stacks: chevron turns 90 degrees on expand; children slide in and out on the spring */
-.tab.stack .chev { width: 12px; height: 12px; flex: none; display: grid; place-items: center; }
-.tab.stack .chev svg { width: 12px; height: 12px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: rotate .35s var(--m-spring); }
-.tab.stack[aria-expanded="true"] .chev svg { rotate: 90deg; }
-html body .tab.in-stack.enter { animation: stackIn calc(.38s * var(--m-scale)) var(--m-spring) backwards; }
-html body .tab.in-stack.leave { animation: stackOut calc(.2s * var(--m-scale)) var(--m-fade) forwards; }
-@keyframes stackIn { from { opacity: 0; translate: 0 -6px; } to { opacity: 1; translate: 0 0; } }
-@keyframes stackOut { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -6px; } }
-
-/* Workspace switch: old tabs fade out, new ones fade in and slide up */
-.ws-switch .tab:not(.leave) { animation: wsIn calc(.32s * var(--m-scale)) var(--m-spring) backwards; }
-@keyframes wsIn { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
-
-/* Drag to stack: the dragged tab lifts, the target pulses, the drop springs back */
-html body .tab { transition: transform calc(.18s * var(--m-scale)) var(--m-spring), translate calc(.35s * var(--m-scale)) var(--m-spring), scale calc(.35s * var(--m-scale)) var(--m-spring), background .25s var(--m-fade), box-shadow .25s var(--m-fade), opacity .2s var(--m-fade); }
-.tab.lifting { scale: 1.04; z-index: 3; opacity: .95; box-shadow: 0 14px 30px -10px rgba(0,0,0,.5); }
-html body .tab.stack-target { animation: targetPulse 1s ease-in-out infinite; }
-@keyframes targetPulse { 0%, 100% { box-shadow: inset 0 0 0 2px var(--accent); } 50% { box-shadow: inset 0 0 0 2px var(--accent), 0 0 14px 2px color-mix(in srgb, var(--accent) 35%, transparent); } }
-
-/* ======================================================================
-   Sidebar polish: icons, pinned grid, spacing, address bar, settings
-   ====================================================================== */
-
-/* Sidebar rhythm: gaps are set per section so each one can be tuned */
-html body .sidebar { gap: 0; }
-html body .quick { margin-top: 16px; padding: 0; gap: 8px; }
-html body .quick-head { min-height: 0; height: 16px; }
-html body .quick-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-html body .spaces { margin-top: 16px; }
-html body .side-list { margin-top: 12px; gap: 8px; }
-html body[data-addr-pos="sidebar"] .address { margin: 12px 16px 0 !important; width: calc(100% - 32px) !important; height: 36px; padding: 0 12px; font-size: 13px; gap: 8px; }
+html body .sidebar { gap: 0; padding: 10px 10px; }
+html body .side-head { padding: 0 2px; gap: 8px; }
+html body[data-addr-pos="sidebar"] .address { margin: 10px 2px 0; height: 36px; padding: 0 12px; font-size: 13px; gap: 8px; width: auto; }
 html body[data-addr-pos="sidebar"] .address:hover:not(:focus-within),
-html body[data-addr-pos="sidebar"] .address:focus-within { width: calc(100% - 32px) !important; margin: 12px 16px 0 !important; }
+html body[data-addr-pos="sidebar"] .address:focus-within { width: auto; margin: 10px 2px 0; }
 html body[data-addr-pos="sidebar"] .address input { font-size: 13px; min-width: 0; text-overflow: ellipsis; }
-html body .new-tab { margin-top: 8px; }
+html body .quick { margin-top: 14px; padding: 0 2px; gap: 8px; }
+html body .quick-head { min-height: 0; }
+html body .quick-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+html body .side-list { margin-top: 14px; gap: 2px; }
+html body .new-tab { margin-top: 6px; }
 
-/* Pinned grid: 4 columns of 32px tiles, 6px gap */
-html body .quick-grid { display: grid; grid-template-columns: repeat(4, 32px); gap: 6px; justify-content: start; }
-html body .pin { position: relative; display: block; width: 32px; height: 32px; aspect-ratio: auto; padding: 0; border: 0; border-radius: 8px; background: var(--field); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; transition: scale .2s var(--m-spring); }
-html body .pin:hover { scale: 1.06; }
-html body .pin:active { scale: .94; }
-html body .pin .fav { position: absolute; inset: 0; width: auto; height: auto; border-radius: 8px; background: none; box-shadow: none; padding: 0; display: grid; place-items: center; }
+/* Nav (back / forward / reload) in the sidebar header */
+.side-nav { display: flex; align-items: center; gap: 0; flex: none; }
+.side-nav .icon-btn { width: 26px; height: 26px; }
+.side-nav .icon-btn svg { width: 15px; height: 15px; }
+
+/* Pinned sites: three large squircles, no label truncation games */
+html body .quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+html body .pin { position: relative; display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 0; border-radius: 16px; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); overflow: hidden; transition: scale .2s var(--m-spring), background .2s var(--m-fade); }
+html body .pin:hover { scale: 1.04; background: rgba(255,255,255,.14); }
+html body .pin:active { scale: .95; }
+html body .pin .fav { position: absolute; inset: 0; width: auto; height: auto; border-radius: inherit; background: none; box-shadow: none; padding: 0; display: grid; place-items: center; }
 html body .pin .fav.has-img { background: none; padding: 0; }
-html body .pin .fav.has-img img { position: static; max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: contain; padding: 4px; box-sizing: border-box; display: block; border-radius: 0; }
-html body .pin .fav:not(.has-img) { font-size: 14px; font-weight: 700; line-height: 1; color: var(--b1, var(--text)); }
+html body .pin .fav.has-img img { position: static; width: 100%; height: 100%; object-fit: contain; padding: 15%; box-sizing: border-box; display: block; border-radius: 0; }
+html body .pin .fav:not(.has-img) { font-size: 24px; font-weight: 700; line-height: 1; color: var(--b1, var(--text)); }
+
+/* Tab rows in the sidebar list */
+html body .side-wrap .tab { min-height: 40px; padding: 0 10px; gap: 10px; border-radius: 10px; background: transparent; box-shadow: none; }
+html body .side-wrap .tab:hover { background: rgba(255,255,255,.06); }
+html body .side-wrap .tab .t { font-size: 14px; font-weight: 600; }
+html body .side-wrap .tab .count { font-size: 11px; }
+html body .side-wrap .tab .fav { width: 24px; height: 24px; border-radius: 7px; font-size: 12px; }
+html body .side-wrap .tab .fav.has-img { background: none; padding: 0; }
+html body .side-wrap .tab .fav.has-img img { padding: 0; border-radius: 6px; }
+
+/* Selected tab: a glass pill, not a solid fill */
+html body .side-wrap .tab[aria-selected="true"], html body .side-wrap .tab[aria-selected="true"]:hover {
+  background: linear-gradient(160deg, rgba(255,255,255,.24), rgba(255,255,255,.07)) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 1px 0 rgba(255,255,255,.35), 0 8px 20px -10px rgba(0,0,0,.35);
+}
+html body .side-wrap .tab[aria-selected="true"] .t { color: var(--text); }
 
 /* Stack folder icon */
 html body .tab.stack .stack-ico { width: 14px; height: 14px; margin-right: 6px; flex: none; display: grid; place-items: center; color: var(--muted); }
 html body .tab.stack .stack-ico .ico { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tab.stack .chev { width: 12px; height: 12px; flex: none; display: grid; place-items: center; }
+.tab.stack .chev svg { width: 12px; height: 12px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: rotate .35s var(--m-spring); }
+.tab.stack[aria-expanded="true"] .chev svg { rotate: 90deg; }
 
-/* Settings: bottom-left, 18px, brighter on hover */
-html body .side-foot { justify-content: space-between; }
-html body #openSettings { width: 18px; height: 18px; padding: 0; color: var(--muted); }
-html body #openSettings svg { width: 18px; height: 18px; }
-html body #openSettings:hover { color: var(--text); filter: brightness(1.4); }
+/* New Tab: a flat, muted row with a plus */
+html body .side-wrap .new-tab { width: auto; justify-content: flex-start; background: none; box-shadow: none; border-radius: 10px; padding: 8px 10px; font-weight: 500; color: var(--muted); }
+html body .side-wrap .new-tab:hover { background: rgba(255,255,255,.08); color: var(--text); }
 
-/* Stack drag: the tab follows the pointer, settles onto its target, the stack pulses */
-html body .tab.dragging { transition: none !important; }
+/* Bookmarks bar, when it lives in the sidebar (tabs on the side) */
+html body .side-wrap .bmbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; margin-top: 12px; background: none; border: 0; box-shadow: none; }
+html body .side-wrap .bmbar[hidden] { display: none; }
+
+/* Footer: settings on the left, workspace dots centred, palette on the right */
+html body .side-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 10px; }
+html body .side-foot #openSettings { order: -1; width: 20px; height: 20px; padding: 0; color: var(--muted); }
+html body .side-foot #openSettings svg { width: 20px; height: 20px; }
+html body .side-foot #openSettings:hover { color: var(--text); filter: brightness(1.4); }
+html body .side-foot #palBtn { order: 1; }
+html body .side-foot .spaces { order: 0; flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 10px; margin: 0; padding: 0; background: none; box-shadow: none; }
+html body .side-foot .space .sl { display: none; }
+html body .side-foot .space .dot { width: 8px; height: 8px; border-radius: 50%; }
+html body .side-foot .space[aria-pressed="true"] .dot { box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
+html body .side-foot .space-add svg { width: 14px; height: 14px; }
+html body .space:not([aria-pressed="true"]):hover .dot { animation: dotPulse .6s var(--m-spring); }
+html body .space:active .dot { scale: .8; }
+@keyframes dotPulse { 0% { scale: 1; } 40% { scale: 1.25; } 100% { scale: 1.15; } }
+
+/* ---------- Collapsed rail: a plain, centred icon column ---------- */
+/* Only the logo, the collapse toggle, the tabs (favicon only) and settings show. No pinned tiles,
+   no address field, no nav row, no bookmarks, no workspace dots, no palette button, no New Tab plus,
+   and no card border or glow — just icons. Hovering (or focusing) the rail reveals the full sidebar. */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .sidebar { box-shadow: none !important; border-color: transparent !important; align-items: center; padding: 10px 0; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .address,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .bmbar,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-nav,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .brand-name,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-foot .spaces,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #palBtn { display: none !important; }
+
+/* Header: logo, then the collapse toggle, stacked and centred */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; width: 100%; height: auto; padding: 0 0 6px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .mark { margin: 0; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #pin { opacity: 1 !important; pointer-events: auto !important; }
+
+/* Tabs: favicon-only squares, centred */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list { width: 100%; align-items: center; gap: 6px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab { width: 36px; height: 36px; min-height: 36px; padding: 0; margin: 0 auto; justify-content: center; border-radius: 10px; background: transparent; box-shadow: none; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab:hover { background: rgba(255,255,255,.08); }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab[aria-selected="true"] { background: rgba(255,255,255,.14) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .fav { width: 22px; height: 22px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .t,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .count,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .x,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .chev,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .stack-ico { display: none; }
+
+/* Footer: settings only, centred */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-foot { justify-content: center; padding-top: 8px; }
+
+/* ---------- Motion ---------- */
+/* Drag to stack: the dragged tab lifts, the target pulses */
+html body .tab { transition: transform .35s var(--m-spring), background .25s var(--m-fade), box-shadow .25s var(--m-fade), opacity .2s var(--m-fade); }
+html body .tab:active { transform: scale(0.96); transition-duration: .12s; }
+.tab.lifting { scale: 1.04; z-index: 3; opacity: .95; box-shadow: 0 14px 30px -10px rgba(0,0,0,.5); }
+html body .tab.dragging { transition: none !important; scale: 1 !important; box-shadow: 0 30px 60px -18px rgba(0,0,0,.5), 0 8px 18px -8px rgba(0,0,0,.35); }
 html body .tab.settling { transition: translate .24s var(--m-spring), scale .24s var(--m-spring), box-shadow .24s var(--m-fade) !important; }
+html body .tab.stack-target { animation: targetPulse 1s ease-in-out infinite; }
+@keyframes targetPulse { 0%, 100% { box-shadow: inset 0 0 0 2px var(--accent); } 50% { box-shadow: inset 0 0 0 2px var(--accent), 0 0 14px 2px color-mix(in srgb, var(--accent) 35%, transparent); } }
+.tab-ph { flex: none; width: 100%; border-radius: var(--radius-tabs); background: var(--field); box-shadow: inset 0 0 0 1px var(--line); opacity: .6; }
+.drop-hint { position: fixed; z-index: 70; transform: translate(-50%, -50%) scale(.8); opacity: 0; pointer-events: none; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: #fff; background: var(--accent); box-shadow: 0 6px 16px -6px rgba(0,0,0,.5); transition: opacity .2s var(--m-fade), transform .35s var(--m-spring); }
+.drop-hint.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 html body .tab.stack.stack-pop { animation: stackPop .42s var(--m-spring); }
 @keyframes stackPop { 0% { scale: 1; } 35% { scale: 1.06; } 100% { scale: 1; } }
 
-/* Pinned tiles in the collapsed rail: one centred column, no label */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick-head { display: none; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick { align-items: center; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick-grid { grid-template-columns: 32px; justify-content: center; }
-
-/* Stack drag, widget style: the floating tab keeps only the widget's lift and shadow; its placeholder holds the slot */
-html body .tab.dragging { scale: 1 !important; box-shadow: 0 30px 60px -18px rgba(0,0,0,.5), 0 8px 18px -8px rgba(0,0,0,.35); }
-.tab-ph { flex: none; width: 100%; border-radius: var(--radius-tabs); background: var(--field); box-shadow: inset 0 0 0 1px var(--line); opacity: .6; }
-
-/* Drop hint shown over a tab while a tab is dragged onto it */
-.drop-hint { position: fixed; z-index: 70; transform: translate(-50%, -50%) scale(.8); opacity: 0; pointer-events: none; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: #fff; background: var(--accent); box-shadow: 0 6px 16px -6px rgba(0,0,0,.5); transition: opacity .2s var(--m-fade), transform .35s var(--m-spring); }
-.drop-hint.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-
-/* Closing a stack: the header shrinks and fades; its tabs leave with stackOut in a stagger */
+/* Stacks opening/closing and workspace switching */
+html body .tab.in-stack.enter { animation: stackIn calc(.38s * var(--m-scale)) var(--m-spring) backwards; }
+html body .tab.in-stack.leave { animation: stackOut calc(.2s * var(--m-scale)) var(--m-fade) forwards; }
+@keyframes stackIn { from { opacity: 0; translate: 0 -6px; } to { opacity: 1; translate: 0 0; } }
+@keyframes stackOut { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -6px; } }
 @keyframes stackClose { 0% { opacity: 1; transform: none; } 30% { transform: scale(1.03); } 100% { opacity: 0; transform: scale(0.9) translateX(-10px); } }
 html body .tab.stack.stack-closing { animation: stackClose calc(.28s * var(--m-scale)) var(--m-fade) forwards !important; pointer-events: none; }
-/* Tab press: springs back instead of snapping */
-html body .tab { transition: transform .35s var(--m-spring), background .25s var(--m-fade), box-shadow .25s var(--m-fade), opacity .2s var(--m-fade); }
-html body .tab:active { transform: scale(0.96); transition-duration: .12s; }
+.ws-switch .tab:not(.leave) { animation: wsIn calc(.32s * var(--m-scale)) var(--m-spring) backwards; }
+@keyframes wsIn { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
 
-/* Page area uses the same arc as the sidebar: same radius token, and its contents are clipped to it */
-html body .viewport.glass { border-radius: var(--radius-panels, var(--radius)); overflow: hidden; isolation: isolate; }
-html body .viewport.glass > .content,
-html body .viewport.glass iframe { border-radius: inherit; }
-
-/* Arc-style navigation: back, forward and reload live in the sidebar header */
-.side-nav { display: flex; align-items: center; gap: 2px; flex: none; }
-.side-nav .icon-btn { width: 28px; height: 28px; }
-.side-nav .icon-btn svg { width: 16px; height: 16px; }
-
-/* Sidebar motion: opening staggers the contents in one after another; closing fades only the labels so icons stay visible in the rail */
+/* Opening the rail staggers its sections in; closing fades only the labels so icons stay visible */
 @keyframes sideIn { from { opacity: .35; transform: translateX(-12px) scale(.96); } to { opacity: 1; transform: none; } }
 @keyframes sideLabelOut { to { opacity: 0; transform: translateX(-10px); } }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .lbl { animation: sideLabelOut .16s var(--m-fade) forwards; }
+
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .sidebar > :nth-child(1), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar > :nth-child(1) { animation: sideIn .5s var(--spring) 0ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .sidebar > :nth-child(2), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar > :nth-child(2) { animation: sideIn .5s var(--spring) 40ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .sidebar > :nth-child(3), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar > :nth-child(3) { animation: sideIn .5s var(--spring) 80ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .sidebar > :nth-child(4), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar > :nth-child(4) { animation: sideIn .5s var(--spring) 120ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .sidebar > :nth-child(5), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar > :nth-child(5) { animation: sideIn .5s var(--spring) 160ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .sidebar > :nth-child(6), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar > :nth-child(6) { animation: sideIn .5s var(--spring) 200ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .sidebar > :nth-child(7), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar > :nth-child(7) { animation: sideIn .5s var(--spring) 240ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .sidebar > :nth-child(8), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .sidebar > :nth-child(8) { animation: sideIn .5s var(--spring) 280ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(2), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(2) { animation: sideIn .45s var(--spring) 120ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(3), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(3) { animation: sideIn .45s var(--spring) 152ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(4), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(4) { animation: sideIn .45s var(--spring) 184ms backwards; }
@@ -2441,180 +2465,14 @@ html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nt
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(7), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(7) { animation: sideIn .45s var(--spring) 280ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(8), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(8) { animation: sideIn .45s var(--spring) 312ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(9), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(9) { animation: sideIn .45s var(--spring) 344ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(10), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(10) { animation: sideIn .45s var(--spring) 376ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(11), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(11) { animation: sideIn .45s var(--spring) 408ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(12), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(12) { animation: sideIn .45s var(--spring) 440ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .side-list > .tab:nth-child(13), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .side-list > .tab:nth-child(13) { animation: sideIn .45s var(--spring) 472ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .spaces > :nth-child(1), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .spaces > :nth-child(1) { animation: sideIn .4s var(--spring) 60ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .spaces > :nth-child(2), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .spaces > :nth-child(2) { animation: sideIn .4s var(--spring) 90ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .spaces > :nth-child(3), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .spaces > :nth-child(3) { animation: sideIn .4s var(--spring) 120ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .spaces > :nth-child(4), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .spaces > :nth-child(4) { animation: sideIn .4s var(--spring) 150ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .spaces > :nth-child(5), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .spaces > :nth-child(5) { animation: sideIn .4s var(--spring) 180ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .spaces > :nth-child(6), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .spaces > :nth-child(6) { animation: sideIn .4s var(--spring) 210ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .spaces > :nth-child(7), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .spaces > :nth-child(7) { animation: sideIn .4s var(--spring) 240ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .spaces > :nth-child(8), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .spaces > :nth-child(8) { animation: sideIn .4s var(--spring) 270ms backwards; }
 html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(1), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(1) { animation: sideIn .4s var(--spring) 60ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(2), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(2) { animation: sideIn .4s var(--spring) 85ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(3), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(3) { animation: sideIn .4s var(--spring) 110ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(4), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(4) { animation: sideIn .4s var(--spring) 135ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(5), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(5) { animation: sideIn .4s var(--spring) 160ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(6), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(6) { animation: sideIn .4s var(--spring) 185ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(7), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(7) { animation: sideIn .4s var(--spring) 210ms backwards; }
-html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(8), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(8) { animation: sideIn .4s var(--spring) 235ms backwards; }
+html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(2), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(2) { animation: sideIn .4s var(--spring) 90ms backwards; }
+html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(3), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(3) { animation: sideIn .4s var(--spring) 120ms backwards; }
+html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(4), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(4) { animation: sideIn .4s var(--spring) 150ms backwards; }
+html body[data-motion="on"] .side-wrap[data-rail="1"]:hover .quick-grid > :nth-child(5), html body[data-motion="on"] .side-wrap[data-rail="1"]:has(:focus-visible) .quick-grid > :nth-child(5) { animation: sideIn .4s var(--spring) 180ms backwards; }
 
-/* Sidebar header: logo, wordmark, nav and collapse button all fit inside the sidebar */
-html body .side-head { gap: 6px; min-width: 0; padding: 0 4px; }
-html body .side-head .mark { width: 24px; height: 24px; }
-html body .brand-name { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 16px; letter-spacing: 0.16em; }
-html body .side-nav { flex: none; gap: 0; }
-html body .side-nav .icon-btn { width: 26px; height: 26px; }
-html body .side-nav .icon-btn svg { width: 15px; height: 15px; }
-html body #pin { width: 28px; height: 28px; flex: none; }
-/* collapsed rail: only the logo and collapse button show, nav buttons wait for hover */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-nav { display: none; }
+/* Page area uses the same corner radius as the sidebar, and clips its contents to it */
+html body .viewport.glass { border-radius: var(--radius-panels, var(--radius)); overflow: hidden; isolation: isolate; }
+html body .viewport.glass > .content,
+html body .viewport.glass iframe { border-radius: inherit; }
 
-/* Sidebar icons: larger pinned tiles, tab favicons, bottom icons and New tab glyph */
-html body .quick-grid { grid-template-columns: repeat(4, 40px); gap: 8px; }
-html body .pin { width: 40px; height: 40px; border-radius: 10px; }
-html body .pin .fav.has-img img { padding: 7px; }
-html body .pin .fav:not(.has-img) { font-size: 17px; }
-html body .side-wrap .tab .fav { width: 22px; height: 22px; border-radius: 7px; font-size: 12px; }
-html body .side-wrap .tab .fav.has-img img { padding: 3px; }
-html body .side-wrap .new-tab svg { width: 20px; height: 20px; }
-html body .side-foot .icon-btn { width: 30px; height: 30px; }
-html body .side-foot .icon-btn svg { width: 22px; height: 22px; }
-html body #openSettings svg { width: 22px; height: 22px; }
-
-/* Sidebar scale-up to match the reference: taller tab rows, larger type, bigger favicons and pinned tiles */
-html body .side-wrap .tab { min-height: 44px; padding: 0 12px; gap: 12px; }
-html body .side-wrap .tab .t { font-size: 15px; font-weight: 600; }
-html body .side-wrap .tab .fav { width: 28px; height: 28px; border-radius: 8px; font-size: 14px; }
-html body .side-wrap .tab .fav.has-img img { padding: 4px; }
-html body .side-wrap .tab .count { font-size: 12px; }
-html body .quick-grid { grid-template-columns: repeat(4, 52px); gap: 10px; }
-html body .pin { width: 52px; height: 52px; border-radius: 12px; }
-html body .pin .fav.has-img img { padding: 10px; }
-html body .pin .fav:not(.has-img) { font-size: 22px; }
-html body .spaces .space { font-size: 14px; }
-
-/* Arc-style sidebar: squircle favourites, flat tab rows, bare favicons, soft selected fill.
-   The collapsed rail gets its own smaller sizes so nothing overflows the 62px strip. */
-html body .side-wrap .quick-grid { grid-template-columns: repeat(4, 44px); gap: 8px; }
-html body .side-wrap .pin { width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,.08); box-shadow: none; }
-html body .side-wrap .pin .fav.has-img img { padding: 9px; }
-html body .side-wrap .tab { min-height: 38px; padding: 0 10px; gap: 10px; border-radius: 10px; background: transparent; box-shadow: none; }
-html body .side-wrap .tab:hover { background: rgba(255,255,255,.06); }
-html body .side-wrap .tab .t { font-size: 14px; font-weight: 600; }
-html body .side-wrap .tab .fav { width: 22px; height: 22px; border-radius: 6px; }
-html body .side-wrap .tab .fav.has-img { background: none; padding: 0; }
-html body .side-wrap .tab .fav.has-img img { padding: 0; border-radius: 0; }
-
-/* collapsed rail: compact squircles and icons only */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick-grid { grid-template-columns: 36px; justify-content: center; gap: 8px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin { width: 36px; height: 36px; border-radius: 11px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab { min-height: 36px; padding: 0; justify-content: center; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .fav { width: 24px; height: 24px; }
-
-/* Sidebar layout: three large pinned tiles, and the bookmarks bar sits in the sidebar under them */
-html body .side-wrap .quick-grid { grid-template-columns: repeat(3, 72px); gap: 10px; }
-html body .side-wrap .pin { width: 72px; height: 72px; border-radius: 18px; }
-html body .side-wrap .pin .fav.has-img img { padding: 16px; }
-html body .side-wrap .pin .fav:not(.has-img) { font-size: 28px; }
-html body .side-wrap .bmbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; margin-top: 12px; background: none; border: 0; box-shadow: none; }
-html body .side-wrap .bmbar[hidden] { display: none; }
-html body[data-tabs="side"] .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .bmbar { display: none; }
-
-/* Match the reference sidebar: nav row first, compact address field, three pinned tiles, solid white selected pill */
-html body[data-addr-pos="sidebar"] .address { height: 34px; border-radius: 10px; }
-html body .side-wrap .quick-grid { grid-template-columns: repeat(3, 80px); gap: 8px; }
-html body .side-wrap .pin { width: 80px; height: 80px; border-radius: 20px; }
-html body .side-wrap .tab[aria-selected="true"], html body .side-wrap .tab[aria-selected="true"]:hover { background: rgba(255,255,255,.92) !important; color: #1c1c22; box-shadow: none; }
-html body .side-wrap .tab[aria-selected="true"] .t { color: #1c1c22; }
-
-/* Arc footer: settings left, workspace dots centre, palette right */
-html body .side-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 8px; }
-html body .side-foot #openSettings { order: -1; }
-html body .side-foot #palBtn { order: 1; }
-html body .side-foot .spaces { order: 0; flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 10px; margin: 0; padding: 0; background: none; box-shadow: none; }
-html body .side-foot .space .sl { display: none; }
-html body .side-foot .space .dot { width: 8px; height: 8px; border-radius: 50%; }
-html body .side-foot .space[aria-pressed="true"] .dot { box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
-html body .side-foot .space-add svg { width: 14px; height: 14px; }
-
-/* Collapsed rail: logo, collapse button, three stacked pinned tiles, favicon-only tabs, a plus, and settings.
-   Everything else (address field, nav row, dots, palette, bookmarks, labels) is hidden so the 62px strip stays clean. */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .sidebar { padding-left: 0; padding-right: 0; align-items: center; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .address,
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .bmbar,
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-nav,
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .spaces,
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #palBtn { display: none !important; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { justify-content: center; gap: 0; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .brand-name { display: none; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list { width: 100%; align-items: center; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab { justify-content: center; padding: 0; min-height: 36px; width: 36px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .t,
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .count,
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .x,
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .chev { display: none; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab { font-size: 0; justify-content: center; padding: 0; width: 36px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-foot { justify-content: center; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #openSettings { order: 0; }
-
-/* Rail pinned tiles: the big-tile padding was shrinking favicons to dots in a 36px tile */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin .fav.has-img img { padding: 7px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin .fav:not(.has-img) { font-size: 14px; }
-
-/* Clean collapsed rail: a plain icon column. No card rim or glow, transparent icon buttons with a soft hover,
-   even spacing, and only the selected tab carries a highlight. */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .sidebar { box-shadow: none !important; border-color: transparent !important; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { padding: 10px 0 4px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick { margin-top: 10px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick-grid { gap: 6px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin { background: transparent; box-shadow: none; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin:hover { background: rgba(255,255,255,.08); }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list { gap: 6px; margin-top: 10px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab { background: transparent; box-shadow: none; width: 36px; height: 36px; min-height: 36px; border-radius: 10px; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab:hover { background: rgba(255,255,255,.08); }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab { background: transparent; box-shadow: none; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-foot { padding: 6px 0 10px; }
-
-/* Collapsed rail: only the tabs show; the pinned tiles are hidden */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick { display: none; }
-
-/* Collapsed rail: centre the logo and tab icons, and hide the New Tab plus */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { width: 100%; justify-content: center; padding-left: 0; padding-right: 0; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .mark { margin: 0 auto; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list { display: flex; flex-direction: column; align-items: center; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list .tab { margin: 0 auto; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab { display: none !important; }
-
-/* Collapsed rail: force the logo to the centre of the strip */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { display: flex !important; justify-content: center !important; align-items: center !important; width: 100% !important; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .mark { margin: 0 !important; flex: none; }
-
-/* Reference look with much more glass: a light, heavily blurred panel, a primary New Tab button,
-   an accent-tinted selected row and rounded section labels. */
-html body .side-wrap .sidebar { border-radius: 24px; background: linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,.04)) !important; -webkit-backdrop-filter: blur(44px) saturate(180%); backdrop-filter: blur(44px) saturate(180%); border: 1px solid rgba(255,255,255,.22); box-shadow: 0 24px 60px -24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.3); }
-html body .side-wrap .sidebar.glass::before { opacity: .18 !important; }
-html body .side-wrap .new-tab { width: 100%; justify-content: center; border-radius: 14px; padding: 10px 14px; background: rgba(255,255,255,.16); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); font-weight: 600; }
-html body .side-wrap .new-tab:hover { background: rgba(255,255,255,.24); }
-html body .side-wrap .tab { border-radius: 12px; }
-html body .side-wrap .tab[aria-selected="true"], html body .side-wrap .tab[aria-selected="true"]:hover { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
-html body .side-wrap .tab[aria-selected="true"] .t { color: var(--accent); }
-html body .side-wrap .quick-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; }
-
-/* Collapsed rail header: a centred column. Logo first, then the collapse toggle, as Firefox keeps its toggle at the top. */
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: flex-start !important; gap: 8px !important; width: 100% !important; height: auto !important; padding: 10px 0 4px !important; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .mark { margin: 0 !important; transform: none !important; }
-html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #pin { display: grid !important; animation: none !important; opacity: 1 !important; transform: none !important; margin: 0 !important; }
-
-/* Arc reference: New Tab is a flat muted row with a plus, and the selected tab is a solid white pill */
-html body .side-wrap .new-tab { width: auto; justify-content: flex-start; background: none; box-shadow: none; border-radius: 10px; padding: 8px 10px; font-weight: 500; color: var(--muted); }
-html body .side-wrap .new-tab:hover { background: rgba(255,255,255,.08); color: var(--text); }
-html body .side-wrap .tab[aria-selected="true"], html body .side-wrap .tab[aria-selected="true"]:hover { background: rgba(255,255,255,.92) !important; color: #1c1c22; box-shadow: none; }
-html body .side-wrap .tab[aria-selected="true"] .t { color: #1c1c22; }
-
-/* Selected tab: a glass pill, not a solid white one */
-html body .side-wrap .tab[aria-selected="true"], html body .side-wrap .tab[aria-selected="true"]:hover { background: linear-gradient(160deg, rgba(255,255,255,.24), rgba(255,255,255,.07)) !important; -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%); color: var(--text); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 1px 0 rgba(255,255,255,.35), 0 8px 20px -10px rgba(0,0,0,.35); }
-html body .side-wrap .tab[aria-selected="true"] .t { color: var(--text); }
