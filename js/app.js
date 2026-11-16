@@ -415,7 +415,6 @@
       onclick: () => toggleStack(st.id),
       onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStack(st.id); } },
     },
-      h('span', { class: 'stack-dot', 'aria-hidden': 'true' }),
       h('span', { class: 'chev', 'aria-hidden': 'true' }, chevIcon()),
       h('span', { class: 'stack-ico', 'aria-hidden': 'true' }, ico('folder')),
       h('span', { class: 't' }),
@@ -443,6 +442,7 @@
   function stackDrop(srcId, target) {
     const src = tabs.find((t) => t.id === srcId);
     if (!src) return;
+    const before = src.stack;
     if (target.dataset.stack) {
       const st = stackOf(target.dataset.stack);
       if (!st || st.ws !== src.ws) return;
@@ -457,15 +457,24 @@
       }
     }
     render();
+    const sid = src.stack || before;
+    const sEl = sid && document.querySelector('[data-stack="' + sid + '"]');
+    if (sEl) { sEl.classList.remove('stack-pop'); void sEl.offsetWidth; sEl.classList.add('stack-pop'); setTimeout(() => sEl.classList.remove('stack-pop'), 500); }
   }
   function bindStackDrag(n, id) {
     n.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || (e.target.closest && e.target.closest('.x'))) return;
       const x0 = e.clientX, y0 = e.clientY;
-      let over = null, lifted = false;
+      let over = null, lifted = false, dx = 0, dy = 0;
       const move = (ev) => {
-        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return;
-        if (!lifted) { lifted = true; n.classList.add('lifting'); }
+        dx = ev.clientX - x0; dy = ev.clientY - y0;
+        if (!lifted) {
+          if (Math.hypot(dx, dy) < 6) return;
+          lifted = true;
+          n.classList.add('lifting', 'dragging');
+          n.style.pointerEvents = 'none';
+        }
+        n.style.translate = dx + 'px ' + dy + 'px';
         const el = document.elementFromPoint(ev.clientX, ev.clientY);
         const hit = el && el.closest && el.closest('.tab');
         const next = hit && hit !== n && hit.parentElement === n.parentElement ? hit : null;
@@ -474,8 +483,24 @@
       const up = () => {
         removeEventListener('pointermove', move);
         removeEventListener('pointerup', up);
-        n.classList.remove('lifting');
-        if (over) { over.classList.remove('stack-target'); stackDrop(id, over); }
+        if (!lifted) return;
+        // swallow the click that follows a drag, but only for one click
+        const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+        n.addEventListener('click', eat, { capture: true, once: true });
+        setTimeout(() => n.removeEventListener('click', eat, { capture: true }), 0);
+        n.style.pointerEvents = '';
+        n.classList.remove('lifting', 'dragging');
+        n.classList.add('settling');
+        const target = over;
+        if (target) {
+          const a = n.getBoundingClientRect(), b = target.getBoundingClientRect();
+          n.style.translate = (dx + (b.left + b.width / 2) - (a.left + a.width / 2)) + 'px ' + (dy + (b.top + b.height / 2) - (a.top + a.height / 2)) + 'px';
+          target.classList.remove('stack-target');
+          setTimeout(() => { n.classList.remove('settling'); n.style.translate = ''; stackDrop(id, target); }, 240);
+        } else {
+          n.style.translate = '0px 0px';
+          setTimeout(() => { n.classList.remove('settling'); n.style.translate = ''; }, 320);
+        }
       };
       addEventListener('pointermove', move);
       addEventListener('pointerup', up);
