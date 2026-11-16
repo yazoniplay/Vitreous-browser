@@ -2540,3 +2540,23 @@ html body .side-foot .space .sl { display: none; }
 html body .side-foot .space .dot { width: 8px; height: 8px; border-radius: 50%; }
 html body .side-foot .space[aria-pressed="true"] .dot { box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
 html body .side-foot .space-add svg { width: 14px; height: 14px; }
+
+/* Collapsed rail: logo, collapse button, three stacked pinned tiles, favicon-only tabs, a plus, and settings.
+   Everything else (address field, nav row, dots, palette, bookmarks, labels) is hidden so the 62px strip stays clean. */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .sidebar { padding-left: 0; padding-right: 0; align-items: center; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .address,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .bmbar,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-nav,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .spaces,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #palBtn { display: none !important; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { justify-content: center; gap: 0; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .brand-name { display: none; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list { width: 100%; align-items: center; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab { justify-content: center; padding: 0; min-height: 36px; width: 36px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .t,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .count,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .x,
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .chev { display: none; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab { font-size: 0; justify-content: center; padding: 0; width: 36px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-foot { justify-content: center; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #openSettings { order: 0; }
