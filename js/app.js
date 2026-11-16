@@ -119,7 +119,7 @@
   const ENUMS = {
     theme: ['dark', 'light', 'midnight', 'auto'], wallMode: ['none', 'url', 'upload'],
     font: ['system', 'inter', 'serif', 'mono', 'rounded', 'custom'], density: ['compact', 'cozy', 'roomy'],
-    tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['rounded', 'flat', 'pill', 'folder'], addrPosition: ['center', 'left'], bmBar: ['never', 'newtab', 'always'], toolbarPos: ['top', 'bottom'], stripStyle: ['glass', 'float', 'compact'], tabFit: ['fit', 'fixed'],
+    tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['rounded', 'flat', 'pill', 'folder'], addrPosition: ['center', 'left', 'sidebar'], bmBar: ['never', 'newtab', 'always'], toolbarPos: ['top', 'bottom'], stripStyle: ['glass', 'float', 'compact'], tabFit: ['fit', 'fixed'],
     closeBtn: ['hover', 'always', 'never'], addrShape: ['pill', 'round', 'square'], addrAlign: ['center', 'left'],
     newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'], startLayout: ['centered', 'left', 'command'], lightDirection: ['top-left', 'top-right', 'center'],
     cookies: ['all', 'third', 'block'], permLocation: ['ask', 'allow', 'block'], permCamera: ['ask', 'allow', 'block'], permMic: ['ask', 'allow', 'block'], permNotify: ['ask', 'allow', 'block'],
@@ -2095,7 +2095,7 @@
         row('Tab shape', 'Rounded, flat, pill or folder. The highlight follows the same shape', seg([['rounded', 'Rounded'], ['flat', 'Flat'], ['pill', 'Pill'], ['folder', 'Folder']], 'tabShape')),
         row('Panel radius', 'Corner radius of glass panels, sidebar and widgets', range('panelRadius', 0, 36, 'px')),
         row('Address bar radius', 'Corner radius of the address bar', range('addrRadius', 0, 36, 'px')),
-        row('Address bar position', 'Top center or top left. Back, forward and reload sit in the sidebar header.', seg([['center', 'Top Center'], ['left', 'Top Left']], 'addrPosition'))),
+        row('Address bar position', 'Top center, top left, or inside the sidebar (sidebar tabs only)', seg([['center', 'Top Center'], ['left', 'Top Left'], ['sidebar', 'In Sidebar']], 'addrPosition'))),
 
       group('tabs', 'Tabs', gi++,
         row('Top tab width', 'Applies when tabs are on top', range('tabWidth', 110, 320, 'px')),
