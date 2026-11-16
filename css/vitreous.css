@@ -2484,3 +2484,15 @@ html body .side-wrap .new-tab svg { width: 20px; height: 20px; }
 html body .side-foot .icon-btn { width: 30px; height: 30px; }
 html body .side-foot .icon-btn svg { width: 22px; height: 22px; }
 html body #openSettings svg { width: 22px; height: 22px; }
+
+/* Sidebar scale-up to match the reference: taller tab rows, larger type, bigger favicons and pinned tiles */
+html body .side-wrap .tab { min-height: 44px; padding: 0 12px; gap: 12px; }
+html body .side-wrap .tab .t { font-size: 15px; font-weight: 600; }
+html body .side-wrap .tab .fav { width: 28px; height: 28px; border-radius: 8px; font-size: 14px; }
+html body .side-wrap .tab .fav.has-img img { padding: 4px; }
+html body .side-wrap .tab .count { font-size: 12px; }
+html body .quick-grid { grid-template-columns: repeat(4, 52px); gap: 10px; }
+html body .pin { width: 52px; height: 52px; border-radius: 12px; }
+html body .pin .fav.has-img img { padding: 10px; }
+html body .pin .fav:not(.has-img) { font-size: 22px; }
+html body .spaces .space { font-size: 14px; }
