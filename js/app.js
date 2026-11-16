@@ -461,49 +461,81 @@
     const sEl = sid && document.querySelector('[data-stack="' + sid + '"]');
     if (sEl) { sEl.classList.remove('stack-pop'); void sEl.offsetWidth; sEl.classList.add('stack-pop'); setTimeout(() => sEl.classList.remove('stack-pop'), 500); }
   }
+  /* Stack drag follows the widget drag: the tab floats with a transform on every move,
+     a placeholder keeps its slot, neighbours glide with flipAnimate, and the drop settles with a FLIP. */
   function bindStackDrag(n, id) {
     n.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || (e.target.closest && e.target.closest('.x'))) return;
       const x0 = e.clientX, y0 = e.clientY;
-      let over = null, lifted = false, dx = 0, dy = 0;
+      const list = n.parentElement;
+      const d = { active: false, over: null, ph: null, tx: 0, ty: 0 };
       const move = (ev) => {
-        dx = ev.clientX - x0; dy = ev.clientY - y0;
-        if (!lifted) {
-          if (Math.hypot(dx, dy) < 6) return;
-          lifted = true;
-          n.classList.add('lifting', 'dragging');
-          n.style.pointerEvents = 'none';
+        if (!d.active) {
+          if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+          activate();
         }
-        n.style.translate = dx + 'px ' + dy + 'px';
+        d.tx = ev.clientX - x0; d.ty = ev.clientY - y0 - 6;
+        n.style.transform = `translate(${d.tx}px, ${d.ty}px) scale(1.04)`;
         const el = document.elementFromPoint(ev.clientX, ev.clientY);
         const hit = el && el.closest && el.closest('.tab');
-        const next = hit && hit !== n && hit.parentElement === n.parentElement ? hit : null;
-        if (next !== over) { if (over) over.classList.remove('stack-target'); over = next; if (over) over.classList.add('stack-target'); }
+        const next = hit && hit !== n && hit.parentElement === list ? hit : null;
+        if (next !== d.over) { if (d.over) d.over.classList.remove('stack-target'); d.over = next; if (next) next.classList.add('stack-target'); }
       };
+      function activate() {
+        const r = n.getBoundingClientRect();
+        d.active = true;
+        d.ph = h('div', { class: 'tab-ph', 'aria-hidden': 'true' });
+        d.ph.style.height = r.height + 'px';
+        list.insertBefore(d.ph, n);
+        Object.assign(n.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', margin: '0', zIndex: '60', pointerEvents: 'none' });
+        n.classList.add('lifting', 'dragging');
+        document.body.style.userSelect = 'none';
+      }
+      function clearDrag() {
+        Object.assign(n.style, { position: '', left: '', top: '', width: '', height: '', margin: '', zIndex: '', transform: '', pointerEvents: '' });
+        n.classList.remove('lifting', 'dragging');
+        if (d.ph) d.ph.remove();
+        document.body.style.userSelect = '';
+      }
       const up = () => {
         removeEventListener('pointermove', move);
         removeEventListener('pointerup', up);
-        if (!lifted) return;
+        removeEventListener('pointercancel', up);
+        if (!d.active) return;
         // swallow the click that follows a drag, but only for one click
         const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
         n.addEventListener('click', eat, { capture: true, once: true });
         setTimeout(() => n.removeEventListener('click', eat, { capture: true }), 0);
-        n.style.pointerEvents = '';
-        n.classList.remove('lifting', 'dragging');
-        n.classList.add('settling');
-        const target = over;
+        const target = d.over;
+        if (d.over) d.over.classList.remove('stack-target');
+        const from = n.getBoundingClientRect();
         if (target) {
-          const a = n.getBoundingClientRect(), b = target.getBoundingClientRect();
-          n.style.translate = (dx + (b.left + b.width / 2) - (a.left + a.width / 2)) + 'px ' + (dy + (b.top + b.height / 2) - (a.top + a.height / 2)) + 'px';
-          target.classList.remove('stack-target');
-          setTimeout(() => { n.classList.remove('settling'); n.style.translate = ''; stackDrop(id, target); }, 240);
+          // fly into the target tab, neighbours close the gap as the tab leaves the list
+          const tr = target.getBoundingClientRect();
+          const dx = (tr.left + tr.width / 2) - (from.left + from.width / 2);
+          const dy = (tr.top + tr.height / 2) - (from.top + from.height / 2);
+          const others = [...list.querySelectorAll('.tab')].filter((x) => x !== n);
+          const startT = `translate(${d.tx}px, ${d.ty}px) scale(1.04)`;
+          clearDrag();
+          const anim = n.animate([
+            { transform: startT, opacity: 1 },
+            { transform: `translate(${d.tx + dx}px, ${d.ty + dy}px) scale(0.85)`, opacity: 0 },
+          ], { duration: 240, easing: 'cubic-bezier(.4,0,.2,1)' });
+          anim.onfinish = () => flipAnimate(others, () => stackDrop(id, target));
         } else {
-          n.style.translate = '0px 0px';
-          setTimeout(() => { n.classList.remove('settling'); n.style.translate = ''; }, 320);
+          // no target: settle back into the slot, same as a widget drop
+          clearDrag();
+          const to = n.getBoundingClientRect();
+          const dx = from.left - to.left, dy = from.top - to.top;
+          n.animate([
+            { transform: `translate(${dx}px, ${dy}px) scale(1.04)` },
+            { transform: 'translate(0px, 0px) scale(1)' },
+          ], { duration: 320, easing: FLIP_EASE });
         }
       };
       addEventListener('pointermove', move);
       addEventListener('pointerup', up);
+      addEventListener('pointercancel', up);
     });
   }
   function tabStackEntries(id) {
@@ -1272,6 +1304,7 @@
     const first = items.map((el) => el.getBoundingClientRect());
     mutate();
     items.forEach((el, i) => {
+      if (!el.isConnected) return;
       const last = el.getBoundingClientRect();
       const dx = first[i].left - last.left, dy = first[i].top - last.top;
       if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
