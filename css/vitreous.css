@@ -2608,3 +2608,9 @@ html body .side-wrap .quick-label { font-size: 11px; font-weight: 600; letter-sp
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: flex-start !important; gap: 8px !important; width: 100% !important; height: auto !important; padding: 10px 0 4px !important; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .mark { margin: 0 !important; transform: none !important; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #pin { display: grid !important; animation: none !important; opacity: 1 !important; transform: none !important; margin: 0 !important; }
+
+/* Arc reference: New Tab is a flat muted row with a plus, and the selected tab is a solid white pill */
+html body .side-wrap .new-tab { width: auto; justify-content: flex-start; background: none; box-shadow: none; border-radius: 10px; padding: 8px 10px; font-weight: 500; color: var(--muted); }
+html body .side-wrap .new-tab:hover { background: rgba(255,255,255,.08); color: var(--text); }
+html body .side-wrap .tab[aria-selected="true"], html body .side-wrap .tab[aria-selected="true"]:hover { background: rgba(255,255,255,.92) !important; color: #1c1c22; box-shadow: none; }
+html body .side-wrap .tab[aria-selected="true"] .t { color: #1c1c22; }
