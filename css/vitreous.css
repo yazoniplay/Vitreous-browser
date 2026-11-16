@@ -2578,3 +2578,6 @@ html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab {
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab:hover { background: rgba(255,255,255,.08); }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab { background: transparent; box-shadow: none; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-foot { padding: 6px 0 10px; }
+
+/* Collapsed rail: only the tabs show; the pinned tiles are hidden */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick { display: none; }
