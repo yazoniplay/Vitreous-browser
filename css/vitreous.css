@@ -2603,3 +2603,8 @@ html body .side-wrap .tab { border-radius: 12px; }
 html body .side-wrap .tab[aria-selected="true"], html body .side-wrap .tab[aria-selected="true"]:hover { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
 html body .side-wrap .tab[aria-selected="true"] .t { color: var(--accent); }
 html body .side-wrap .quick-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+
+/* Collapsed rail header: a centred column. Logo first, then the collapse toggle, as Firefox keeps its toggle at the top. */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: flex-start !important; gap: 8px !important; width: 100% !important; height: auto !important; padding: 10px 0 4px !important; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .mark { margin: 0 !important; transform: none !important; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #pin { display: grid !important; animation: none !important; opacity: 1 !important; transform: none !important; margin: 0 !important; }
