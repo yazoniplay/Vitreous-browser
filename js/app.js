@@ -709,6 +709,9 @@
     const navHost = S.tabs !== 'top' ? $('#sideNav') : $('.nav-l');
     if (navHost) ['back', 'forward', 'reload'].forEach((id) => { const el = $('#' + id); if (el && el.parentNode !== navHost) navHost.append(el); });
     /* with tabs on the side, the bookmarks bar moves into the sidebar under the pinned tiles; with tabs on top it returns above the page */
+    /* the workspace switcher lives in the sidebar footer, as in Arc */
+    const spEl = $('#spaces'), footEl = $('.side-foot');
+    if (spEl && footEl && spEl.parentElement !== footEl) footEl.prepend(spEl);
     const bmEl = $('#bmbar'), quickEl = $('#quick'), vpEl = $('#viewport');
     if (bmEl && quickEl && vpEl) {
       if (S.tabs !== 'top') { if (bmEl.previousElementSibling !== quickEl) quickEl.insertAdjacentElement('afterend', bmEl); }
