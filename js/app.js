@@ -800,7 +800,7 @@
       if (!motionOn() || list.offsetParent === null) { n.remove(); return; }
       n.classList.add('leave');
       n.addEventListener('animationend', () => n.remove(), { once: true });
-      setTimeout(() => n.remove(), 450);
+      setTimeout(() => n.remove(), 300); /* exit animation is 260-320ms; the gap closes as soon as it ends */
     });
     let prev = ind;
     entries.forEach((e) => {

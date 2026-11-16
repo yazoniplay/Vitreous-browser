@@ -1695,8 +1695,8 @@ html body[data-fx="high"][data-motion="on"] .side-wrap .lbl { transition: opacit
 html body[data-fx="high"][data-motion="on"] .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .lbl { transform: translateX(-12px); transition: opacity .14s ease, transform .3s var(--ios-soft) !important; }
 html body[data-fx="high"][data-motion="on"] .space .sl { transition: max-width .6s var(--ios), margin .6s var(--ios), opacity .3s ease !important; }
 html body[data-fx="high"][data-motion="on"] .tab-list.ready .indicator { transition: transform .6s var(--ios), width .6s var(--ios), height .6s var(--ios), opacity .25s ease !important; }
-html body[data-fx="high"][data-motion="on"] .tab.enter { animation: iosTabIn .65s var(--ios-bounce) backwards !important; }
-html body[data-fx="high"][data-motion="on"] .tab.leave { animation-duration: .32s !important; animation-timing-function: var(--ios-soft) !important; }
+html body[data-fx="high"][data-motion="on"] .tab.enter { animation: iosTabIn .4s var(--ios-bounce) backwards !important; }
+html body[data-fx="high"][data-motion="on"] .tab.leave { animation-duration: .24s !important; animation-timing-function: var(--ios-soft) !important; }
 
 html body[data-fx="high"][data-motion="on"] .icon-btn, html body[data-fx="high"][data-motion="on"] .tab, html body[data-fx="high"][data-motion="on"] .tile, html body[data-fx="high"][data-motion="on"] .btn, html body[data-fx="high"][data-motion="on"] .space, html body[data-fx="high"][data-motion="on"] .new-tab, html body[data-fx="high"][data-motion="on"] .seg button, html body[data-fx="high"][data-motion="on"] .drop-trigger {
   transition: transform .55s var(--ios-bounce), background-color .25s ease, color .25s ease, opacity .25s ease, box-shadow .3s ease !important;
@@ -1747,8 +1747,8 @@ html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .side-wrap .lbl
 html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .lbl { transform: translateX(-12px); transition: opacity .14s ease, transform .3s var(--ios-soft) !important; }
 html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .space .sl { transition: max-width .6s var(--ios), margin .6s var(--ios), opacity .3s ease !important; }
 html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .tab-list.ready .indicator { transition: transform .6s var(--ios), width .6s var(--ios), height .6s var(--ios), opacity .25s ease !important; }
-html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .tab.enter { animation: iosTabIn .65s var(--ios-bounce) backwards !important; }
-html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .tab.leave { animation-duration: .32s !important; animation-timing-function: var(--ios-soft) !important; }
+html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .tab.enter { animation: iosTabIn .4s var(--ios-bounce) backwards !important; }
+html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .tab.leave { animation-duration: .24s !important; animation-timing-function: var(--ios-soft) !important; }
 
 html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .icon-btn, html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .tab, html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .tile, html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .btn, html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .space, html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .new-tab, html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .seg button, html body[data-fx="high"][data-motion="on"][data-respect-rm="0"] .drop-trigger {
   transition: transform .55s var(--ios-bounce), background-color .25s ease, color .25s ease, opacity .25s ease, box-shadow .3s ease !important;
