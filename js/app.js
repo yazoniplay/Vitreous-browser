@@ -96,7 +96,7 @@
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
-    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, quickOpen: true, spaces: DEFAULT_SPACES,
+    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, quickLinksCollapsed: true, spaces: DEFAULT_SPACES,
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
@@ -417,6 +417,7 @@
     },
       h('span', { class: 'stack-dot', 'aria-hidden': 'true' }),
       h('span', { class: 'chev', 'aria-hidden': 'true' }, chevIcon()),
+      h('span', { class: 'stack-ico', 'aria-hidden': 'true' }, ico('folder')),
       h('span', { class: 't' }),
       h('span', { class: 'count' }));
   }
@@ -1633,6 +1634,7 @@
   const btn = (label, fn, cls = '') => h('button', { class: 'btn ' + cls, text: label, onclick: fn });
   const row = (label, sub, control, cls = '') => h('div', { class: 'row ' + cls }, h('div', {}, label, sub ? h('small', { text: sub }) : null), control);
   const ICONS = {
+    folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
     palette: '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7" r="1"/>',
     image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>',
     drop: '<path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/>',
@@ -2249,7 +2251,7 @@
   function renderQuick() {
     const q = $('#quick');
     if (!q) return;
-    const open = S.quickOpen !== false;
+    const open = !S.quickLinksCollapsed;
     q.classList.toggle('open', open);
     $('#quickToggle').setAttribute('aria-expanded', String(open));
     $('#quickToggle').setAttribute('aria-label', open ? 'Collapse pinned sites' : 'Expand pinned sites');
@@ -2491,7 +2493,7 @@
   $('#reload').addEventListener('click', () => { cur().reload++; render(); });
   $('#home').addEventListener('click', goHome);
   $('#bmStar').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(); });
-  $('#quickToggle').addEventListener('click', () => { S.quickOpen = S.quickOpen === false; save(); renderQuick(); });
+  $('#quickToggle').addEventListener('click', () => { S.quickLinksCollapsed = !S.quickLinksCollapsed; save(); renderQuick(); });
   $('#tbSidebar').addEventListener('click', toggleSidebar);
   $('#tbPalette').addEventListener('click', openPal);
   $('#tbSettings').addEventListener('click', () => openSettings());
