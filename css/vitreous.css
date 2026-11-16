@@ -2564,3 +2564,17 @@ html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #openS
 /* Rail pinned tiles: the big-tile padding was shrinking favicons to dots in a 36px tile */
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin .fav.has-img img { padding: 7px; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin .fav:not(.has-img) { font-size: 14px; }
+
+/* Clean collapsed rail: a plain icon column. No card rim or glow, transparent icon buttons with a soft hover,
+   even spacing, and only the selected tab carries a highlight. */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .sidebar { box-shadow: none !important; border-color: transparent !important; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { padding: 10px 0 4px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick { margin-top: 10px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick-grid { gap: 6px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin { background: transparent; box-shadow: none; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin:hover { background: rgba(255,255,255,.08); }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list { gap: 6px; margin-top: 10px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab { background: transparent; box-shadow: none; width: 36px; height: 36px; min-height: 36px; border-radius: 10px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab:hover { background: rgba(255,255,255,.08); }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab { background: transparent; box-shadow: none; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-foot { padding: 6px 0 10px; }
