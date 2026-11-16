@@ -2410,3 +2410,8 @@ html body .tab.stack.stack-closing { animation: stackClose calc(.28s * var(--m-s
 /* Tab press: springs back instead of snapping */
 html body .tab { transition: transform .35s var(--m-spring), background .25s var(--m-fade), box-shadow .25s var(--m-fade), opacity .2s var(--m-fade); }
 html body .tab:active { transform: scale(0.96); transition-duration: .12s; }
+
+/* Page area uses the same arc as the sidebar: same radius token, and its contents are clipped to it */
+html body .viewport.glass { border-radius: var(--radius-panels, var(--radius)); overflow: hidden; isolation: isolate; }
+html body .viewport.glass > .content,
+html body .viewport.glass iframe { border-radius: inherit; }
