@@ -2560,3 +2560,7 @@ html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab { font-size: 0; justify-content: center; padding: 0; width: 36px; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-foot { justify-content: center; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) #openSettings { order: 0; }
+
+/* Rail pinned tiles: the big-tile padding was shrinking favicons to dots in a 36px tile */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin .fav.has-img img { padding: 7px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin .fav:not(.has-img) { font-size: 14px; }
