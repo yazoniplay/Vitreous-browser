@@ -2472,3 +2472,15 @@ html body .side-nav .icon-btn svg { width: 15px; height: 15px; }
 html body #pin { width: 28px; height: 28px; flex: none; }
 /* collapsed rail: only the logo and collapse button show, nav buttons wait for hover */
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-nav { display: none; }
+
+/* Sidebar icons: larger pinned tiles, tab favicons, bottom icons and New tab glyph */
+html body .quick-grid { grid-template-columns: repeat(4, 40px); gap: 8px; }
+html body .pin { width: 40px; height: 40px; border-radius: 10px; }
+html body .pin .fav.has-img img { padding: 7px; }
+html body .pin .fav:not(.has-img) { font-size: 17px; }
+html body .side-wrap .tab .fav { width: 22px; height: 22px; border-radius: 7px; font-size: 12px; }
+html body .side-wrap .tab .fav.has-img img { padding: 3px; }
+html body .side-wrap .new-tab svg { width: 20px; height: 20px; }
+html body .side-foot .icon-btn { width: 30px; height: 30px; }
+html body .side-foot .icon-btn svg { width: 22px; height: 22px; }
+html body #openSettings svg { width: 22px; height: 22px; }
