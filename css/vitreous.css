@@ -2415,3 +2415,8 @@ html body .tab:active { transform: scale(0.96); transition-duration: .12s; }
 html body .viewport.glass { border-radius: var(--radius-panels, var(--radius)); overflow: hidden; isolation: isolate; }
 html body .viewport.glass > .content,
 html body .viewport.glass iframe { border-radius: inherit; }
+
+/* Arc-style navigation: back, forward and reload live in the sidebar header */
+.side-nav { display: flex; align-items: center; gap: 2px; flex: none; }
+.side-nav .icon-btn { width: 28px; height: 28px; }
+.side-nav .icon-btn svg { width: 16px; height: 16px; }
