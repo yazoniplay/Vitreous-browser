@@ -709,7 +709,7 @@
     const navHost = S.tabs !== 'top' ? $('#sideNav') : $('.nav-l');
     if (navHost) ['back', 'forward', 'reload'].forEach((id) => { const el = $('#' + id); if (el && el.parentNode !== navHost) navHost.append(el); });
     if (addrEl) {
-      if (inSide) { if (addrEl.nextElementSibling !== $('#sideNewTab')) $('#sidebar').insertBefore(addrEl, $('#sideNewTab')); }
+      if (inSide) { if (addrEl.previousElementSibling !== $('.side-head')) $('.side-head').insertAdjacentElement('afterend', addrEl); }
       else if (addrEl.previousElementSibling !== $('.nav-l')) $('.nav-l').insertAdjacentElement('afterend', addrEl);
     }
     b.dataset.blobsStill = S.blobSpeed === 0 ? '1' : '0';
