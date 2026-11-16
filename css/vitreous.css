@@ -2496,3 +2496,21 @@ html body .pin { width: 52px; height: 52px; border-radius: 12px; }
 html body .pin .fav.has-img img { padding: 10px; }
 html body .pin .fav:not(.has-img) { font-size: 22px; }
 html body .spaces .space { font-size: 14px; }
+
+/* Arc-style sidebar: squircle favourites, flat tab rows, bare favicons, soft selected fill.
+   The collapsed rail gets its own smaller sizes so nothing overflows the 62px strip. */
+html body .side-wrap .quick-grid { grid-template-columns: repeat(4, 44px); gap: 8px; }
+html body .side-wrap .pin { width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,.08); box-shadow: none; }
+html body .side-wrap .pin .fav.has-img img { padding: 9px; }
+html body .side-wrap .tab { min-height: 38px; padding: 0 10px; gap: 10px; border-radius: 10px; background: transparent; box-shadow: none; }
+html body .side-wrap .tab:hover { background: rgba(255,255,255,.06); }
+html body .side-wrap .tab .t { font-size: 14px; font-weight: 600; }
+html body .side-wrap .tab .fav { width: 22px; height: 22px; border-radius: 6px; }
+html body .side-wrap .tab .fav.has-img { background: none; padding: 0; }
+html body .side-wrap .tab .fav.has-img img { padding: 0; border-radius: 0; }
+
+/* collapsed rail: compact squircles and icons only */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick-grid { grid-template-columns: 36px; justify-content: center; gap: 8px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin { width: 36px; height: 36px; border-radius: 11px; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab { min-height: 36px; padding: 0; justify-content: center; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .fav { width: 24px; height: 24px; }
