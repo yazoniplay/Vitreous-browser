@@ -437,7 +437,22 @@
   function renameStack(id) { const st = stackOf(id); if (!st) return; const n = prompt('Stack name', st.name); if (n && n.trim()) { st.name = n.trim().slice(0, 24); render(); } }
   function cycleStackColor(id) { const st = stackOf(id); if (!st) return; st.color = ACCENTS[(ACCENTS.indexOf(st.color) + 1) % ACCENTS.length]; render(); }
   function ungroupStack(id) { tabs.forEach((t) => { if (t.stack === id) delete t.stack; }); stacks = stacks.filter((s) => s.id !== id); render(); }
-  function closeStackTabs(id) { tabs.filter((t) => t.stack === id).forEach((t) => closeTab(t.id)); }
+  /* closing a stack: header and its tabs fade out in a short stagger, then the stack and its tabs are removed */
+  function closeStackTabs(id) {
+    const kids = tabs.filter((t) => t.stack === id);
+    const sEl = document.querySelector('[data-stack="' + id + '"]');
+    const kEls = kids.map((t) => document.querySelector('.tab[data-id="' + t.id + '"]')).filter(Boolean);
+    const finish = () => {
+      [sEl, ...kEls].forEach((el) => el && el.remove());
+      stacks = stacks.filter((s) => s.id !== id);
+      kids.forEach((t) => closeTab(t.id));
+      render();
+    };
+    if (!motionOn() || !sEl) { finish(); return; }
+    kEls.forEach((el, i) => { el.style.animationDelay = (i * 35) + 'ms'; el.classList.add('leave'); });
+    sEl.classList.add('leave', 'stack-closing');
+    setTimeout(finish, kEls.length * 35 + 280);
+  }
   /* dropping one tab on another makes (or joins) a stack; dropping on a header joins that stack */
   function stackDrop(srcId, target) {
     const src = tabs.find((t) => t.id === srcId);

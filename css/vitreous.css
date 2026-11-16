@@ -2403,3 +2403,10 @@ html body .tab.dragging { scale: 1 !important; box-shadow: 0 30px 60px -18px rgb
 /* Drop hint shown over a tab while a tab is dragged onto it */
 .drop-hint { position: fixed; z-index: 70; transform: translate(-50%, -50%) scale(.8); opacity: 0; pointer-events: none; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; color: #fff; background: var(--accent); box-shadow: 0 6px 16px -6px rgba(0,0,0,.5); transition: opacity .2s var(--m-fade), transform .35s var(--m-spring); }
 .drop-hint.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+/* Closing a stack: the header shrinks and fades; its tabs leave with stackOut in a stagger */
+@keyframes stackClose { 0% { opacity: 1; transform: none; } 30% { transform: scale(1.03); } 100% { opacity: 0; transform: scale(0.9) translateX(-10px); } }
+html body .tab.stack.stack-closing { animation: stackClose calc(.28s * var(--m-scale)) var(--m-fade) forwards !important; pointer-events: none; }
+/* Tab press: springs back instead of snapping */
+html body .tab { transition: transform .35s var(--m-spring), background .25s var(--m-fade), box-shadow .25s var(--m-fade), opacity .2s var(--m-fade); }
+html body .tab:active { transform: scale(0.96); transition-duration: .12s; }
