@@ -2514,3 +2514,12 @@ html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .quick
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .pin { width: 36px; height: 36px; border-radius: 11px; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab { min-height: 36px; padding: 0; justify-content: center; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .tab .fav { width: 24px; height: 24px; }
+
+/* Sidebar layout: three large pinned tiles, and the bookmarks bar sits in the sidebar under them */
+html body .side-wrap .quick-grid { grid-template-columns: repeat(3, 72px); gap: 10px; }
+html body .side-wrap .pin { width: 72px; height: 72px; border-radius: 18px; }
+html body .side-wrap .pin .fav.has-img img { padding: 16px; }
+html body .side-wrap .pin .fav:not(.has-img) { font-size: 28px; }
+html body .side-wrap .bmbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; margin-top: 12px; background: none; border: 0; box-shadow: none; }
+html body .side-wrap .bmbar[hidden] { display: none; }
+html body[data-tabs="side"] .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .bmbar { display: none; }

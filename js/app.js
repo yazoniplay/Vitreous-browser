@@ -708,6 +708,12 @@
     /* back, forward and reload live in the sidebar header; with tabs on top there is no sidebar, so they return to the toolbar */
     const navHost = S.tabs !== 'top' ? $('#sideNav') : $('.nav-l');
     if (navHost) ['back', 'forward', 'reload'].forEach((id) => { const el = $('#' + id); if (el && el.parentNode !== navHost) navHost.append(el); });
+    /* with tabs on the side, the bookmarks bar moves into the sidebar under the pinned tiles; with tabs on top it returns above the page */
+    const bmEl = $('#bmbar'), quickEl = $('#quick'), vpEl = $('#viewport');
+    if (bmEl && quickEl && vpEl) {
+      if (S.tabs !== 'top') { if (bmEl.previousElementSibling !== quickEl) quickEl.insertAdjacentElement('afterend', bmEl); }
+      else if (bmEl.nextElementSibling !== vpEl) vpEl.before(bmEl);
+    }
     if (addrEl) {
       if (inSide) { if (addrEl.previousElementSibling !== $('.side-head')) $('.side-head').insertAdjacentElement('afterend', addrEl); }
       else if (addrEl.previousElementSibling !== $('.nav-l')) $('.nav-l').insertAdjacentElement('afterend', addrEl);
@@ -2350,7 +2356,7 @@
   function renderQuick() {
     const q = $('#quick');
     if (!q) return;
-    $('#quickGrid').replaceChildren(...(S.quickLinks || []).filter((l) => l && l.url && l.name).map((l) => {
+    $('#quickGrid').replaceChildren(...(S.quickLinks || []).filter((l) => l && l.url && l.name).slice(0, 3).map((l) => {
       const fav = h('span', { class: 'fav', 'aria-hidden': 'true' });
       paintFav(fav, l.url, (l.name[0] || '?').toUpperCase());
       return h('button', { type: 'button', class: 'pin', title: l.name + '  ·  ' + l.url, 'data-url': l.url, onclick: () => navigate(cur(), l.url) }, fav);
