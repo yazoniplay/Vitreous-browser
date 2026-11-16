@@ -65,7 +65,7 @@
   const DEFAULT_KEYS = {
     newTab: 'Alt+KeyT', closeTab: 'Alt+KeyW', focusAddr: 'Alt+KeyL', sidebar: 'Alt+KeyB', settings: 'Alt+Comma',
     palette: 'Ctrl+KeyK', reload: 'Alt+KeyR', back: 'Alt+ArrowLeft', forward: 'Alt+ArrowRight',
-    nextTab: 'Alt+ArrowDown', prevTab: 'Alt+ArrowUp', home: 'Alt+KeyH', theme: '', layout: '',
+    nextTab: 'Alt+ArrowDown', prevTab: 'Alt+ArrowUp', home: 'Alt+KeyH', bookmark: 'Ctrl+KeyD', theme: '', layout: '',
   };
   const DEFAULTS = {
     /* appearance */
@@ -82,7 +82,7 @@
     /* tabs */
     tabShape: 'rounded', tabWidth: 200, favs: true, closeBtn: 'hover',
     /* toolbar */
-    navBtns: true, shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
+    btnBack: true, btnForward: true, btnReload: true, btnSidebar: false, btnPalette: false, btnSettings: false, bookmarkStar: true, bmBar: 'newtab', bmNames: true, toolbarPos: 'top', stripStyle: 'glass', tabFit: 'fit', shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
@@ -109,7 +109,7 @@
   const ENUMS = {
     theme: ['dark', 'light', 'midnight', 'auto'], wallMode: ['none', 'url', 'upload'],
     font: ['system', 'inter', 'serif', 'mono', 'rounded', 'custom'], density: ['compact', 'cozy', 'roomy'],
-    tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['rounded', 'flat', 'pill', 'folder'], addrPosition: ['center', 'left', 'sidebar'],
+    tabs: ['side', 'top'], sideSide: ['left', 'right'], tabShape: ['rounded', 'flat', 'pill', 'folder'], addrPosition: ['center', 'left', 'sidebar'], bmBar: ['never', 'newtab', 'always'], toolbarPos: ['top', 'bottom'], stripStyle: ['glass', 'float', 'compact'], tabFit: ['fit', 'fixed'],
     closeBtn: ['hover', 'always', 'never'], addrShape: ['pill', 'round', 'square'], addrAlign: ['center', 'left'],
     newTabMode: ['start', 'blank', 'home'], startup: ['start', 'restore', 'pages'], startLayout: ['centered', 'left', 'command'], lightDirection: ['top-left', 'top-right', 'center'],
     cookies: ['all', 'third', 'block'], permLocation: ['ask', 'allow', 'block'], permCamera: ['ask', 'allow', 'block'], permMic: ['ask', 'allow', 'block'], permNotify: ['ask', 'allow', 'block'],
@@ -576,7 +576,11 @@
     b.dataset.tabs = S.tabs;
     b.dataset.side = S.sideSide;
     b.dataset.hover = S.hoverExpand ? '1' : '0';
-    b.dataset.navbtns = S.navBtns ? '1' : '0';
+    ['btnBack', 'btnForward', 'btnReload', 'btnSidebar', 'btnPalette', 'btnSettings', 'bookmarkStar', 'bmNames'].forEach((k) => { b.dataset[k] = S[k] ? '1' : '0'; });
+    $('#main').dataset.toolbar = S.toolbarPos;
+    $('#main').dataset.strip = S.stripStyle;
+    $('#main').dataset.tabfit = S.tabFit;
+    try { renderBookmarksBar(); } catch { /* bar not built yet */ }
     b.dataset.shield = S.shield ? '1' : '0';
     b.dataset.lock = S.lock ? '1' : '0';
     b.dataset.home = S.showHome ? '1' : '0';
@@ -731,6 +735,12 @@
     const entries = sideEntries();
     reconcile($('#tabs'), entries, false);
     reconcile($('#sideTabs'), entries, true);
+    const tl = $('#tabs'), act = tl.querySelector('.tab[aria-selected="true"]:not(.leave)');
+    if (act && tl.offsetParent !== null) {
+      const l = act.offsetLeft, r = l + act.offsetWidth;
+      if (l < tl.scrollLeft) tl.scrollLeft = Math.max(0, l - 8);
+      else if (r > tl.scrollLeft + tl.clientWidth) tl.scrollLeft = r - tl.clientWidth + 8;
+    }
     placeIndicators();
     setTimeout(placeIndicators, 320);
   }
@@ -747,6 +757,7 @@
     if (document.activeElement !== ai) ai.value = pretty(u);
     $('.address .lock').style.opacity = u.startsWith('https://') ? '1' : '0.3';
     document.title = (titleOf(t) === 'New tab' ? '' : titleOf(t) + ' · ') + 'Vitreous';
+    updateStar();
   }
 
   /* ---------- loading indicator ---------- */
@@ -1004,7 +1015,7 @@
 
   function render() {
     if (!cur()) { const t = { id: uid(), ws, hist: ['vitreous://newtab'], i: 0, reload: 0 }; tabs.push(t); activeId = t.id; }
-    renderTabs(); renderSpaces(); renderToolbar(); renderViewport(); save();
+    renderTabs(); renderSpaces(); renderToolbar(); renderBookmarksBar(); renderViewport(); save();
   }
 
   /* ---------- site icons ---------- */
@@ -1971,12 +1982,23 @@
 
       group('tabs', 'Tabs', gi++,
         row('Top tab width', 'Applies when tabs are on top', range('tabWidth', 110, 320, 'px')),
+        row('Tab bar style', 'Applies when tabs are on top', seg([['glass', 'Glass bar'], ['float', 'Floating'], ['compact', 'Compact']], 'stripStyle')),
+        row('Tab sizing', 'Fit shares the bar between tabs. Fixed keeps one width and scrolls', seg([['fit', 'Fit'], ['fixed', 'Fixed']], 'tabFit')),
         row('Show tab icons', null, toggle('favs')),
         row('Site icons', 'Load each site’s own icon straight from that site. Off shows a letter badge', toggle('siteIcons')),
         row('Close button', null, seg([['hover', 'On hover'], ['always', 'Always'], ['never', 'Hidden']], 'closeBtn'))),
 
       group('toolbar', 'Toolbar & address bar', gi++,
-        row('Back, forward and reload buttons', null, toggle('navBtns')),
+        row('Back button', null, toggle('btnBack')),
+        row('Forward button', null, toggle('btnForward')),
+        row('Reload button', null, toggle('btnReload')),
+        row('Sidebar button', 'Toggles the sidebar from the toolbar', toggle('btnSidebar')),
+        row('Command palette button', null, toggle('btnPalette')),
+        row('Settings button', null, toggle('btnSettings')),
+        row('Bookmark star', 'Save the current page from the address bar', toggle('bookmarkStar')),
+        row('Toolbar position', 'Bottom puts the address bar under the page', seg([['top', 'Top'], ['bottom', 'Bottom']], 'toolbarPos')),
+        row('Bookmarks bar', null, seg([['never', 'Never'], ['newtab', 'New tab only'], ['always', 'Always']], 'bmBar')),
+        row('Bookmark names', 'Off shows icons only', toggle('bmNames')),
         row('Home button', 'Opens your homepage, or the start page', toggle('showHome')),
         row('Privacy shield button', null, toggle('shield')),
         row('Lock icon in address bar', null, toggle('lock')),
@@ -2207,6 +2229,49 @@
   /* ---------- misc actions ---------- */
   function focusAddr() { const a = $('#addr'); a.focus(); a.select(); }
   function toggleSidebar() { set('collapsed', !S.collapsed); }
+  /* ---------- bookmark star and bookmarks bar ---------- */
+  const sameUrl = (a, b) => { try { return new URL(a).href === new URL(b).href; } catch { return a === b; } };
+  let bmBarKey = '';
+  function renderBookmarksBar() {
+    const bar = $('#bmbar');
+    if (!bar) return;
+    const t = cur(), u = t ? urlOf(t) : '';
+    const show = S.bmBar === 'always' || (S.bmBar === 'newtab' && u === 'vitreous://newtab');
+    bar.hidden = !show;
+    if (!show) return;
+    const key = JSON.stringify(S.bookmarks) + '|' + S.siteIcons;
+    if (key === bmBarKey) return;
+    bmBarKey = key;
+    bar.replaceChildren(...(S.bookmarks.length ? S.bookmarks.map((b) => {
+      const fav = h('span', { class: 'fav', 'aria-hidden': 'true' });
+      paintFav(fav, b.url, (b.name[0] || '?').toUpperCase());
+      return h('button', {
+        class: 'bm', type: 'button', title: b.name + '  ·  ' + b.url, 'data-url': b.url,
+        onclick: (e) => { if (e.ctrlKey || e.metaKey) newTab(b.url); else navigate(cur(), b.url); },
+        onauxclick: (e) => { if (e.button === 1) { e.preventDefault(); newTab(b.url); } },
+      }, fav, h('span', { class: 'n', text: b.name }));
+    }) : [h('span', { class: 'bm-empty', text: 'Press the star in the address bar to bookmark a page' })]));
+  }
+  function updateStar() {
+    const t = cur(), star = $('#bmStar');
+    if (!t || !star) return;
+    const u = urlOf(t), on = !INTERNAL.includes(u) && S.bookmarks.some((b) => sameUrl(b.url, u));
+    star.classList.toggle('on', on);
+    star.setAttribute('aria-pressed', String(on));
+    star.title = on ? 'Remove bookmark' : 'Bookmark this page';
+  }
+  function toggleBookmark() {
+    const t = cur(), u = urlOf(t);
+    if (INTERNAL.includes(u)) { toast('Open a website to bookmark it'); return; }
+    const i = S.bookmarks.findIndex((b) => sameUrl(b.url, u));
+    if (i >= 0) { S.bookmarks.splice(i, 1); toast('Bookmark removed'); }
+    else {
+      if (S.bookmarks.length >= 24) { toast('Limit of 24 bookmarks'); return; }
+      S.bookmarks.push({ name: titleOf(t).slice(0, 40) || hostOf(u), url: u });
+      toast('Bookmarked');
+    }
+    save(); renderBookmarksBar(); updateStar();
+  }
   function goHome() { navigate(cur(), S.homepage || 'vitreous://newtab'); }
   function stepTab(d) {
     const g = wsTabs(); if (g.length < 2) return;
@@ -2270,6 +2335,16 @@
   document.addEventListener('contextmenu', (e) => {
     const tab = e.target.closest && e.target.closest('.tab');
     const link = e.target.closest && e.target.closest('a[href]');
+    const bmItem = e.target.closest && e.target.closest('.bm[data-url]');
+    if (bmItem) {
+      const url = bmItem.dataset.url;
+      openContextMenu(e, [
+        ['Open', () => navigate(cur(), url)],
+        ['Open in new tab', () => newTab(url)],
+        ['Remove bookmark', () => { S.bookmarks = S.bookmarks.filter((b) => b.url !== url); save(); renderBookmarksBar(); updateStar(); }],
+      ]);
+      return;
+    }
     const spaceBtn = e.target.closest && e.target.closest('.space[data-id]');
     if (spaceBtn) {
       const sid = spaceBtn.dataset.id;
@@ -2341,6 +2416,7 @@
     ['nextTab', 'Next tab', () => stepTab(1)],
     ['prevTab', 'Previous tab', () => stepTab(-1)],
     ['home', 'Go home', goHome],
+    ['bookmark', 'Bookmark this page', toggleBookmark],
     ['theme', 'Toggle dark / light', () => set('theme', document.body.dataset.theme === 'dark' ? 'light' : 'dark')],
     ['layout', 'Toggle tab layout (side / top)', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
   ];
@@ -2374,6 +2450,10 @@
   $('#forward').addEventListener('click', () => go(1));
   $('#reload').addEventListener('click', () => { cur().reload++; render(); });
   $('#home').addEventListener('click', goHome);
+  $('#bmStar').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleBookmark(); });
+  $('#tbSidebar').addEventListener('click', toggleSidebar);
+  $('#tbPalette').addEventListener('click', openPal);
+  $('#tbSettings').addEventListener('click', () => openSettings());
   $('#pin').addEventListener('click', toggleSidebar);
   $('#openSettings').addEventListener('click', () => openSettings());
   $('#shield').addEventListener('click', () => openSettings('grp-privacy'));
