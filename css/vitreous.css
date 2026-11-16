@@ -2588,3 +2588,7 @@ html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list { display: flex; flex-direction: column; align-items: center; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-list .tab { margin: 0 auto; }
 html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .new-tab { display: none !important; }
+
+/* Collapsed rail: force the logo to the centre of the strip */
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head { display: flex !important; justify-content: center !important; align-items: center !important; width: 100% !important; }
+html body .side-wrap[data-rail="1"]:not(:hover):not(:has(:focus-visible)) .side-head .mark { margin: 0 !important; flex: none; }
