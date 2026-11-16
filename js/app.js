@@ -88,7 +88,7 @@
     font: 'system', fontCustom: '', fontScale: 100,
     /* layout */
     density: 'cozy', gap: 8, iconSize: 18, iconStroke: 18, brand: 'vitreous',
-    tabs: 'side', collapsed: true, hoverExpand: true, sideWidth: 252, sideSide: 'left',
+    tabs: 'side', collapsed: true, hoverExpand: true, sideWidth: 300, sideSide: 'left',
     /* tabs */
     tabShape: 'rounded', tabWidth: 200, favs: true, closeBtn: 'hover',
     /* toolbar */
@@ -280,6 +280,8 @@
       else if (typeof d === 'string') { if (ENUMS[k]) { if (ENUMS[k].includes(v)) out[k] = v; } else if (typeof v === 'string') out[k] = v.slice(0, k === 'css' ? 20000 : 200); }
     }
     out.accent = isHex(src.accent) ? src.accent : DEFAULTS.accent;
+    /* the old default (252px) moves to the new default; any other width the user picked is kept */
+    if (src.sideWidth === 252) out.sideWidth = DEFAULTS.sideWidth;
     out.aurora = typeof src.aurora === 'string' && Object.hasOwn(AURORA, src.aurora) ? src.aurora : DEFAULTS.aurora;
     if (out.homepage && !/^https?:\/\//i.test(out.homepage)) out.homepage = '';
     if (Array.isArray(src.auroraCustom) && src.auroraCustom.length === 3 && src.auroraCustom.every(isHex)) out.auroraCustom = src.auroraCustom.slice();

@@ -10,7 +10,7 @@
   --font: Inter, "SF Pro Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --spring: cubic-bezier(0.32, 1.12, 0.4, 1);
-  --side-w: 252px;
+  --side-w: 300px;
   --rail-w: 62px;
   --tab-h: 38px;
   --gap: 8px;
