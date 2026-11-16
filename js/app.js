@@ -462,7 +462,9 @@
     if (sEl) { sEl.classList.remove('stack-pop'); void sEl.offsetWidth; sEl.classList.add('stack-pop'); setTimeout(() => sEl.classList.remove('stack-pop'), 500); }
   }
   /* Stack drag follows the widget drag: the tab floats with a transform on every move,
-     a placeholder keeps its slot, neighbours glide with flipAnimate, and the drop settles with a FLIP. */
+     a placeholder keeps its slot, neighbours glide with flipAnimate, and the drop settles with a FLIP.
+     While dragged the tab lives on document.body: .glass panels create a containing block for
+     position:fixed and clip overflow, which would otherwise trap the tab inside the sidebar. */
   function bindStackDrag(n, id) {
     n.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || (e.target.closest && e.target.closest('.x'))) return;
@@ -486,15 +488,15 @@
         d.active = true;
         d.ph = h('div', { class: 'tab-ph', 'aria-hidden': 'true' });
         d.ph.style.height = r.height + 'px';
-        list.insertBefore(d.ph, n);
+        n.parentElement.insertBefore(d.ph, n);
+        document.body.append(n);
         Object.assign(n.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', margin: '0', zIndex: '60', pointerEvents: 'none' });
         n.classList.add('lifting', 'dragging');
         document.body.style.userSelect = 'none';
       }
-      function clearDrag() {
+      function clearStyles() {
         Object.assign(n.style, { position: '', left: '', top: '', width: '', height: '', margin: '', zIndex: '', transform: '', pointerEvents: '' });
         n.classList.remove('lifting', 'dragging');
-        if (d.ph) d.ph.remove();
         document.body.style.userSelect = '';
       }
       const up = () => {
@@ -510,21 +512,24 @@
         if (d.over) d.over.classList.remove('stack-target');
         const from = n.getBoundingClientRect();
         if (target) {
-          // fly into the target tab, neighbours close the gap as the tab leaves the list
+          // fly into the target tab; the tabs below glide up as this one leaves the list
           const tr = target.getBoundingClientRect();
           const dx = (tr.left + tr.width / 2) - (from.left + from.width / 2);
           const dy = (tr.top + tr.height / 2) - (from.top + from.height / 2);
           const others = [...list.querySelectorAll('.tab')].filter((x) => x !== n);
           const startT = `translate(${d.tx}px, ${d.ty}px) scale(1.04)`;
-          clearDrag();
+          n.classList.remove('lifting', 'dragging');
+          document.body.style.userSelect = '';
+          d.ph.remove();
           const anim = n.animate([
             { transform: startT, opacity: 1 },
             { transform: `translate(${d.tx + dx}px, ${d.ty + dy}px) scale(0.85)`, opacity: 0 },
           ], { duration: 240, easing: 'cubic-bezier(.4,0,.2,1)' });
-          anim.onfinish = () => flipAnimate(others, () => stackDrop(id, target));
+          anim.onfinish = () => { n.remove(); flipAnimate(others, () => stackDrop(id, target)); };
         } else {
-          // no target: settle back into the slot, same as a widget drop
-          clearDrag();
+          // no target: put the tab back in its slot and settle it there, same as a widget drop
+          clearStyles();
+          d.ph.replaceWith(n);
           const to = n.getBoundingClientRect();
           const dx = from.left - to.left, dy = from.top - to.top;
           n.animate([
