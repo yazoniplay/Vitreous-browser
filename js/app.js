@@ -825,6 +825,29 @@
     if (tt.textContent !== title) tt.textContent = title;
     paintFav(ff, urlOf(t), letter);
   }
+  /* Sidebar rows animate their height, so the list below glides up and down as one piece instead of jumping. */
+  const SIDE_EASE = 'cubic-bezier(.32,.72,0,1)';
+  function sideCollapseOut(n) {
+    const h = n.offsetHeight, cs = getComputedStyle(n);
+    n.style.animation = 'none';
+    n.style.overflow = 'hidden';
+    n.style.pointerEvents = 'none';
+    const done = () => n.remove();
+    n.animate([
+      { height: h + 'px', paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1, transform: 'translateX(0) scale(1)' },
+      { height: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0, transform: 'translateX(-14px) scale(.94)' },
+    ], { duration: 240, easing: SIDE_EASE, fill: 'forwards' }).onfinish = done;
+    setTimeout(done, 300);
+  }
+  function sideExpandIn(n) {
+    const h = n.offsetHeight;
+    n.style.overflow = 'hidden';
+    const a = n.animate([
+      { height: '0px', opacity: 0, transform: 'translateX(-14px) scale(.94)' },
+      { height: h + 'px', opacity: 1, transform: 'translateX(0) scale(1)' },
+    ], { duration: 340, easing: SIDE_EASE });
+    a.onfinish = () => { n.style.overflow = ''; };
+  }
   function reconcile(list, entries, side) {
     const ind = list.querySelector('.indicator');
     const keyOf = (e) => (e.kind === 'stack' ? 's:' + e.st.id : e.t.id);
@@ -834,18 +857,24 @@
       if (keep.has(key)) return;
       if (!motionOn() || list.offsetParent === null) { n.remove(); return; }
       n.classList.add('leave');
+      if (side && n.classList.contains('side') && !n.classList.contains('in-stack')) { sideCollapseOut(n); return; }
       n.addEventListener('animationend', () => n.remove(), { once: true });
       setTimeout(() => n.remove(), 300); /* exit animation is 260-320ms; the gap closes as soon as it ends */
     });
     let prev = ind;
+    const fresh = [];
     entries.forEach((e) => {
       let n = existing.get(keyOf(e));
-      if (!n) { n = e.kind === 'stack' ? stackEl(e.st, side) : tabEl(e.t, side); if (motionOn()) n.classList.add('enter'); }
+      if (!n) {
+        n = e.kind === 'stack' ? stackEl(e.st, side) : tabEl(e.t, side);
+        if (motionOn()) { if (side && e.kind !== 'stack') fresh.push(n); else n.classList.add('enter'); }
+      }
       if (e.kind === 'stack') patchStack(n, e.st);
       else { patchTab(n, e.t); n.classList.toggle('in-stack', !!e.inStack); }
       if (prev.nextSibling !== n) list.insertBefore(n, prev.nextSibling);
       prev = n;
     });
+    fresh.forEach(sideExpandIn);
   }
 
   function placeIndicators() {
