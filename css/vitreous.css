@@ -2476,3 +2476,11 @@ html body .viewport.glass { border-radius: var(--radius-panels, var(--radius)); 
 html body .viewport.glass > .content,
 html body .viewport.glass iframe { border-radius: inherit; }
 
+
+/* Collapsed sidebar is fully hidden, like Dia: no icon rail, no hover reveal.
+   The toolbar's sidebar button (shown only while collapsed in side-tab mode) brings it back. */
+html body[data-pinned="0"] .side-wrap,
+html body[data-pinned="0"] .side-wrap[data-rail="1"],
+html body[data-pinned="0"] .side-wrap[data-rail="1"]:hover { width: 0 !important; min-width: 0 !important; overflow: hidden !important; }
+html body[data-pinned="0"] .side-wrap .sidebar { visibility: hidden !important; }
+html body[data-tabs="side"][data-pinned="0"] #tbSidebar { display: grid !important; }
