@@ -2658,3 +2658,8 @@ html body .side-wrap .tab { transition: background-color .18s ease, opacity .18s
 /* ===== Tab drag: the held tab follows the pointer exactly, with the sidebar's styles ===== */
 html body .drag-shell { position: fixed !important; left: 0 !important; top: 0 !important; width: 0 !important; height: 0 !important; z-index: 60; pointer-events: none; }
 html body .tab.lifting, html body .tab.dragging, html body .side-wrap .tab.dragging { transition: none !important; }
+
+/* ===== Start page: the default Centered layout sits in the middle of the page ===== */
+html body .page.layout-centered { display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; }
+html body .page.layout-centered > .start { margin: auto !important; }
+html body .page.layout-centered > .start + * { margin-top: 32px; }
