@@ -1231,7 +1231,14 @@
   }
   function fillView(v, t, u) {
     loadStart();
-    if (u === 'vitreous://newtab') { v.append(startPage()); setTimeout(loadEnd, 380); }
+    if (u === 'vitreous://newtab') {
+      const page = startPage();
+      v.append(page);
+      setTimeout(loadEnd, 380);
+      /* Safety net: entrance animations start items at opacity 0. If one never finishes (a stalled frame, a hidden tab),
+         the item would stay invisible. Drop the entrance class once the stagger is done so everything is shown. */
+      setTimeout(() => page.querySelectorAll('.rise').forEach((el) => el.classList.remove('rise')), 1400);
+    }
     else if (u === 'vitreous://blank') { v.append(h('div', { class: 'page' })); setTimeout(loadEnd, 120); }
     else if (u === 'vitreous://settings') { v.append(settingsPage()); setTimeout(loadEnd, 380); }
     else if (u === 'vitreous://error') { v.append(errorPage()); setTimeout(loadEnd, 160); }
