@@ -964,7 +964,7 @@
   };
   function libPage(icon, title, sub, tools, body, banner) {
     return h('div', { class: 'page' }, h('div', { class: 'lib' },
-      h('div', { class: 'lib-head rise', style: '--i:0' },
+      h('div', { class: 'lib-head glass rise', style: '--i:0' },
         h('div', { class: 'lib-title' }, h('span', { class: 'lib-mark' }, ico(icon)), h('div', {}, h('h2', { text: title }), sub)),
         h('div', { class: 'lib-tools' }, ...tools)),
       banner || null,
