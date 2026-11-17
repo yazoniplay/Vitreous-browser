@@ -2619,6 +2619,11 @@ html body .sidebar .address { width: 100% !important; height: 40px !important; p
 html body .side-wrap .new-tab { margin-top: auto !important; }
 html body .side-foot { margin-top: 8px !important; }
 
+/* ===== Address bar in the sidebar: the top toolbar folds away and the page rises into its space ===== */
+html body .toolbar { transition: height .42s cubic-bezier(.32,.72,0,1), padding .42s cubic-bezier(.32,.72,0,1), gap .42s cubic-bezier(.32,.72,0,1), opacity .24s ease; overflow: hidden; }
+html body[data-addr-pos="sidebar"][data-pinned="1"] .toolbar { height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; gap: 0 !important; opacity: 0; pointer-events: none; }
+html body[data-addr-pos="sidebar"][data-pinned="1"] .toolbar .icon-btn { display: none; }
+
 /* Per-tab page views: each tab keeps its own page element, hidden while another tab is shown */
 .view { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100%; height: 100%; position: relative; }
 .view > iframe { flex: 1 1 auto; width: 100%; height: 100%; border: 0; }
