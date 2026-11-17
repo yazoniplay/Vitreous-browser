@@ -1150,15 +1150,30 @@
     return page;
   }
 
+  /* Each tab keeps its own view, so switching tabs shows the page as it was instead of reloading it. */
+  const views = new Map();
   function renderViewport() {
     const t = cur();
     const u = urlOf(t);
     const key = t.id + '|' + u + '|' + t.reload;
     if (key === viewKey) return;
     viewKey = key;
-    const v = $('#content');
     clearInterval(dlTimer);
-    v.replaceChildren();
+    const host = $('#content');
+    for (const [id, rec] of [...views]) {
+      if (!tabs.some((x) => x.id === id)) { rec.el.remove(); views.delete(id); }
+    }
+    let rec = views.get(t.id);
+    if (!rec || rec.key !== key) {
+      if (rec) rec.el.remove();
+      rec = { key, el: h('div', { class: 'view' }) };
+      views.set(t.id, rec);
+      host.append(rec.el);
+      fillView(rec.el, t, u);
+    }
+    for (const c of [...host.children]) c.style.display = c === rec.el ? '' : 'none';
+  }
+  function fillView(v, t, u) {
     loadStart();
     if (u === 'vitreous://newtab') { v.append(startPage()); setTimeout(loadEnd, 380); }
     else if (u === 'vitreous://blank') { v.append(h('div', { class: 'page' })); setTimeout(loadEnd, 120); }
