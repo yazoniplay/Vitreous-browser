@@ -550,7 +550,10 @@
         d.ph.style.height = r.height + 'px';
         d.homeNext = n.nextSibling;
         n.parentElement.insertBefore(d.ph, n);
-        document.body.append(n);
+        /* the floating tab keeps the sidebar's styles: it sits in a sidebar-classed shell on the body */
+        d.shell = h('div', { class: 'side-wrap drag-shell' });
+        document.body.append(d.shell);
+        d.shell.append(n);
         d.hint = h('div', { class: 'drop-hint', 'aria-hidden': 'true' });
         document.body.append(d.hint);
         Object.assign(n.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', margin: '0', zIndex: '60', pointerEvents: 'none' });
@@ -558,6 +561,7 @@
         document.body.style.userSelect = 'none';
       }
       function clearStyles() {
+        if (d.shell) { d.shell.remove(); d.shell = null; }
         Object.assign(n.style, { position: '', left: '', top: '', width: '', height: '', margin: '', zIndex: '', transform: '', pointerEvents: '' });
         n.classList.remove('lifting', 'dragging');
         document.body.style.userSelect = '';
@@ -604,7 +608,7 @@
             { transform: startT, opacity: 1 },
             { transform: `translate(${d.tx + dx}px, ${d.ty + dy}px) scale(0.85)`, opacity: 0 },
           ], { duration: 240, easing: 'cubic-bezier(.4,0,.2,1)' });
-          anim.onfinish = () => { n.remove(); flipAnimate(others, () => stackDrop(id, target)); };
+          anim.onfinish = () => { n.remove(); if (d.shell) { d.shell.remove(); d.shell = null; } flipAnimate(others, () => stackDrop(id, target)); };
         } else {
           // no target: put the tab back in its slot and settle it there, same as a widget drop
           clearStyles();

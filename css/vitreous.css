@@ -2652,3 +2652,7 @@ html body .side-wrap .tab:active { transform: none !important; backdrop-filter: 
 html body .side-wrap .tab:hover { background: color-mix(in srgb, var(--text) 7%, transparent) !important; }
 html body .side-wrap .tab[aria-selected="true"]:hover { background: var(--tab-sel-bg, color-mix(in srgb, var(--accent) 12%, transparent)) !important; }
 html body .side-wrap .tab { transition: background-color .18s ease, opacity .18s ease !important; }
+
+/* ===== Tab drag: the held tab follows the pointer exactly, with the sidebar's styles ===== */
+html body .drag-shell { position: fixed !important; left: 0 !important; top: 0 !important; width: 0 !important; height: 0 !important; z-index: 60; pointer-events: none; }
+html body .tab.lifting, html body .tab.dragging, html body .side-wrap .tab.dragging { transition: none !important; }
