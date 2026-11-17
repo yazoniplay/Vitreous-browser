@@ -517,18 +517,25 @@
         const rr = next ? next.getBoundingClientRect() : null;
         const rel = rr ? (ev.clientY - rr.top) / rr.height : 0.5;
         const reorderable = !!(next && next.dataset.id && !next.classList.contains('in-stack') && !n.classList.contains('in-stack'));
-        const edge = reorderable ? (rel < 0.25 ? 'before' : rel > 0.75 ? 'after' : null) : null;
+        /* hysteresis: once in an edge zone, it takes a deeper move to leave, so the gap does not flicker */
+        const lo = d.reorderEl === next ? 0.15 : 0.25;
+        const edge = reorderable ? (rel < lo ? 'before' : rel > 1 - lo ? 'after' : null) : null;
         if (edge) {
           /* top or bottom edge of a tab: the placeholder slides to the new slot instead of making a stack */
           if (d.over) { d.over.classList.remove('stack-target'); d.over = null; showHint(null); }
           const after = edge === 'after';
           if (d.reorderEl !== next || d.reorderAfter !== after) {
             d.reorderEl = next; d.reorderAfter = after;
-            list.insertBefore(d.ph, after ? next.nextSibling : next);
+            const others = [...list.querySelectorAll('.tab')].filter((x) => x !== n);
+            flipAnimate(others, () => list.insertBefore(d.ph, after ? next.nextSibling : next));
           }
           return;
         }
-        if (d.reorderEl) { d.reorderEl = null; list.insertBefore(d.ph, d.homeNext); }
+        if (d.reorderEl) {
+          d.reorderEl = null;
+          const others = [...list.querySelectorAll('.tab')].filter((x) => x !== n);
+          flipAnimate(others, () => list.insertBefore(d.ph, d.homeNext));
+        }
         if (next !== d.over) {
           if (d.over) d.over.classList.remove('stack-target');
           d.over = next;
