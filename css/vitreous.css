@@ -2501,3 +2501,15 @@ html body .side-wrap, html body .side-wrap[data-rail="1"] { transition: width .3
 html body .side-wrap .sidebar { transition: box-shadow .3s ease, opacity .25s ease !important; }
 html body .app { transition: gap .34s cubic-bezier(.32,.72,0,1), padding .34s cubic-bezier(.32,.72,0,1) !important; }
 html body .side-wrap .lbl { transition: opacity .2s ease !important; transform: none !important; }
+
+/* Low-Spec: same collapse curve as the high-spec sidebar (one smooth ease-out, no overshoot) */
+body[data-fx="low"] .side-wrap, body[data-fx="low"] .side-wrap[data-rail="1"] { transition: width .34s cubic-bezier(.32,.72,0,1), flex-basis .34s cubic-bezier(.32,.72,0,1), min-width .34s cubic-bezier(.32,.72,0,1) !important; }
+body[data-fx="low"] .side-wrap .sidebar { transition: box-shadow .3s ease, opacity .25s ease !important; }
+body[data-fx="low"] .side-wrap .lbl { transition: opacity .2s ease !important; transform: none !important; }
+html body .app { transition: gap .34s cubic-bezier(.32,.72,0,1), padding .34s cubic-bezier(.32,.72,0,1) !important; }
+
+/* Pinned tiles: smaller, like Dia's favourites row */
+html body .quick-grid { grid-template-columns: repeat(3, 56px); gap: 8px; justify-content: start; }
+html body .pin { width: 56px; height: 56px; aspect-ratio: auto; border-radius: 14px; }
+html body .pin .fav.has-img img { padding: 11px; }
+html body .pin .fav:not(.has-img) { font-size: 18px; }
