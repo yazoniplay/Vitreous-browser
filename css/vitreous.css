@@ -2648,7 +2648,9 @@ html body .pin .fav:not(.has-img) { font-size: 13px !important; }
 html body .side-wrap .tab,
 html body .side-wrap .tab:hover,
 html body .side-wrap .tab:focus-visible,
-html body .side-wrap .tab:active { transform: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html body .side-wrap .tab:active { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+/* the held tab keeps its inline transform, so it can follow the pointer */
+html body .side-wrap .tab:not(.dragging):not(.lifting), html body .side-wrap .tab:not(.dragging):not(.lifting):hover, html body .side-wrap .tab:not(.dragging):not(.lifting):active { transform: none !important; }
 html body .side-wrap .tab:hover { background: color-mix(in srgb, var(--text) 7%, transparent) !important; }
 html body .side-wrap .tab[aria-selected="true"]:hover { background: var(--tab-sel-bg, color-mix(in srgb, var(--accent) 12%, transparent)) !important; }
 html body .side-wrap .tab { transition: background-color .18s ease, opacity .18s ease !important; }
