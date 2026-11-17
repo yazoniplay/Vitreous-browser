@@ -685,7 +685,7 @@
     if (id === activeId) {
       const rest = tabs.filter((x) => x.ws === t.ws);
       if (rest.length) activeId = rest[Math.min(pos, rest.length - 1)].id;
-      else { newTab(undefined, t.ws); return; }
+      else { newTab(undefined, t.ws, false); return; }
     }
     render();
   }
