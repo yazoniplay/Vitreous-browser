@@ -201,7 +201,6 @@
   let loadTimer = 0;
   let hasSavedState = false;
   let autoLowSpecNotice = false;
-  let engineThemeColor = '';
   let lastFailedUrl = '';
 
   const uid = () => Math.random().toString(36).slice(2, 9);
@@ -697,6 +696,7 @@
     render();
   }
   function navigate(t, input) {
+    t.themeColor = ""; /* a new page has its own colour; the old one no longer applies */
     const u = normalize(input);
     t.titleOverride = '';
     t.errorMessage = '';
@@ -793,7 +793,7 @@
     $('#wall').style.backgroundImage = wall ? `url("${wall.replace(/["\\\n\r]/g, (c) => encodeURIComponent(c))}")` : '';
     const r = document.documentElement.style;
     r.setProperty('--accent', S.accent);
-    r.setProperty('--dynamic-color', engineThemeColor || S.accent);
+    r.setProperty('--dynamic-color', (cur() && cur().themeColor) || S.accent);
     r.setProperty('--dynamic-intensity', String(S.dynamicTheme ? S.dynamicIntensity : 0));
     r.setProperty('--sidebar-dyn', S.sidebarDynamicIntensity + '%');
     /* glass transparency: 0 = solid panel, 100 = clear glass. Only the panel's relation to the background changes. */
@@ -2553,7 +2553,7 @@
   window.vitreousEngine = {
     onThemeColorChange(hexCode) {
       if (!isHex(hexCode)) return false;
-      engineThemeColor = hexCode;
+      if (cur()) cur().themeColor = hexCode; /* the colour belongs to the tab that reported it */
       apply();
       return true;
     },
