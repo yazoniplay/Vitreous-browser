@@ -706,9 +706,15 @@
     const inSide = S.addrPosition === 'sidebar' && S.tabs !== 'top';
     b.dataset.addrPos = inSide ? 'sidebar' : S.addrPosition === 'left' ? 'left' : 'center';
     /* back, forward and reload live in the sidebar header; with tabs on top there is no sidebar, so they return to the toolbar */
-    const navHost = S.tabs !== 'top' ? $('#sideNav') : $('.nav-l');
+    /* collapsed (side tabs): back, forward, reload and the sidebar toggle sit on the left of the toolbar, as in Dia */
+    const navHost = S.tabs !== 'top' && !S.collapsed ? $('#sideNav') : $('.nav-l');
     if (navHost) ['back', 'forward', 'reload'].forEach((id) => { const el = $('#' + id); if (el && el.parentNode !== navHost) navHost.append(el); });
     /* with tabs on the side, the bookmarks bar moves into the sidebar under the pinned tiles; with tabs on top it returns above the page */
+    const tbSide = $('#tbSidebar');
+    if (tbSide) {
+      const leftHost = S.collapsed && S.tabs !== 'top' ? $('.nav-l') : $('.nav-r');
+      if (tbSide.parentNode !== leftHost || leftHost.firstElementChild !== tbSide) leftHost.prepend(tbSide);
+    }
     /* the workspace switcher lives in the sidebar footer, as in Arc */
     const spEl = $('#spaces'), footEl = $('.side-foot');
     if (spEl && footEl && spEl.parentElement !== footEl) footEl.prepend(spEl);
