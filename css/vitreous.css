@@ -2710,3 +2710,13 @@ html body .side-wrap .sidebar::after {
 }
 body[data-fx="low"] html body .side-wrap .sidebar::before,
 body[data-fx="low"] html body .side-wrap .sidebar::after { display: none !important; }
+
+/* ===== Low-Spec sidebar glass: no blur, so the glass comes from a light sheen, a faint tint and a rim ===== */
+html body[data-fx="low"] .side-wrap .sidebar {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.03) 40%, rgba(255,255,255,0) 70%, rgba(255,255,255,.08) 100%),
+    color-mix(in srgb, var(--base) calc(6% * var(--glass-solid, 1)), transparent) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-right: 1px solid rgba(255,255,255,.4) !important;
+}
