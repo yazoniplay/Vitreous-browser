@@ -1724,6 +1724,124 @@
     return h('div', { class: 'page start-page layout-' + S.startLayout }, h('div', { class: 'start' }, kids), S.startWidgets && !cmd ? widgetsBlock() : null);
   }
 
+  /* ---------- glass popups: replace the browser's native dialogs, color pickers and tooltips ---------- */
+  function askConfirm({ title, message, ok = 'OK', danger = false }) {
+    return new Promise((resolve) => {
+      const prev = document.activeElement;
+      let wrap = null;
+      const done = (v) => {
+        removeEventListener('keydown', key, true);
+        wrap.classList.remove('open');
+        setTimeout(() => wrap.remove(), 180);
+        if (prev && prev.focus) prev.focus({ preventScroll: true });
+        resolve(v);
+      };
+      const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(false); } };
+      const cancelB = h('button', { class: 'btn', text: 'Cancel', onclick: () => done(false) });
+      const okB = h('button', { class: 'btn ' + (danger ? 'danger' : 'primary'), text: ok, onclick: () => done(true) });
+      wrap = h('div', { class: 'gdlg-wrap', onpointerdown: (e) => { if (e.target === wrap) done(false); } },
+        h('div', { class: 'gdlg glass', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': title },
+          h('h3', { text: title }), h('p', { text: message }), h('div', { class: 'btns' }, cancelB, okB)));
+      document.body.append(wrap);
+      addEventListener('keydown', key, true);
+      requestAnimationFrame(() => { wrap.classList.add('open'); cancelB.focus(); });
+    });
+  }
+  const hsvToHex = (hh, s, v) => {
+    const f = (n) => { const k = (n + hh / 60) % 6; return Math.round((v - v * s * Math.max(0, Math.min(k, 4 - k, 1))) * 255); };
+    return '#' + [f(5), f(3), f(1)].map((n) => n.toString(16).padStart(2, '0')).join('');
+  };
+  const hexToHsv = (hex) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return [0, 1, 1];
+    const n = parseInt(m[1], 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let hh = 0;
+    if (d) { if (mx === r) hh = ((g - b) / d) % 6; else if (mx === g) hh = (b - r) / d + 2; else hh = (r - g) / d + 4; hh *= 60; if (hh < 0) hh += 360; }
+    return [hh, mx ? d / mx : 0, mx];
+  };
+  function glassColor(get, put, label) {
+    const sw = h('button', { class: 'gcolor-sw', type: 'button', 'aria-label': label, style: `background:${get()}` });
+    let pop = null, hsv = [0, 1, 1];
+    const close = () => {
+      if (!pop) return;
+      pop.remove(); pop = null;
+      removeEventListener('pointerdown', outside, true);
+      removeEventListener('keydown', esc, true);
+    };
+    const outside = (e) => { if (pop && !pop.contains(e.target) && e.target !== sw) close(); };
+    const esc = (e) => { if (e.key === 'Escape') close(); };
+    const open = () => {
+      hsv = hexToHsv(get());
+      const cur = h('i', { class: 'gc-cur' });
+      const pad = h('div', { class: 'gc-pad' }, cur);
+      const hexIn = h('input', { class: 'gc-hex', maxlength: 7, spellcheck: 'false', 'aria-label': 'Hex color' });
+      const redraw = () => {
+        pad.style.setProperty('--gc-hue', `hsl(${hsv[0]} 100% 50%)`);
+        cur.style.left = hsv[1] * 100 + '%';
+        cur.style.top = (1 - hsv[2]) * 100 + '%';
+        if (document.activeElement !== hexIn) hexIn.value = hsvToHex(hsv[0], hsv[1], hsv[2]);
+      };
+      const paint = () => { redraw(); const hex = hsvToHex(hsv[0], hsv[1], hsv[2]); sw.style.background = hex; put(hex); };
+      const hue = glassSlider({ min: 0, max: 360, step: 1, value: Math.round(hsv[0]), label: 'Hue', onInput: (v) => { hsv[0] = v; paint(); } });
+      const fromPad = (e) => {
+        const r = pad.getBoundingClientRect();
+        hsv[1] = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        hsv[2] = Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height));
+        paint();
+      };
+      pad.addEventListener('pointerdown', (e) => { pad.setPointerCapture(e.pointerId); fromPad(e); });
+      pad.addEventListener('pointermove', (e) => { if (pad.hasPointerCapture(e.pointerId)) fromPad(e); });
+      hexIn.addEventListener('change', () => {
+        const v = hexIn.value.trim(), f = v.startsWith('#') ? v : '#' + v;
+        if (!/^#[0-9a-f]{6}$/i.test(f)) { toast('Enter a 6-digit hex color'); redraw(); return; }
+        put(f); sw.style.background = f; close(); open();
+      });
+      pop = h('div', { class: 'gc-pop glass', role: 'dialog', 'aria-label': label }, pad, hue, hexIn);
+      document.body.append(pop);
+      const r = sw.getBoundingClientRect();
+      pop.style.left = Math.max(8, Math.min(innerWidth - 240, r.left)) + 'px';
+      pop.style.top = (r.bottom + 8 + 240 > innerHeight ? Math.max(8, r.top - 248) : r.bottom + 8) + 'px';
+      redraw();
+      setTimeout(() => { if (pop) { addEventListener('pointerdown', outside, true); addEventListener('keydown', esc, true); } }, 0);
+    };
+    sw.addEventListener('click', () => (pop ? close() : open()));
+    return sw;
+  }
+  /* glass tooltips: take over every title="" so the browser's own tooltip never appears */
+  (() => {
+    const tip = h('div', { class: 'gtip', role: 'tooltip', 'aria-hidden': 'true' });
+    document.body.append(tip);
+    let tipEl = null, timer = 0;
+    const show = (el, txt) => {
+      tip.textContent = txt; tip.classList.add('on');
+      const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+      let y = r.bottom + 8;
+      if (y + th > innerHeight - 6) y = r.top - th - 8;
+      tip.style.left = Math.max(6, Math.min(innerWidth - tw - 6, r.left + r.width / 2 - tw / 2)) + 'px';
+      tip.style.top = Math.max(6, y) + 'px';
+    };
+    const hide = () => { clearTimeout(timer); tipEl = null; tip.classList.remove('on'); };
+    document.addEventListener('pointerover', (e) => {
+      const el = e.target.closest ? e.target.closest('[title],[data-tip]') : null;
+      if (el === tipEl) return;
+      hide();
+      if (!el) return;
+      if (el.hasAttribute('title')) {
+        const t = el.getAttribute('title');
+        el.dataset.tip = t; el.removeAttribute('title');
+        if (!el.hasAttribute('aria-label') && !el.textContent.trim()) el.setAttribute('aria-label', t);
+      }
+      const txt = el.dataset.tip;
+      if (!txt) return;
+      tipEl = el;
+      timer = setTimeout(() => { if (tipEl === el && el.isConnected) show(el, txt); }, 380);
+    }, true);
+    document.addEventListener('pointerdown', hide, true);
+    addEventListener('scroll', hide, true);
+    addEventListener('resize', hide);
+  })();
+
   /* ---------- settings page ---------- */
   function dropdown(options, value, onChange, label = 'Choose an option') {
     const current = () => options.find((x) => String(x[0]) === String(value))?.[1] || label;
@@ -1852,8 +1970,7 @@
     return wrap;
   }
   function colorInput(get, put, label) {
-    const i = h('input', { type: 'color', value: get(), 'aria-label': label, oninput: () => put(i.value) });
-    return i;
+    return glassColor(get, put, label);
   }
   function text(key, ph, width, max = 60, after) {
     const i = h('input', {
@@ -1960,10 +2077,10 @@
   function importSettings(file) {
     if (!file) return;
     if (file.size > 2e6) { toast('That file is too large'); return; }
-    file.text().then((t) => {
+    file.text().then(async (t) => {
       let o; try { o = JSON.parse(t); } catch { toast('Not a valid settings file'); return; }
       const next = sanitize(o && o.settings ? o.settings : o);
-      if (next.css.trim() && !confirm('This file includes custom CSS that will run in the browser UI. Only continue if you trust where it came from.')) return;
+      if (next.css.trim() && !(await askConfirm({ title: 'Import custom CSS?', message: 'This file includes custom CSS that runs in the browser UI. Only continue if you trust where it came from.', ok: 'Import', danger: true }))) return;
       replaceSettings(next); toast('Settings imported');
     });
   }
@@ -2053,11 +2170,11 @@
     const spBox = h('div', { class: 'ed' });
     const drawSpaces = () => {
       spBox.replaceChildren(...S.spaces.map((sp) => {
-        const c = h('input', { type: 'color', value: sp.color, 'aria-label': 'Color', oninput: () => { sp.color = c.value; buildSpaces(); save(); } });
+        const c = glassColor(() => sp.color, (v) => { sp.color = v; buildSpaces(); save(); }, 'Color');
         const n = h('input', { type: 'text', value: sp.name, maxlength: 24, 'aria-label': 'Name', oninput: () => { sp.name = n.value || 'Space'; buildSpaces(); save(); } });
-        return h('div', { class: 'er' }, c, n, btn('Delete', () => {
+        return h('div', { class: 'er' }, c, n, btn('Delete', async () => {
           if (S.spaces.length < 2) { toast('Keep at least one space'); return; }
-          if (!confirm(`Delete “${sp.name}”? Its tabs move to another space.`)) return;
+          if (!(await askConfirm({ title: 'Delete space?', message: `“${sp.name}” will be deleted. Its tabs move to another space.`, ok: 'Delete', danger: true }))) return;
           const fb = S.spaces.find((x) => x.id !== sp.id).id;
           tabs.forEach((t) => { if (t.ws === sp.id) t.ws = fb; });
           S.spaces = S.spaces.filter((x) => x.id !== sp.id);
@@ -2155,7 +2272,7 @@
         const sw = h('button', { class: 'switch', role: 'switch', 'aria-label': x.name, 'aria-checked': String(x.on), onclick: () => { x.on = !x.on; sw.setAttribute('aria-checked', String(x.on)); save(); } });
         return h('div', { class: 'er ext' }, h('span', { class: 'ext-ico', text: x.name[0].toUpperCase() }),
           h('div', { class: 'ext-meta' }, h('b', { text: x.name }), h('small', { text: `${x.desc} · v${x.ver}` })), sw,
-          ibtn('x', 'Remove ' + x.name, () => { if (!confirm(`Remove “${x.name}”?`)) return; S.extensions = S.extensions.filter((y) => y !== x); save(); drawExt(); }, 'danger'));
+          ibtn('x', 'Remove ' + x.name, async () => { if (!(await askConfirm({ title: 'Remove extension?', message: `“${x.name}” will be removed from Vitreous.`, ok: 'Remove', danger: true }))) return; S.extensions = S.extensions.filter((y) => y !== x); save(); drawExt(); }, 'danger'));
       }), h('div', { class: 'btns' },
         btn('Browse extensions', () => toast('The extension store arrives with the engine layer')),
         S.extDev ? btn('Load unpacked…', () => toast('Unpacked extensions need the engine layer')) : null,
@@ -2296,7 +2413,7 @@
       group('advanced', 'Advanced', gi++,
         h('div', { class: 'row col' }, h('div', {}, 'Custom CSS', h('small', { text: 'Applied on top of everything else. Variables like --accent, --radius and --blur are available.' })), css),
         row('Back up settings', 'Export to a file, or load one from another device', h('div', { class: 'btns' }, importFile, btn('Export', exportSettings), btn('Import…', () => importFile.click()))),
-        row('Reset all settings', 'Restores every default. Tabs stay open', btn('Reset…', () => { if (confirm('Reset every setting to its default?')) { setWall(''); replaceSettings(clone(DEFAULTS)); toast('Settings reset'); } }, 'danger'))),
+        row('Reset all settings', 'Restores every default. Tabs stay open', btn('Reset…', async () => { if (await askConfirm({ title: 'Reset all settings?', message: 'Every setting goes back to its default. Your tabs stay open.', ok: 'Reset', danger: true })) { setWall(''); replaceSettings(clone(DEFAULTS)); toast('Settings reset'); } }, 'danger'))),
 
 
       group('startup', 'When Vitreous starts', gi++,

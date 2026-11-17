@@ -2720,3 +2720,23 @@ html body[data-fx="low"] .side-wrap .sidebar {
   backdrop-filter: none !important;
   border-right: 1px solid rgba(255,255,255,.4) !important;
 }
+/* ---------- glass popups: dialog, color picker, tooltip ---------- */
+.gdlg-wrap { position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; padding: 20px; background: rgba(4, 6, 12, 0.38); opacity: 0; transition: opacity 0.18s; }
+.gdlg-wrap.open { opacity: 1; }
+.gdlg { width: min(380px, 100%); padding: 22px; border-radius: var(--radius); transform: scale(0.96); transition: transform 0.2s var(--ease); }
+.gdlg-wrap.open .gdlg { transform: none; }
+.gdlg h3 { margin: 0 0 8px; font-size: 17px; font-weight: 600; }
+.gdlg p { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.gdlg .btns { justify-content: flex-end; }
+.gdlg .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+
+.gcolor-sw { width: 30px; height: 30px; flex: none; border-radius: 10px; border: 2px solid var(--line); cursor: pointer; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.gc-pop { position: fixed; z-index: 92; width: 232px; padding: 12px; border-radius: 16px; display: grid; gap: 12px; }
+.gc-pad { position: relative; height: 150px; border-radius: 12px; cursor: crosshair; touch-action: none; background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, var(--gc-hue, #f00)); }
+.gc-cur { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4); pointer-events: none; }
+.gc-hex { width: 100%; height: 34px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--field); color: var(--text); font: inherit; font-size: 13px; outline: 0; }
+
+.gtip { position: fixed; z-index: 90; left: 0; top: 0; max-width: 260px; padding: 6px 10px; border-radius: 10px; font-size: 12px; line-height: 1.35; white-space: nowrap; color: #f2f4fa; background: rgba(20, 22, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); opacity: 0; transform: translateY(3px); transition: opacity 0.15s, transform 0.15s; pointer-events: none; }
+.gtip.on { opacity: 1; transform: none; }
+[data-theme="light"] .gtip { color: #14171f; background: rgba(255, 255, 255, 0.92); border-color: rgba(0, 0, 0, 0.1); }
+body[data-fx="low"] .gtip { backdrop-filter: none; }
