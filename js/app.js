@@ -76,6 +76,7 @@
     newTab: 'Alt+KeyT', closeTab: 'Alt+KeyW', focusAddr: 'Alt+KeyL', sidebar: 'Alt+KeyB', settings: 'Alt+Comma',
     palette: 'Ctrl+KeyK', reload: 'Alt+KeyR', back: 'Alt+ArrowLeft', forward: 'Alt+ArrowRight',
     nextTab: 'Alt+ArrowDown', prevTab: 'Alt+ArrowUp', home: 'Alt+KeyH', bookmark: 'Ctrl+KeyD', theme: '', layout: '',
+    littleWin: 'Ctrl+Shift+KeyN',
   };
   const DEFAULTS = {
     /* appearance */
@@ -2996,6 +2997,7 @@
     ['nextTab', 'Next tab', () => stepTab(1)],
     ['prevTab', 'Previous tab', () => stepTab(-1)],
     ['home', 'Go home', goHome],
+    ['littleWin', 'Little Vitreous window', openLittle],
     ['bookmark', 'Bookmark this page', toggleBookmark],
     ['theme', 'Toggle dark / light', () => set('theme', document.body.dataset.theme === 'dark' ? 'light' : 'dark')],
     ['layout', 'Toggle tab layout (side / top)', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
@@ -3006,6 +3008,11 @@
     if (/^(Control|Alt|Shift|Meta)(Left|Right)$/.test(e.code)) return '';
     if (!(e.ctrlKey || e.metaKey || e.altKey)) return '';
     return [e.ctrlKey || e.metaKey ? 'Ctrl' : '', e.altKey ? 'Alt' : '', e.shiftKey ? 'Shift' : '', e.code].filter(Boolean).join('+');
+  }
+  /* Little Vitreous: a small, chrome-free window showing the same browser. It opens the app with #little, which hides the sidebar and toolbar */
+  function openLittle() {
+    const w = window.open(location.href.split('#')[0] + '#little', 'vitreous-little', 'popup=yes,width=560,height=360');
+    if (!w) toast('Allow pop-ups for this page to open Little Vitreous');
   }
   function openSettings(anchor) {
     const t = cur();
@@ -3116,6 +3123,7 @@
       noticeShown = localStorage.getItem('vitreous.lowSpecNoticeShown') === '1';
       if (!noticeShown) localStorage.setItem('vitreous.lowSpecNoticeShown', '1');
     } catch { /* show once per session if storage is unavailable */ }
+    if (location.hash === '#little') document.body.classList.add('little');
     if (!noticeShown) setTimeout(() => toast('Low-Spec Mode enabled for this device. You can turn it off in Settings.'), 500);
     save();
   }

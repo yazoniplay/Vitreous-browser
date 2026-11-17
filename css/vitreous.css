@@ -2748,3 +2748,8 @@ body[data-fx="low"] .gtip { backdrop-filter: none; }
 .gdlg-wide { width: min(480px, 100%); }
 .gdlg-css { display: block; width: 100%; min-height: 160px; margin: 0 0 18px; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--field); color: var(--text); font: 12.5px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; resize: vertical; outline: 0; }
 .gdlg-css:focus { border-color: var(--accent); }
+
+/* ===== Little Vitreous: the small window hides the sidebar and toolbar, leaving only the page ===== */
+body.little .side-wrap,
+body.little .toolbar { display: none !important; }
+body.little #main { padding: 0 !important; }
