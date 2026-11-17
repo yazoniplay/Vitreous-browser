@@ -2663,3 +2663,8 @@ html body .tab.lifting, html body .tab.dragging, html body .side-wrap .tab.dragg
 html body .page.layout-centered { display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; }
 html body .page.layout-centered > .start { margin: auto !important; }
 html body .page.layout-centered > .start + * { margin-top: 32px; }
+
+/* ===== Start page search: wider and taller by default, width set in Settings ===== */
+html body .start { max-width: var(--start-w, 760px) !important; }
+html body .start .address { height: 56px; border-radius: 18px; font-size: 15px; }
+html body .start .address input { font-size: 16px; }

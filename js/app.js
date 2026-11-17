@@ -94,7 +94,7 @@
     /* toolbar */
     btnBack: true, btnForward: true, btnReload: true, btnSidebar: false, btnPalette: false, btnSettings: false, bookmarkStar: true, bmBar: 'newtab', bmNames: true, toolbarPos: 'top', stripStyle: 'glass', tabFit: 'fit', shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
     /* start page */
-    startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startHint: true,
+    startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startWidth: 760, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
     bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES,
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
@@ -130,7 +130,7 @@
     tabRadius: [0, 36], panelRadius: [0, 36], addrRadius: [0, 36], wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], glassTransparency: [0, 100], glassRefraction: [0, 20], glassFrost: [0, 100], radius: [4, 36],
     rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
     dlParallel: [1, 8], pageZoom: [50, 300], minFont: [0, 24],
-    iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
+    iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], startWidth: [400, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
   };
   const FONTS = {
     system: 'Inter, "SF Pro Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif',
@@ -829,6 +829,7 @@
     r.setProperty('--tab-w', S.tabWidth + 'px');
     r.setProperty('--side-w', S.sideWidth + 'px');
     r.setProperty('--addr-w', S.addrWidth + 'px');
+    r.setProperty('--start-w', S.startWidth + 'px');
     r.setProperty('--radius-tabs', S.tabRadius + 'px');
     r.setProperty('--radius-panels', S.panelRadius + 'px');
     r.setProperty('--radius-addr', S.addrRadius + 'px');
@@ -2252,6 +2253,7 @@
         row('Clock', null, toggle('startClock')),
         row('24-hour clock', null, toggle('clock24')),
         row('Search box', null, toggle('startSearch')),
+        row('Search box width', null, range('startWidth', 400, 1100, 'px')),
         row('Bookmark tiles', null, toggle('startTiles')),
         row('Add button', 'Show the Add button under the bookmark tiles', toggle('startAdd')),
         row('Tile size', null, range('tileSize', 80, 160, 'px')),
