@@ -1331,6 +1331,8 @@
         views.set(tb.id, rec);
         host.append(rec.el);
         fillView(rec.el, tb, tu);
+        /* pressing in a pane makes its tab the active one, so its search and address go to that tab; the split stays open */
+        rec.el.addEventListener('pointerdown', () => { if (activeId !== tb.id) activate(tb.id); }, true);
       }
       return rec;
     });
