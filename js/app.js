@@ -604,7 +604,12 @@
         const target = d.over;
         if (d.over) d.over.classList.remove('stack-target');
         if (d.hint) { d.hint.remove(); d.hint = null; }
-        if (d.zone) { d.zone.remove(); d.zone = null; }
+        if (d.zone) {
+          /* the drop zone fades out rather than vanishing */
+          const z = d.zone; d.zone = null;
+          if (motionOn()) z.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease' }).onfinish = () => z.remove();
+          else z.remove();
+        }
         if (d.split && d.ph) {
           /* dropped on the right half: the dragged tab opens beside the current one */
           clearStyles();
@@ -1295,7 +1300,7 @@
   }
 
   /* Split View: two tabs side by side, 50/50. Null when off */
-  let splitPair = null;
+  let splitPair = null, lastSplit = false;
   function splitWith(id) {
     const left = cur();
     if (!left || left.id === id || !tabs.some((x) => x.id === id)) { render(); return; }
@@ -1330,6 +1335,15 @@
       return rec;
     });
     for (const c of [...host.children]) c.style.display = recs.some((r) => r.el === c) ? '' : 'none';
+    /* motion: opening a split slides the two pages in from their own sides; closing it settles the page back to full width */
+    const splitNow = !!splitPair;
+    if (splitNow !== lastSplit && motionOn()) {
+      recs.forEach((r, i) => {
+        const from = splitNow ? (i === 0 ? 'translateX(-18px)' : 'translateX(18px)') : 'scale(.985)';
+        r.el.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.32,.72,0,1)' });
+      });
+    }
+    lastSplit = splitNow;
   }
   function fillView(v, t, u) {
     loadStart();
