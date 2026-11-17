@@ -660,13 +660,13 @@
 
   /* ---------- tab actions ---------- */
   const newTabUrl = () => (S.newTabMode === 'blank' ? 'vitreous://blank' : S.newTabMode === 'home' && S.homepage ? S.homepage : 'vitreous://newtab');
-  function newTab(url = newTabUrl(), space = ws) {
+  function newTab(url = newTabUrl(), space = ws, focus = true) {
     const t = { id: uid(), ws: space, hist: [normalize(url)], i: 0, reload: 0 };
     tabs.push(t);
     ws = space;
     activeId = t.id;
     render();
-    if (['vitreous://newtab', 'vitreous://blank'].includes(urlOf(t))) focusAddr();
+    if (focus && ['vitreous://newtab', 'vitreous://blank'].includes(urlOf(t))) focusAddr();
   }
   /* moves a tab to just before or after another tab in the same row */
   function reorderTab(srcId, targetId, after) {
@@ -726,9 +726,11 @@
     ws = id;
     document.querySelectorAll('.tab-list').forEach((l) => { l.classList.add('ws-switch'); setTimeout(() => l.classList.remove('ws-switch'), 360); });
     const group = wsTabs();
-    if (group.length) activeId = group[group.length - 1].id;
-    else { newTab(undefined, id); return; }
-    render();
+    wsSwitching = true;
+    try {
+      if (group.length) { activeId = group[group.length - 1].id; render(); }
+      else newTab(undefined, id, false); /* switching never steals focus into the address bar */
+    } finally { wsSwitching = false; }
   }
 
   /* ---------- appearance ---------- */
@@ -910,6 +912,8 @@
     ], { duration: 300, easing: SIDE_EASE });
     a.onfinish = () => { n.style.overflow = ''; };
   }
+  /* true while a workspace switch renders: rows swap at once and the CSS slide-in plays instead */
+  let wsSwitching = false;
   function reconcile(list, entries, side) {
     const ind = list.querySelector('.indicator');
     const keyOf = (e) => (e.kind === 'stack' ? 's:' + e.st.id : e.t.id);
@@ -917,7 +921,7 @@
     const keep = new Set(entries.map(keyOf));
     existing.forEach((n, key) => {
       if (keep.has(key)) return;
-      if (!motionOn() || list.offsetParent === null) { n.remove(); return; }
+      if (!motionOn() || list.offsetParent === null || wsSwitching) { n.remove(); return; }
       n.classList.add('leave');
       if (side && n.classList.contains('side') && !n.classList.contains('in-stack')) { sideCollapseOut(n); return; }
       n.addEventListener('animationend', () => n.remove(), { once: true });
@@ -929,7 +933,7 @@
       let n = existing.get(keyOf(e));
       if (!n) {
         n = e.kind === 'stack' ? stackEl(e.st, side) : tabEl(e.t, side);
-        if (motionOn()) { if (side && e.kind !== 'stack') fresh.push(n); else n.classList.add('enter'); }
+        if (motionOn() && !wsSwitching) { if (side && e.kind !== 'stack') fresh.push(n); else n.classList.add('enter'); }
       }
       if (e.kind === 'stack') patchStack(n, e.st);
       else { patchTab(n, e.t); n.classList.toggle('in-stack', !!e.inStack); }
