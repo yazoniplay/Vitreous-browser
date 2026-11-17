@@ -2676,3 +2676,6 @@ html body .page.layout-centered > .start + * { margin-top: 32px; }
 html body .start { max-width: none !important; width: min(calc(var(--start-w, 760px) + 40px), 100%); }
 html body .start .address { width: var(--start-w, 760px) !important; max-width: 100% !important; height: 52px; }
 html body .start .address input { font-size: 16px; }
+
+/* ===== Phase 3: adaptive sidebar. The sidebar takes a share of the website colour, set by Website color intensity (default 35%). ===== */
+body[data-dynamic-theme="1"] .side-wrap .sidebar { background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), color-mix(in srgb, var(--base) calc(100% - var(--sidebar-dyn, 35%)), var(--dynamic-color) var(--sidebar-dyn, 35%)) !important; transition: background .6s ease !important; }

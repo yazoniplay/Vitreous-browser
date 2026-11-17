@@ -83,7 +83,7 @@
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
     glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, addrPosition: 'center', rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
-    dynamicTheme: false, dynamicIntensity: 18,
+    dynamicTheme: false, dynamicIntensity: 18, sidebarDynamicIntensity: 35,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
     /* layout */
@@ -130,7 +130,7 @@
     tabRadius: [0, 36], panelRadius: [0, 36], addrRadius: [0, 36], wallDim: [0, 85], wallBlur: [0, 40], blobs: [0, 150], blobSpeed: [0, 300], glassTransparency: [0, 100], glassRefraction: [0, 20], glassFrost: [0, 100], radius: [4, 36],
     rim: [0, 100], shadow: [0, 100], border: [0, 3], fontScale: [80, 140], gap: [0, 18],
     dlParallel: [1, 8], pageZoom: [50, 300], minFont: [0, 24],
-    iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], startWidth: [400, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30],
+    iconSize: [14, 26], iconStroke: [10, 30], sideWidth: [200, 380], tabWidth: [110, 320], addrWidth: [360, 1100], startWidth: [400, 1100], tileSize: [80, 160], fontScale: [50, 150], dynamicIntensity: [0, 30], sidebarDynamicIntensity: [0, 100],
   };
   const FONTS = {
     system: 'Inter, "SF Pro Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif',
@@ -795,6 +795,7 @@
     r.setProperty('--accent', S.accent);
     r.setProperty('--dynamic-color', engineThemeColor || S.accent);
     r.setProperty('--dynamic-intensity', String(S.dynamicTheme ? S.dynamicIntensity : 0));
+    r.setProperty('--sidebar-dyn', S.sidebarDynamicIntensity + '%');
     /* glass transparency: 0 = solid panel, 100 = clear glass. Only the panel's relation to the background changes. */
     const gl = S.glassTransparency / 100;
     const tintV = String(0.30 - gl * 0.28);
@@ -2181,7 +2182,9 @@
         row('Follow system reduced-motion', 'Off by default. Turn on to let your OS "reduce animations" setting disable them', toggle('respectReducedMotion')),
         row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
         row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
-        row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%'))),
+        row('Calm mode', 'A calm, quiet browser: solid glass, no frost or refraction, a lavender accent, command start page, pill tabs', btn('Apply', calmMode)),
+        row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%')),
+        row('Website color intensity', 'How strongly the website color tints the sidebar', range('sidebarDynamicIntensity', 0, 100, '%'))),
 
       group('physics', 'Glass Physics', gi++,
         h('div', { class: 'warn', text: 'Fine-tune the physical properties of the glass.' }),
@@ -2422,7 +2425,7 @@
     c.push(
       ['Toggle animations', '', () => set('motion', !S.motion)],
       ['Toggle Low-Spec Mode', '', () => set('lowfx', !S.lowfx)],
-      ['Test dynamic theme color', '', () => {
+      ['Test sidebar color', '', () => {
         if (!S.dynamicTheme) set('dynamicTheme', true);
         const hex = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
         window.vitreousEngine.onThemeColorChange(hex);
@@ -2537,6 +2540,13 @@
   function toast(msg) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  /* Calm Mode: a quiet preset built from the roadmap values */
+  function calmMode() {
+    set('glassTransparency', 0); set('glassFrost', 0); set('glassRefraction', 0); set('spotlightIntensity', 0);
+    set('accent', '#d4c5e8'); set('startLayout', 'command'); set('tabShape', 'pill');
+    toast('Calm mode on');
   }
 
   /* Stable UI-facing adapter. A native CEF host can call these same hooks later. */
