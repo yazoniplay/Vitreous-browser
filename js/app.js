@@ -1337,6 +1337,8 @@
       return rec;
     });
     for (const c of [...host.children]) c.style.display = recs.some((r) => r.el === c) ? '' : 'none';
+    /* pane order follows the pair (left, then right) with CSS order, not DOM moves, so no page reloads */
+    recs.forEach((r, i) => { r.el.style.order = splitPair ? String(i) : ''; });
     /* motion: opening a split slides the two pages in from their own sides; closing it settles the page back to full width */
     const splitNow = !!splitPair;
     if (splitNow !== lastSplit && motionOn()) {
