@@ -2484,3 +2484,9 @@ html body[data-pinned="0"] .side-wrap[data-rail="1"],
 html body[data-pinned="0"] .side-wrap[data-rail="1"]:hover { width: 0 !important; min-width: 0 !important; overflow: hidden !important; }
 html body[data-pinned="0"] .side-wrap .sidebar { visibility: hidden !important; }
 html body[data-tabs="side"][data-pinned="0"] #tbSidebar { display: grid !important; }
+
+/* More glass: frosted panel, a soft glass card behind the pinned grid (like Dia's group card), and glass hover on rows */
+body[data-fx="high"] .side-wrap .sidebar { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.06)) !important; -webkit-backdrop-filter: blur(calc(var(--blur) + 36px)) saturate(190%); backdrop-filter: blur(calc(var(--blur) + 36px)) saturate(190%); }
+body[data-fx="high"] .side-wrap .quick { background: rgba(255,255,255,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 24px -14px rgba(0,0,0,.35); border-radius: 14px; padding: 10px; margin-top: 12px; }
+body[data-fx="high"] .side-wrap .tab:hover { background: rgba(255,255,255,.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+body[data-fx="high"] .side-wrap .pin { background: rgba(255,255,255,.14); }
