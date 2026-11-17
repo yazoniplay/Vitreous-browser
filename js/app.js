@@ -84,6 +84,8 @@
     /* glass */
     glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, addrPosition: 'center', rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
     dynamicTheme: false, dynamicIntensity: 18, sidebarDynamicIntensity: 35, dynamicColor: '', iconService: false,
+    /* Air Traffic Control routes and per-site boosts */
+    routes: [], boosts: {},
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
     /* layout */
@@ -295,6 +297,15 @@
     if (Array.isArray(src.bookmarks)) {
       out.bookmarks = src.bookmarks.filter((x) => x && typeof x.url === 'string' && /^https?:\/\//i.test(x.url)).slice(0, 24)
         .map((x) => ({ name: str(x.name, 40) || str(x.url, 40), url: x.url.slice(0, 500) }));
+    }
+    if (Array.isArray(src.routes)) {
+      out.routes = src.routes.filter((x) => x && /^[a-z0-9.-]{1,253}$/i.test(String(x.host || '')) && typeof x.ws === 'string' && out.spaces.some((sp) => sp.id === x.ws))
+        .slice(0, 30).map((x) => ({ host: String(x.host).toLowerCase(), ws: x.ws }));
+    }
+    if (src.boosts && typeof src.boosts === 'object' && !Array.isArray(src.boosts)) {
+      out.boosts = {};
+      Object.keys(src.boosts).filter((k) => /^[a-z0-9.-]{1,253}$/i.test(k)).slice(0, 50)
+        .forEach((k) => { if (typeof src.boosts[k] === 'string') out.boosts[k.toLowerCase()] = src.boosts[k].slice(0, 20000); });
     }
     if (Array.isArray(src.startupPages)) out.startupPages = src.startupPages.filter((x) => typeof x === 'string' && /^https?:\/\//i.test(x)).slice(0, 8).map((x) => x.slice(0, 500));
     if (Array.isArray(src.extensions)) {
@@ -660,8 +671,17 @@
 
   /* ---------- tab actions ---------- */
   const newTabUrl = () => (S.newTabMode === 'blank' ? 'vitreous://blank' : S.newTabMode === 'home' && S.homepage ? S.homepage : 'vitreous://newtab');
+  /* Air Traffic Control: the workspace a site is routed to, or null */
+  function routeFor(url) {
+    if (!/^https?:\/\//i.test(url)) return null;
+    let host;
+    try { host = new URL(url).hostname.replace(/^www\./, '').toLowerCase(); } catch { return null; }
+    return S.routes.find((r) => (host === r.host || host.endsWith('.' + r.host)) && S.spaces.some((x) => x.id === r.ws)) || null;
+  }
   function newTab(url = newTabUrl(), space = ws, focus = true) {
-    const t = { id: uid(), ws: space, hist: [normalize(url)], i: 0, reload: 0 };
+    const u0 = normalize(url), rt = routeFor(u0);
+    if (rt) space = rt.ws;
+    const t = { id: uid(), ws: space, hist: [u0], i: 0, reload: 0 };
     tabs.push(t);
     ws = space;
     activeId = t.id;
@@ -699,6 +719,8 @@
   function navigate(t, input) {
     t.themeColor = ""; /* a new page has its own colour; the old one no longer applies */
     const u = normalize(input);
+    const rt = routeFor(u);
+    if (rt && rt.ws !== t.ws) { newTab(u, rt.ws); return; } /* a routed site opens in its own workspace */
     t.titleOverride = '';
     t.errorMessage = '';
     if (u !== 'vitreous://error') lastFailedUrl = '';
@@ -1785,6 +1807,43 @@
       requestAnimationFrame(() => { wrap.classList.add('open'); cancelB.focus(); });
     });
   }
+  /* per-site boost: a glass modal with a CSS box */
+  function openBoost(host = '') {
+    const prev = document.activeElement;
+    let wrap = null;
+    const close = () => {
+      removeEventListener('keydown', key, true);
+      wrap.classList.remove('open');
+      setTimeout(() => wrap.remove(), 180);
+      if (prev && prev.focus) prev.focus({ preventScroll: true });
+    };
+    const key = (e) => { if (e.key === 'Escape') close(); };
+    const hostIn = h('input', { class: 'gdlg-input', type: 'text', value: host, placeholder: 'youtube.com', maxlength: 253, spellcheck: 'false', 'aria-label': 'Site' });
+    const css = h('textarea', { class: 'gdlg-css', spellcheck: 'false', 'aria-label': 'Boost CSS', placeholder: '/* Style this site, e.g. */\nbody { filter: contrast(1.1); }', text: host && S.boosts[host] ? S.boosts[host] : '' });
+    const commit = () => {
+      const v = hostIn.value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
+      if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(v)) { toast('Enter a domain like youtube.com'); return; }
+      if (host && host !== v) delete S.boosts[host];
+      S.boosts[v] = css.value.slice(0, 20000);
+      save(); close(); toast(`Boost saved for ${v}`);
+    };
+    wrap = h('div', { class: 'gdlg-wrap', onpointerdown: (e) => { if (e.target === wrap) close(); } },
+      h('div', { class: 'gdlg glass gdlg-wide', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Site boost' },
+        h('h3', { text: 'Boost a site' }),
+        h('p', { text: 'Custom CSS for one site. Boosts apply once the engine layer is connected, because a page in the preview frame cannot be styled from outside.' }),
+        hostIn, css,
+        h('div', { class: 'btns' }, h('button', { class: 'btn', text: 'Cancel', onclick: close }), h('button', { class: 'btn primary', text: 'Save boost', onclick: commit }))));
+    document.body.append(wrap);
+    addEventListener('keydown', key, true);
+    requestAnimationFrame(() => { wrap.classList.add('open'); (host ? css : hostIn).focus(); });
+  }
+  function addRoute(host, sp) {
+    S.routes = S.routes.filter((r) => r.host !== host);
+    S.routes.push({ host, ws: sp });
+    save();
+    toast(`${host} always opens in ${(S.spaces.find((x) => x.id === sp) || { name: 'this workspace' }).name}`);
+  }
+
   function askPrompt({ title, value = '', ok = 'OK', max = 24 }) {
     return new Promise((resolve) => {
       const prev = document.activeElement;
@@ -2096,15 +2155,15 @@
   };
   const ico = (n) => { const t = document.createElement('template'); t.innerHTML = `<svg viewBox="0 0 24 24" class="ico" aria-hidden="true">${ICONS[n]}</svg>`; return t.content.firstChild; };
   const GROUP_ICON = { appearance: 'palette', wallpaper: 'image', glass: 'drop', physics: 'sliders', type: 'type', layout: 'layout', tabs: 'tabs', spaces: 'layers', toolbar: 'sliders', start: 'home', widgets: 'grid', search: 'search', privacy: 'shield',
-    startup: 'power', addrbar: 'search', cookies: 'drop', perms: 'lock', secure: 'shield', clear: 'trash', dlset: 'download', lang: 'globe', a11y: 'access', perf: 'cpu', network: 'globe', extensions: 'puzzle', about: 'info', shortcuts: 'keyboard', palette: 'command', advanced: 'code' };
+    startup: 'power', addrbar: 'search', cookies: 'drop', perms: 'lock', secure: 'shield', clear: 'trash', dlset: 'download', lang: 'globe', a11y: 'access', perf: 'cpu', network: 'globe', extensions: 'puzzle', about: 'info', routes: 'layers', boosts: 'code', shortcuts: 'keyboard', palette: 'command', advanced: 'code' };
   const SECTIONS = [
     ['appearance', 'Appearance', 'palette', 'Themes, colors, wallpaper, glass, fonts, layout and toolbar', ['appearance', 'wallpaper', 'glass', 'physics', 'type', 'layout', 'tabs', 'toolbar', 'spaces']],
-    ['startup', 'On Startup', 'power', 'What opens when Vitreous starts and on new tabs', ['startup', 'start', 'widgets']],
+    ['startup', 'On Startup', 'power', 'What opens when Vitreous starts and on new tabs', ['startup', 'start', 'widgets', 'routes']],
     ['search', 'Search Engine', 'search', 'Default and custom search engines, address bar suggestions', ['search', 'addrbar']],
     ['privacy', 'Privacy & Security', 'shield', 'Tracking, cookies, permissions, secure connections and clearing data', ['privacy', 'cookies', 'perms', 'secure', 'clear']],
     ['downloads', 'Downloads', 'download', 'Where files are saved and how downloads behave', ['dlset']],
     ['access', 'Languages & Accessibility', 'globe', 'Language, spell check, zoom, contrast, keyboard shortcuts', ['lang', 'a11y', 'shortcuts', 'palette']],
-    ['system', 'System & Performance', 'cpu', 'Hardware, memory, network, backup and reset', ['perf', 'network', 'advanced']],
+    ['system', 'System & Performance', 'cpu', 'Hardware, memory, network, backup and reset', ['perf', 'network', 'advanced', 'boosts']],
     ['extensions', 'Extensions', 'puzzle', 'Installed extensions and developer options', ['extensions']],
     ['about', 'About Vitreous', 'info', 'Version, updates and project information', ['about']],
   ];
@@ -2341,6 +2400,34 @@
         S.extensions.length ? null : h('span', { class: 'lib-url', text: 'No extensions installed.' })));
     };
     drawPages(); drawExt();
+    const routeBox = h('div', { class: 'ed' });
+    const drawRoutes = () => {
+      routeBox.replaceChildren(...S.routes.map((r) => {
+        const hostIn = h('input', { type: 'text', value: r.host, maxlength: 120, spellcheck: 'false', 'aria-label': 'Site', style: 'max-width:200px',
+          onchange: () => {
+            const v = hostIn.value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
+            if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(v)) { toast('Enter a domain like youtube.com'); hostIn.value = r.host; return; }
+            r.host = v; save(); drawRoutes();
+          } });
+        const sp = dropdown(S.spaces.map((x) => [x.id, x.name]), r.ws, (v) => { r.ws = v; save(); }, 'Workspace');
+        return h('div', { class: 'er' }, hostIn, sp, ibtn('x', 'Remove route', () => { S.routes = S.routes.filter((x) => x !== r); save(); drawRoutes(); }, 'danger'));
+      }), h('div', { class: 'btns' }, btn('Add route', () => {
+        if (S.routes.length >= 30) { toast('Limit of 30 routes'); return; }
+        S.routes.push({ host: 'youtube.com', ws: S.spaces[0].id }); save(); drawRoutes();
+      })));
+    };
+    drawRoutes();
+    const boostBox = h('div', { class: 'ed' });
+    const drawBoosts = () => {
+      const hosts = Object.keys(S.boosts);
+      boostBox.replaceChildren(...(hosts.length ? hosts.map((hst) => h('div', { class: 'er' },
+        h('span', { text: hst, style: 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis' }),
+        btn('Edit', () => { openBoost(hst); }),
+        ibtn('x', 'Remove boost', () => { delete S.boosts[hst]; save(); drawBoosts(); }, 'danger')))
+        : [h('div', { class: 'lib-url', text: 'No site boosts yet.' })]),
+        h('div', { class: 'btns' }, btn('Add boost', () => openBoost(''))));
+    };
+    drawBoosts();
     const auroraSw = swatches(Object.keys(AURORA), 'aurora', (k) => (k === 'custom' ? 'conic-gradient(#ff5e62, #ffd93b, #2fd180, #2b7fff, #b57bff, #ff5e62)' : `linear-gradient(135deg, ${AURORA[k].join(',')})`));
 
     const page = h('div', { class: 'settings' },
@@ -2554,6 +2641,12 @@
         row('Proxy', null, ddrop('proxy', [['system', 'Use system settings'], ['none', 'No proxy'], ['manual', 'Manual']], 'Proxy')),
         row('Proxy address', 'host:port, used when Proxy is Manual', text('proxyAddr', 'proxy.example.com:8080', '240px', 120))),
 
+      group('routes', 'Air Traffic Control', gi++,
+        h('div', { class: 'warn', text: 'A site on a route always opens in the workspace you pick, whichever tab opens it.' }), routeBox),
+
+      group('boosts', 'Site boosts', gi++,
+        h('div', { class: 'warn', text: 'Custom CSS per site. Right-click a tab to add one. Boosts apply once the engine layer is connected.' }), boostBox),
+
       group('extensions', 'Extensions', gi++,
         h('div', { class: 'warn', text: 'Preview list. Extensions run once the engine layer is connected.' }), extBox,
         row('Developer mode', 'Shows options for loading unpacked extensions', toggle('extDev', () => drawExt()))),
@@ -2626,6 +2719,7 @@
       ['Open Bookmarks', '', () => navigate(cur(), 'vitreous://bookmarks')],
       ['Toggle top / side tab layout', '', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
       ['Export settings', '', () => { openSettings('grp-advanced'); }],
+      ['Boost this site…', '', () => openBoost(hostOf(urlOf(cur())).replace(/^www\./, ''))],
     );
     S.commands.forEach((cm) => c.push([cm.name, 'custom', () => {
       if (cm.kind === 'url') navigate(cur(), cm.target);
@@ -2859,6 +2953,11 @@
           activeId = id; render();
         }],
         ['New tab', () => newTab()],
+        ...(() => {
+          const tt = tabs.find((x) => x.id === id);
+          const host = tt && /^https?:\/\//i.test(urlOf(tt)) ? hostOf(urlOf(tt)).replace(/^www\./, '') : '';
+          return host ? [['Boost this site…', () => openBoost(host)], ['Always open this site in this workspace', () => addRoute(host, tt.ws)]] : [];
+        })(),
       ]);
       return;
     }
