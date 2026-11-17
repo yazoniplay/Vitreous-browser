@@ -83,7 +83,7 @@
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
     glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, addrPosition: 'center', rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
-    dynamicTheme: false, dynamicIntensity: 18, sidebarDynamicIntensity: 35, dynamicColor: '',
+    dynamicTheme: false, dynamicIntensity: 18, sidebarDynamicIntensity: 35, dynamicColor: '', iconService: false,
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
     /* layout */
@@ -1209,12 +1209,9 @@
 
   /* Each tab keeps its own view, so switching tabs shows the page as it was instead of reloading it. */
   const views = new Map();
-  /* average colour of a site's favicon. Only works when the site allows cross-origin reads; otherwise resolves to null */
-  function faviconColor(pageUrl) {
+  /* average colour of an icon image. Resolves to null when the image cannot be read (no cross-origin permission) */
+  function sampleIcon(src) {
     return new Promise((resolve) => {
-      let o;
-      try { o = new URL(pageUrl); } catch { return resolve(null); }
-      if (!/^https?:$/.test(o.protocol)) return resolve(null);
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
@@ -1234,8 +1231,18 @@
         } catch { resolve(null); }
       };
       img.onerror = () => resolve(null);
-      img.src = o.origin + '/favicon.ico';
+      img.src = src;
     });
+  }
+  /* site's own icon first; the favicon service only when the user has turned it on, since it sends the domain to Google */
+  async function faviconColor(pageUrl) {
+    let o;
+    try { o = new URL(pageUrl); } catch { return null; }
+    if (!/^https?:$/.test(o.protocol)) return null;
+    const srcs = [o.origin + '/favicon.ico'];
+    if (S.iconService) srcs.push('https://www.google.com/s2/favicons?domain=' + encodeURIComponent(o.hostname) + '&sz=64');
+    for (const src of srcs) { const hex = await sampleIcon(src); if (hex) return hex; }
+    return null;
   }
 
   function renderViewport() {
@@ -2363,7 +2370,8 @@
         row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
         row('Calm mode', 'A calm, quiet browser.', calmSwitch()),
         row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%')),
-        row('Website color intensity', 'How strongly the website color tints the sidebar', range('sidebarDynamicIntensity', 0, 100, '%'))),
+        row('Website color intensity', 'How strongly the website color tints the sidebar', range('sidebarDynamicIntensity', 0, 100, '%')),
+        row('Icon service fallback', 'When a site blocks its icon, read it through Google’s favicon service. Sends the site’s domain to Google', toggle('iconService'))),
 
       group('physics', 'Glass Physics', gi++,
         h('div', { class: 'warn', text: 'Fine-tune the physical properties of the glass.' }),
