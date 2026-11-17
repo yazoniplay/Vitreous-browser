@@ -892,8 +892,8 @@
 
   /* ---------- loading indicator ---------- */
   const loadbar = () => $('#loadbar');
-  function loadStart() { clearTimeout(loadTimer); const l = loadbar(); l.className = 'loadbar'; void l.offsetWidth; l.className = 'loadbar loading'; loadTimer = setTimeout(loadEnd, 9000); }
-  function loadEnd() { clearTimeout(loadTimer); const l = loadbar(); if (l.classList.contains('loading')) l.className = 'loadbar finish'; }
+  function loadStart() { clearTimeout(loadTimer); $('.address')?.classList.add('loading'); const l = loadbar(); l.className = 'loadbar'; void l.offsetWidth; l.className = 'loadbar loading'; loadTimer = setTimeout(loadEnd, 9000); }
+  function loadEnd() { clearTimeout(loadTimer); $('.address')?.classList.remove('loading'); const l = loadbar(); if (l.classList.contains('loading')) l.className = 'loadbar finish'; }
 
   function errorPage() {
     const retry = () => {
