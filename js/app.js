@@ -811,9 +811,9 @@
       h('span', { class: 'fav', 'aria-hidden': 'true' }),
       h('span', { class: 't' }),
       h('span', {
-        class: 'x', role: 'button', 'aria-label': 'Close tab', text: '×',
+        class: 'x', role: 'button', 'aria-label': 'Close tab',
         onclick: (e) => { e.stopPropagation(); closeTab(t.id); },
-      }));
+      }, ico('x')));
     bindStackDrag(n, t.id);
     return n;
   }
@@ -2659,17 +2659,7 @@
     });
   }, { passive: true });
 
-  addEventListener('pointermove', (e) => {
-    const on = crazyOn();
-    document.querySelectorAll('.tab .x').forEach((x) => {
-      if (!on) { if (x.style.translate) x.style.translate = ''; return; }
-      const r = x.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-      const d = Math.hypot(dx, dy);
-      if (d > 0 && d < 40) x.style.translate = `${(dx / d * 4).toFixed(2)}px ${(dy / d * 4).toFixed(2)}px`;
-      else if (x.style.translate) x.style.translate = '';
-    });
-  }, { passive: true });
+
 
   if ('ResizeObserver' in window) {
     const ro = new ResizeObserver(() => placeIndicators());

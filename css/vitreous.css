@@ -2175,9 +2175,7 @@ html body .tab { transition: transform calc(.18s * var(--m-scale)) var(--m-sprin
 html body .tab:hover { transform: translateY(-2px) scale(1.03); }
 html body .tab:active { transform: scale(0.98); }
 html body .tab[aria-selected="true"] { animation: tabBreathe 2s ease-in-out infinite; }
-html body .tab .x { transition: transform calc(.3s * var(--m-scale)) var(--m-spring), opacity .2s, background .2s; }
-html body .tab .x:hover { transform: rotate(90deg) scale(1.1); }
-html body .tab .x:active { transform: scale(0.9); }
+
 
 /* Address bar */
 html body .address:hover:not(:focus-within) { width: min(calc(var(--addr-w) + 30px), 100%); transform: translateY(-1px); transition: width calc(.2s * var(--m-scale)) ease-out, transform .2s ease-out, box-shadow .2s ease-out; }
@@ -2594,3 +2592,11 @@ body[data-theme="light"][data-fx="low"] .sidebar {
     color-mix(in srgb, #ffffff calc(35% + 45% * var(--glass-solid, 1)), transparent) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 1px rgba(0,0,0,.06), 0 12px 32px -20px rgba(0,0,0,.35) !important;
 }
+
+/* ===== Tab close button: a still target. No rotation, press or cursor-follow motion, so clicks land where the cursor is. ===== */
+html body .tab .x { width: 24px; height: 24px; border-radius: 8px; color: var(--muted); transform: none !important; translate: none !important; transition: opacity .15s ease, background .15s ease, color .15s ease !important; }
+html body .tab .x svg { width: 12px; height: 12px; stroke-width: 2.2; }
+html body .tab:hover .x { opacity: .8; }
+html body .tab .x:hover { opacity: 1; color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent); transform: none !important; }
+html body .tab .x:active { background: color-mix(in srgb, var(--text) 16%, transparent); transform: none !important; }
+html body .tab[aria-selected="true"] .x { opacity: .6; }
