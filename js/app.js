@@ -94,7 +94,7 @@
     /* toolbar */
     btnBack: true, btnForward: true, btnReload: true, btnSidebar: false, btnPalette: false, btnSettings: false, bookmarkStar: true, bmBar: 'newtab', bmNames: true, toolbarPos: 'top', stripStyle: 'glass', tabFit: 'fit', shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
     /* start page */
-    startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startWidth: 760, startHint: true,
+    startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startWidth: 760, startHint: true, calmOn: false,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
     bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES,
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
@@ -2182,7 +2182,7 @@
         row('Follow system reduced-motion', 'Off by default. Turn on to let your OS "reduce animations" setting disable them', toggle('respectReducedMotion')),
         row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
         row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
-        row('Calm mode', 'A calm, quiet browser: solid glass, no frost or refraction, a lavender accent, command start page, pill tabs', h('div', { class: 'btns' }, btn('Apply', () => calmMode(true)), btn('Turn off', () => calmMode(false)))),
+        row('Calm mode', 'A calm, quiet browser: solid glass, no frost or refraction, a lavender accent, command start page, pill tabs', toggle('calmOn', () => calmMode(S.calmOn))),
         row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%')),
         row('Website color intensity', 'How strongly the website color tints the sidebar', range('sidebarDynamicIntensity', 0, 100, '%'))),
 
