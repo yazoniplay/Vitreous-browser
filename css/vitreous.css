@@ -2609,8 +2609,8 @@ html body .tab[aria-selected="true"] .x { opacity: .6; }
    spacing 16 (logo to address, to pinned) / 12 (pinned to tabs) / 8 (between tabs). */
 html body .sidebar { gap: 0 !important; }
 html body .quick { margin-top: 16px !important; gap: 8px !important; }
-html body .quick-grid { grid-template-columns: repeat(4, 32px) !important; gap: 6px !important; justify-content: start; }
-html body .pin { width: 32px !important; height: 32px !important; aspect-ratio: auto !important; border-radius: 9px !important; }
+html body .quick-grid { grid-template-columns: repeat(3, 56px) !important; gap: 10px !important; justify-content: start; }
+html body .pin { width: 56px !important; height: 56px !important; aspect-ratio: auto !important; border-radius: 16px !important; }
 html body .quick-label { font-size: 10px !important; }
 html body .side-list { gap: 8px !important; margin-top: 12px !important; }
 html body .side-wrap .tab { height: 36px !important; border-radius: 8px !important; }

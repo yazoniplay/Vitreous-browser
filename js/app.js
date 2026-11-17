@@ -2421,7 +2421,7 @@
   function renderQuick() {
     const q = $('#quick');
     if (!q) return;
-    $('#quickGrid').replaceChildren(...(S.quickLinks || []).filter((l) => l && l.url && l.name).slice(0, 4).map((l) => {
+    $('#quickGrid').replaceChildren(...(S.quickLinks || []).filter((l) => l && l.url && l.name).slice(0, 3).map((l) => {
       const fav = h('span', { class: 'fav', 'aria-hidden': 'true' });
       paintFav(fav, l.url, (l.name[0] || '?').toUpperCase());
       return h('button', { type: 'button', class: 'pin', title: l.name + '  ·  ' + l.url, 'data-url': l.url, onclick: () => navigate(cur(), l.url) }, fav);
