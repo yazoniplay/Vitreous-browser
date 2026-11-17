@@ -435,7 +435,7 @@
   function toggleStack(id) { const st = stackOf(id); if (!st) return; st.open = !st.open; render(); }
   function newStackFrom(t) { const st = { id: uid(), name: STACK_NAME, color: ACCENTS[stacks.length % ACCENTS.length], ws: t.ws, open: true }; stacks.push(st); t.stack = st.id; render(); }
   function addToStack(t, st) { t.stack = st.id; render(); }
-  function renameStack(id) { const st = stackOf(id); if (!st) return; const n = prompt('Stack name', st.name); if (n && n.trim()) { st.name = n.trim().slice(0, 24); render(); } }
+  async function renameStack(id) { const st = stackOf(id); if (!st) return; const n = await askPrompt({ title: 'Stack name', value: st.name }); if (n && n.trim()) { st.name = n.trim().slice(0, 24); render(); } }
   function cycleStackColor(id) { const st = stackOf(id); if (!st) return; st.color = ACCENTS[(ACCENTS.indexOf(st.color) + 1) % ACCENTS.length]; render(); }
   function ungroupStack(id) { tabs.forEach((t) => { if (t.stack === id) delete t.stack; }); stacks = stacks.filter((s) => s.id !== id); render(); }
   /* closing a stack: header and its tabs fade out in a short stagger, then the stack and its tabs are removed */
@@ -633,20 +633,20 @@
     if (t.stack) out.push(['Remove from stack', () => { delete t.stack; render(); }]);
     return out;
   }
-  function renameSpace(id) { const sp = S.spaces.find((x) => x.id === id); if (!sp) return; const n = prompt('Workspace name', sp.name); if (n && n.trim()) { sp.name = n.trim().slice(0, 24); buildSpaces(); save(); } }
+  async function renameSpace(id) { const sp = S.spaces.find((x) => x.id === id); if (!sp) return; const n = await askPrompt({ title: 'Workspace name', value: sp.name }); if (n && n.trim()) { sp.name = n.trim().slice(0, 24); buildSpaces(); save(); } }
   function cycleSpaceColor(id) { const sp = S.spaces.find((x) => x.id === id); if (!sp) return; sp.color = ACCENTS[(ACCENTS.indexOf(sp.color) + 1) % ACCENTS.length]; buildSpaces(); save(); }
-  function newWorkspace() {
-    const n = prompt('Workspace name', 'Workspace');
+  async function newWorkspace() {
+    const n = await askPrompt({ title: 'Workspace name', value: 'Workspace' });
     if (!n || !n.trim()) return;
     const sp = { id: uid(), name: n.trim().slice(0, 24), color: ACCENTS[S.spaces.length % ACCENTS.length] };
     S.spaces.push(sp);
     buildSpaces(); save();
     switchSpace(sp.id);
   }
-  function deleteSpace(id) {
+  async function deleteSpace(id) {
     const sp = S.spaces.find((x) => x.id === id);
     if (!sp || S.spaces.length < 2) return;
-    if (!confirm(`Delete “${sp.name}” and close its tabs?`)) return;
+    if (!(await askConfirm({ title: 'Delete workspace?', message: `“${sp.name}” and its tabs will be closed.`, ok: 'Delete', danger: true }))) return;
     S.spaces = S.spaces.filter((x) => x.id !== id);
     tabs = tabs.filter((t) => t.ws !== id);
     stacks = stacks.filter((s) => s.ws !== id);
@@ -1745,6 +1745,30 @@
       document.body.append(wrap);
       addEventListener('keydown', key, true);
       requestAnimationFrame(() => { wrap.classList.add('open'); cancelB.focus(); });
+    });
+  }
+  function askPrompt({ title, value = '', ok = 'OK', max = 24 }) {
+    return new Promise((resolve) => {
+      const prev = document.activeElement;
+      let wrap = null;
+      const input = h('input', { class: 'gdlg-input', type: 'text', value, maxlength: String(max), spellcheck: 'false', 'aria-label': title });
+      const done = (v) => {
+        removeEventListener('keydown', key, true);
+        wrap.classList.remove('open');
+        setTimeout(() => wrap.remove(), 180);
+        if (prev && prev.focus) prev.focus({ preventScroll: true });
+        resolve(v);
+      };
+      const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(null); } };
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); done(input.value); } });
+      const cancelB = h('button', { class: 'btn', text: 'Cancel', onclick: () => done(null) });
+      const okB = h('button', { class: 'btn primary', text: ok, onclick: () => done(input.value) });
+      wrap = h('div', { class: 'gdlg-wrap', onpointerdown: (e) => { if (e.target === wrap) done(null); } },
+        h('div', { class: 'gdlg glass', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+          h('h3', { text: title }), input, h('div', { class: 'btns' }, cancelB, okB)));
+      document.body.append(wrap);
+      addEventListener('keydown', key, true);
+      requestAnimationFrame(() => { wrap.classList.add('open'); input.focus(); input.select(); });
     });
   }
   const hsvToHex = (hh, s, v) => {
