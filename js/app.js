@@ -1209,6 +1209,35 @@
 
   /* Each tab keeps its own view, so switching tabs shows the page as it was instead of reloading it. */
   const views = new Map();
+  /* average colour of a site's favicon. Only works when the site allows cross-origin reads; otherwise resolves to null */
+  function faviconColor(pageUrl) {
+    return new Promise((resolve) => {
+      let o;
+      try { o = new URL(pageUrl); } catch { return resolve(null); }
+      if (!/^https?:$/.test(o.protocol)) return resolve(null);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = c.height = 16;
+          const ctx = c.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0, 16, 16);
+          const d = ctx.getImageData(0, 0, 16, 16).data;
+          let r = 0, g = 0, b = 0, n = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] < 200) continue;
+            r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
+          }
+          if (n < 8) return resolve(null);
+          resolve('#' + [r, g, b].map((v) => Math.round(v / n).toString(16).padStart(2, '0')).join(''));
+        } catch { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = o.origin + '/favicon.ico';
+    });
+  }
+
   function renderViewport() {
     const t = cur();
     const u = urlOf(t);
@@ -1260,6 +1289,7 @@
           onclick: () => { chip.classList.add('out'); setTimeout(() => chip.remove(), 260); },
         }));
       v.append(frame, chip);
+      if (S.dynamicTheme) faviconColor(u).then((hex) => { if (hex && cur() === t && urlOf(t) === u) window.vitreousEngine.onThemeColorChange(hex); });
     }
   }
 
