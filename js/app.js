@@ -842,21 +842,21 @@
     n.style.pointerEvents = 'none';
     const done = () => n.remove();
     /* fade first, then collapse, so the old row never overlaps the row that slides up into its place */
-    n.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-12px)' }],
-      { duration: 110, easing: 'ease-out', fill: 'forwards' });
+    /* Dia-style: the row fades in place while the rows below glide up together; no sideways motion */
+    n.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'ease-out', fill: 'forwards' });
     n.animate([
       { height: h + 'px', paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom },
       { height: '0px', paddingTop: '0px', paddingBottom: '0px' },
-    ], { duration: 190, delay: 50, easing: SIDE_EASE, fill: 'forwards' }).onfinish = done;
-    setTimeout(done, 270);
+    ], { duration: 260, easing: SIDE_EASE, fill: 'forwards' }).onfinish = done;
+    setTimeout(done, 320);
   }
   function sideExpandIn(n) {
     const h = n.offsetHeight;
     n.style.overflow = 'hidden';
     const a = n.animate([
-      { height: '0px', opacity: 0, transform: 'translateX(-14px) scale(.94)' },
-      { height: h + 'px', opacity: 1, transform: 'translateX(0) scale(1)' },
-    ], { duration: 340, easing: SIDE_EASE });
+      { height: '0px', opacity: 0 },
+      { height: h + 'px', opacity: 1 },
+    ], { duration: 300, easing: SIDE_EASE });
     a.onfinish = () => { n.style.overflow = ''; };
   }
   function reconcile(list, entries, side) {
