@@ -1055,6 +1055,7 @@
       canceled: 'Canceled',
     }[x.state]);
     const ext = (n) => ((n.match(/\.([A-Za-z0-9]{1,5})$/) || [0, 'file'])[1]).toUpperCase();
+    const kindOf = (n) => { const e = ext(n).toLowerCase(); return ['pdf', 'doc', 'docx', 'txt', 'md', 'xls', 'xlsx', 'ppt', 'pptx'].includes(e) ? 'dl-doc' : ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'heic'].includes(e) ? 'dl-img' : ['mp4', 'mov', 'webm', 'mkv', 'mp3', 'wav', 'flac'].includes(e) ? 'dl-av' : ['zip', 'rar', '7z', 'tar', 'gz'].includes(e) ? 'dl-arc' : ['exe', 'msi', 'dmg', 'pkg', 'apk'].includes(e) ? 'dl-app' : 'dl-other'; };
     const setState = (x, s2) => { x.state = s2; save(); draw(); };
     const remove = (x) => { S.downloads = S.downloads.filter((y) => y !== x); save(); draw(); };
     function row(x) {
@@ -1072,7 +1073,7 @@
             : [actBtn('reset', 'Retry', () => { x.got = 0; setState(x, 'progress'); }), actBtn('trash', 'Remove from list', () => remove(x))];
       paint(); refs.set(x.id, paint);
       return h('div', { class: 'lib-row' },
-        h('div', { class: 'lib-main static' }, h('span', { class: 'dl-type', text: ext(x.name) }),
+        h('div', { class: 'lib-main static' }, h('span', { class: 'dl-type ' + kindOf(x.name), text: ext(x.name) }),
           h('span', { class: 'lib-text' }, h('span', { class: 'lib-name', text: x.name }), st, wrap)),
         ...acts);
     }

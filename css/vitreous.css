@@ -2524,3 +2524,51 @@ html body .pin .fav:not(.has-img) { font-size: 18px; }
 /* Low-Spec keeps the sweep but drops the blur, which is the costly part */
 body[data-fx="low"] .address::after { filter: none; }
 body[data-fx="low"] .address.loading::after { animation: addrSweep 1.6s ease-in-out infinite; opacity: .8; }
+
+/* ===== Library pages (History, Bookmarks, Downloads): polish pass ===== */
+.lib { max-width: 880px; gap: 22px; }
+.lib-head { padding: 22px 24px; border-radius: 22px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 13%, var(--field)), var(--field)); border: 1px solid var(--line); box-shadow: 0 14px 34px -24px rgba(0,0,0,.55); }
+.lib-title { gap: 16px; }
+.lib-title h2 { font-size: 26px; line-height: 1.15; }
+.lib-mark { width: 50px; height: 50px; border-radius: 17px; background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: color-mix(in srgb, var(--accent) 34%, transparent); }
+.lib-mark svg { width: 22px; height: 22px; }
+.lib-sub { font-size: 13px; margin-top: 3px; display: block; }
+.lib-tools { gap: 10px; }
+.lib-search { height: 38px; min-width: 240px; padding: 0 14px; transition: border-color .2s ease, box-shadow .2s ease; }
+.lib-search:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.lib-tools .btn.danger { height: 38px; }
+.lib-note { border-radius: 14px; padding: 12px 16px; }
+.lib-group { margin-bottom: 22px; }
+.lib-day { position: sticky; top: -40px; z-index: 2; margin: 0 0 10px 4px; padding: 10px 4px 8px; background: color-mix(in srgb, var(--base) 82%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.lib-card { border-radius: 20px; box-shadow: 0 16px 34px -28px rgba(0,0,0,.6); }
+.lib-row { min-height: 58px; padding: 4px 10px 4px 6px; transition: background .18s ease; animation: libIn .38s cubic-bezier(.32,.72,0,1) both; }
+.lib-row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.lib-main { padding: 10px 12px; border-radius: 14px; gap: 14px; }
+.lib-main:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.lib-fav { width: 30px; height: 30px; border-radius: 9px; }
+.lib-name { font-size: 14.5px; font-weight: 500; }
+.lib-url { font-size: 12px; opacity: .85; }
+.lib-meta { padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--text) 7%, transparent); font-size: 11.5px; }
+.lib-act { width: 34px; height: 34px; border-radius: 12px; opacity: .4; transition: opacity .18s ease, background .18s ease, transform .18s cubic-bezier(.32,.72,0,1); }
+.lib-act:hover { background: color-mix(in srgb, var(--text) 9%, transparent); transform: scale(1.08); }
+.lib-row:hover .lib-act, .lib-act:focus-visible { opacity: 1; }
+.lib-empty { padding: 72px 16px; }
+.lib-empty .lib-mark { width: 64px; height: 64px; border-radius: 22px; }
+.lib-add { padding: 14px; border-radius: 20px; background: var(--field); border: 1px solid var(--line); align-items: center; }
+.lib-add .lib-input:first-child { flex: 0 1 200px; }
+.lib-input { height: 38px; border-radius: 12px; transition: border-color .2s ease, box-shadow .2s ease; }
+.lib-input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.dl-type { width: 44px; height: 44px; border-radius: 14px; font-size: 10.5px; }
+.dl-doc { background: color-mix(in srgb, #4285f4 18%, transparent); color: #4285f4; }
+.dl-img { background: color-mix(in srgb, #d96570 18%, transparent); color: #d96570; }
+.dl-av { background: color-mix(in srgb, #9b72cb 20%, transparent); color: #9b72cb; }
+.dl-arc { background: color-mix(in srgb, #f9ab00 20%, transparent); color: #c98a00; }
+.dl-app { background: color-mix(in srgb, #34a853 18%, transparent); color: #34a853; }
+.dl-other { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.dl-bar { height: 5px; margin-top: 7px; }
+.dl-bar i { background: linear-gradient(90deg, var(--b1), var(--b2)); }
+.dl-bar.paused i { background: var(--muted); }
+@keyframes libIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 640px) { .lib-head { padding: 18px; } .lib-search { min-width: 0; flex: 1; } }
+body[data-fx="low"] .lib-day { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--base); }
+body[data-fx="low"] .lib-row { animation: none; }
