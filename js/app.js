@@ -514,6 +514,21 @@
         const el = document.elementFromPoint(ev.clientX, ev.clientY);
         const hit = el && el.closest && el.closest('.tab');
         const next = hit && hit !== n && hit.parentElement === list ? hit : null;
+        const rr = next ? next.getBoundingClientRect() : null;
+        const rel = rr ? (ev.clientY - rr.top) / rr.height : 0.5;
+        const reorderable = !!(next && next.dataset.id && !next.classList.contains('in-stack') && !n.classList.contains('in-stack'));
+        const edge = reorderable ? (rel < 0.25 ? 'before' : rel > 0.75 ? 'after' : null) : null;
+        if (edge) {
+          /* top or bottom edge of a tab: the placeholder slides to the new slot instead of making a stack */
+          if (d.over) { d.over.classList.remove('stack-target'); d.over = null; showHint(null); }
+          const after = edge === 'after';
+          if (d.reorderEl !== next || d.reorderAfter !== after) {
+            d.reorderEl = next; d.reorderAfter = after;
+            list.insertBefore(d.ph, after ? next.nextSibling : next);
+          }
+          return;
+        }
+        if (d.reorderEl) { d.reorderEl = null; list.insertBefore(d.ph, d.homeNext); }
         if (next !== d.over) {
           if (d.over) d.over.classList.remove('stack-target');
           d.over = next;
@@ -526,6 +541,7 @@
         d.active = true;
         d.ph = h('div', { class: 'tab-ph', 'aria-hidden': 'true' });
         d.ph.style.height = r.height + 'px';
+        d.homeNext = n.nextSibling;
         n.parentElement.insertBefore(d.ph, n);
         document.body.append(n);
         d.hint = h('div', { class: 'drop-hint', 'aria-hidden': 'true' });
@@ -552,6 +568,21 @@
         if (d.over) d.over.classList.remove('stack-target');
         if (d.hint) { d.hint.remove(); d.hint = null; }
         const from = n.getBoundingClientRect();
+        if (d.reorderEl) {
+          // dropped on an edge: the tab takes the placeholder's slot, the rest glides into place
+          const to = d.reorderEl.dataset.id, after = d.reorderAfter;
+          if (d.hint) { d.hint.remove(); d.hint = null; }
+          clearStyles();
+          d.ph.replaceWith(n);
+          const landed = n.getBoundingClientRect();
+          n.animate([
+            { transform: `translate(${from.left - landed.left}px, ${from.top - landed.top}px) scale(1.04)` },
+            { transform: 'translate(0px, 0px) scale(1)' },
+          ], { duration: 320, easing: FLIP_EASE });
+          reorderTab(id, to, after);
+          render();
+          return;
+        }
         if (target) {
           // fly into the target tab; the tabs below glide up as this one leaves the list
           const tr = target.getBoundingClientRect();
@@ -625,6 +656,14 @@
     activeId = t.id;
     render();
     if (['vitreous://newtab', 'vitreous://blank'].includes(urlOf(t))) focusAddr();
+  }
+  /* moves a tab to just before or after another tab in the same row */
+  function reorderTab(srcId, targetId, after) {
+    const src = tabs.find((x) => x.id === srcId), tgt = tabs.find((x) => x.id === targetId);
+    if (!src || !tgt || src === tgt) return;
+    tabs = tabs.filter((x) => x !== src);
+    const i = tabs.indexOf(tgt);
+    tabs.splice(after ? i + 1 : i, 0, src);
   }
   function closeTab(id) {
     const t = tabs.find((x) => x.id === id);
