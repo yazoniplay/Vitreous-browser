@@ -2521,4 +2521,6 @@ html body .pin .fav:not(.has-img) { font-size: 18px; }
 .address::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; pointer-events: none; opacity: 0; transform: translateX(-60%); background: linear-gradient(90deg, transparent, rgba(66,133,244,.85) 35%, rgba(66,133,244,.85) 60%, transparent); filter: blur(2px); }
 .address.loading::after { opacity: 1; animation: addrSweep 1.6s ease-in-out infinite; }
 @keyframes addrSweep { 0% { transform: translateX(-60%); } 100% { transform: translateX(60%); } }
-body[data-fx="low"] .address.loading::after { animation: none; transform: none; opacity: .6; }
+/* Low-Spec keeps the sweep but drops the blur, which is the costly part */
+body[data-fx="low"] .address::after { filter: none; }
+body[data-fx="low"] .address.loading::after { animation: addrSweep 1.6s ease-in-out infinite; opacity: .8; }
