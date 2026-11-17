@@ -2690,7 +2690,7 @@ html body[data-dynamic-theme="1"] .side-wrap .sidebar {
     linear-gradient(135deg, rgba(255,255,255,.3) 0%, rgba(255,255,255,.04) 35%, rgba(255,255,255,0) 70%, rgba(255,255,255,.1) 100%),
     linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0) 42%),
     var(--frost-noise, none),
-    color-mix(in srgb, var(--base) calc(2% + 40% * var(--glass-solid, 1)), transparent) !important;
+    color-mix(in srgb, var(--base) calc(8% + 92% * var(--glass-solid, 1)), transparent) !important;
   -webkit-backdrop-filter: blur(14px) saturate(160%) brightness(1.08) !important;
   backdrop-filter: blur(14px) saturate(160%) brightness(1.08) !important;
   border-right: 1px solid rgba(255,255,255,.7) !important;
@@ -2717,7 +2717,7 @@ html body[data-fx="low"] .side-wrap .sidebar {
   background:
     linear-gradient(135deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.03) 40%, rgba(255,255,255,0) 70%, rgba(255,255,255,.08) 100%),
     var(--frost-noise, none),
-    color-mix(in srgb, var(--base) calc(2% + 30% * var(--glass-solid, 1)), transparent) !important;
+    color-mix(in srgb, var(--base) calc(8% + 92% * var(--glass-solid, 1)), transparent) !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   border-right: 1px solid rgba(255,255,255,.4) !important;
@@ -2772,7 +2772,7 @@ html body[data-fx="low"] .viewport.glass {
   background:
     linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.03) 45%, rgba(255,255,255,.07) 100%),
     var(--frost-noise, none),
-    color-mix(in srgb, var(--base) calc(4% + 40% * var(--glass-solid, 1)), transparent) !important;
+    color-mix(in srgb, var(--base) calc(8% + 92% * var(--glass-solid, 1)), transparent) !important;
   border: 1px solid rgba(255,255,255,.3) !important;
 }
 
