@@ -833,11 +833,14 @@
     n.style.overflow = 'hidden';
     n.style.pointerEvents = 'none';
     const done = () => n.remove();
+    /* fade first, then collapse, so the old row never overlaps the row that slides up into its place */
+    n.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-12px)' }],
+      { duration: 150, easing: 'ease-out', fill: 'forwards' });
     n.animate([
-      { height: h + 'px', paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1, transform: 'translateX(0) scale(1)' },
-      { height: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0, transform: 'translateX(-14px) scale(.94)' },
-    ], { duration: 240, easing: SIDE_EASE, fill: 'forwards' }).onfinish = done;
-    setTimeout(done, 300);
+      { height: h + 'px', paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom },
+      { height: '0px', paddingTop: '0px', paddingBottom: '0px' },
+    ], { duration: 240, delay: 90, easing: SIDE_EASE, fill: 'forwards' }).onfinish = done;
+    setTimeout(done, 360);
   }
   function sideExpandIn(n) {
     const h = n.offsetHeight;
