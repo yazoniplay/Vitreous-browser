@@ -2624,6 +2624,15 @@ html body .toolbar { transition: height .42s cubic-bezier(.32,.72,0,1), padding 
 html body[data-addr-pos="sidebar"][data-pinned="1"] .toolbar { height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; gap: 0 !important; opacity: 0; pointer-events: none; }
 html body[data-addr-pos="sidebar"][data-pinned="1"] .toolbar .icon-btn { display: none; }
 
+/* Sidebar closed with the address bar in the sidebar: back, forward, reload and the sidebar toggle float over the page's top-left corner, not in a bar above it */
+html body[data-addr-pos="sidebar"][data-pinned="0"] .main { position: relative; }
+html body[data-addr-pos="sidebar"][data-pinned="0"] .toolbar { position: absolute; top: 10px; left: 10px; z-index: 20; height: auto; width: auto; padding: 4px; gap: 2px; grid-template-columns: auto; background: color-mix(in srgb, var(--base) 55%, transparent); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 8px 24px -12px rgba(0,0,0,.45); overflow: visible; opacity: 1; pointer-events: auto; }
+html body[data-addr-pos="sidebar"][data-pinned="0"] .toolbar .address,
+html body[data-addr-pos="sidebar"][data-pinned="0"] .toolbar .nav-r,
+html body[data-addr-pos="sidebar"][data-pinned="0"] .toolbar .icon-btn[hidden] { display: none !important; }
+html body[data-addr-pos="sidebar"][data-pinned="0"] .toolbar .nav-l { display: flex; align-items: center; gap: 2px; }
+html body[data-addr-pos="sidebar"][data-pinned="0"] .toolbar .icon-btn { width: 30px; height: 30px; }
+
 /* Pinned favicons: a fixed 28px icon, centred in its tile, so it never fills or crops the tile */
 html body .pin .fav { position: absolute; left: 50%; top: 50%; inset: auto; width: 28px; height: 28px; transform: translate(-50%, -50%); border-radius: 8px; overflow: hidden; }
 html body .pin .fav.has-img img { position: static; width: 100%; height: 100%; padding: 0; object-fit: contain; display: block; }
