@@ -2603,6 +2603,22 @@ html body .tab .x:hover { opacity: 1; color: var(--text); background: color-mix(
 html body .tab .x:active { background: color-mix(in srgb, var(--text) 16%, transparent); transform: none !important; }
 html body .tab[aria-selected="true"] .x { opacity: .6; }
 
+/* ===== Phase 2: sidebar layout, from the roadmap spec =====
+   Pinned icons 32px in 4 columns with a 6px gap, PINNED label 10px, address bar 100% x 40px,
+   tabs 36px with 8px radius and a subtle tint, New tab at the bottom above Settings,
+   spacing 16 (logo to address, to pinned) / 12 (pinned to tabs) / 8 (between tabs). */
+html body .sidebar { gap: 0 !important; }
+html body .quick { margin-top: 16px !important; gap: 8px !important; }
+html body .quick-grid { grid-template-columns: repeat(4, 32px) !important; gap: 6px !important; justify-content: start; }
+html body .pin { width: 32px !important; height: 32px !important; aspect-ratio: auto !important; border-radius: 9px !important; }
+html body .quick-label { font-size: 10px !important; }
+html body .side-list { gap: 8px !important; margin-top: 12px !important; }
+html body .side-wrap .tab { height: 36px !important; border-radius: 8px !important; }
+html body .side-wrap .tab[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 12%, transparent) !important; box-shadow: none !important; }
+html body .sidebar .address { width: 100% !important; height: 40px !important; padding: 0 14px !important; box-sizing: border-box; margin-top: 16px !important; }
+html body .side-wrap .new-tab { margin-top: auto !important; }
+html body .side-foot { margin-top: 8px !important; }
+
 /* Per-tab page views: each tab keeps its own page element, hidden while another tab is shown */
 .view { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100%; height: 100%; position: relative; }
 .view > iframe { flex: 1 1 auto; width: 100%; height: 100%; border: 0; }
