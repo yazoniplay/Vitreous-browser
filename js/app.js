@@ -679,7 +679,10 @@
     try { host = new URL(url).hostname.replace(/^www\./, '').toLowerCase(); } catch { return null; }
     return S.routes.find((r) => (host === r.host || host.endsWith('.' + r.host)) && S.spaces.some((x) => x.id === r.ws)) || null;
   }
+  /* Little Vitreous is one page: it never opens or closes tabs */
+  const isLittle = () => document.body.classList.contains('little');
   function newTab(url = newTabUrl(), space = ws, focus = true) {
+    if (isLittle()) return;
     const u0 = normalize(url), rt = routeFor(u0);
     if (rt) space = rt.ws;
     const t = { id: uid(), ws: space, hist: [u0], i: 0, reload: 0 };
@@ -698,6 +701,7 @@
     tabs.splice(after ? i + 1 : i, 0, src);
   }
   function closeTab(id) {
+    if (isLittle()) return;
     const t = tabs.find((x) => x.id === id);
     if (!t) return;
     const group = tabs.filter((x) => x.ws === t.ws);
@@ -3123,7 +3127,11 @@
       noticeShown = localStorage.getItem('vitreous.lowSpecNoticeShown') === '1';
       if (!noticeShown) localStorage.setItem('vitreous.lowSpecNoticeShown', '1');
     } catch { /* show once per session if storage is unavailable */ }
-    if (location.hash === '#little') document.body.classList.add('little');
+    if (location.hash === '#little') {
+      document.body.classList.add('little');
+      /* Little Vitreous has a back button only, no forward button */
+      document.body.append(h('button', { class: 'little-back glass', 'aria-label': 'Back', title: 'Back', onclick: () => go(-1), text: '‹' }));
+    }
     if (!noticeShown) setTimeout(() => toast('Low-Spec Mode enabled for this device. You can turn it off in Settings.'), 500);
     save();
   }
