@@ -94,7 +94,7 @@
     /* toolbar */
     btnBack: true, btnForward: true, btnReload: true, btnSidebar: false, btnPalette: false, btnSettings: false, bookmarkStar: true, bmBar: 'newtab', bmNames: true, toolbarPos: 'top', stripStyle: 'glass', tabFit: 'fit', shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
     /* start page */
-    startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startHint: true,
+    startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
     bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES,
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
@@ -1634,7 +1634,7 @@
           return h('div', { class: 'tile-wrap' },
             h('button', { class: 'tile', onclick: () => navigate(cur(), b.url) }, fav, b.name),
             h('button', { class: 'tile-x', title: 'Remove', 'aria-label': 'Remove ' + b.name, onclick: () => { S.bookmarks.splice(i, 1); save(); drawTiles(); } }, ico('x')));
-        }));
+        }), ...(S.startAdd ? [h('div', { class: 'tile-wrap' }, h('button', { class: 'tile add', onclick: addForm }, h('span', { class: 'fav' }, ico('plus')), 'Add'))] : []));
       };
       const addForm = () => {
         const n = h('input', { type: 'text', placeholder: 'Name', maxlength: 40, 'aria-label': 'Name' });
@@ -2203,6 +2203,7 @@
         row('24-hour clock', null, toggle('clock24')),
         row('Search box', null, toggle('startSearch')),
         row('Bookmark tiles', null, toggle('startTiles')),
+        row('Add button', 'Show the Add button under the bookmark tiles', toggle('startAdd')),
         row('Tile size', null, range('tileSize', 80, 160, 'px')),
         row('Shortcut hint', 'Can also be dismissed with the × on the start page', toggle('startHint')),
         row('Widgets', null, toggle('startWidgets')),
