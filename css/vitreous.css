@@ -2513,3 +2513,17 @@ html body .quick-grid { grid-template-columns: repeat(3, 56px); gap: 8px; justif
 html body .pin { width: 56px; height: 56px; aspect-ratio: auto; border-radius: 14px; }
 html body .pin .fav.has-img img { padding: 11px; }
 html body .pin .fav:not(.has-img) { font-size: 18px; }
+
+/* Gemini-style flow: a thin gradient line under the address bar that flows while the bar is focused */
+.address { position: relative; }
+.address::after {
+  content: ""; position: absolute; left: 16px; right: 16px; bottom: -5px; height: 2px; border-radius: 2px; pointer-events: none;
+  background: linear-gradient(90deg, #4285f4, #9b72cb, #d96570, #f9ab00, #4285f4);
+  background-size: 300% 100%;
+  opacity: 0; transform: scaleX(.6); filter: drop-shadow(0 0 5px rgba(155,114,203,.55));
+  transition: opacity .3s ease, transform .45s cubic-bezier(.32,.72,0,1);
+  animation: geminiFlow 3s linear infinite;
+}
+.address:focus-within::after { opacity: 1; transform: scaleX(1); }
+@keyframes geminiFlow { from { background-position: 0% 0; } to { background-position: 300% 0; } }
+body[data-fx="low"] .address::after { animation: none; }
