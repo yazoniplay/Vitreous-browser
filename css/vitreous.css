@@ -2678,4 +2678,7 @@ html body .start .address { width: var(--start-w, 760px) !important; max-width: 
 html body .start .address input { font-size: 16px; }
 
 /* ===== Phase 3: adaptive sidebar. The sidebar takes a share of the website colour, set by Website color intensity (default 35%). ===== */
-body[data-dynamic-theme="1"] .side-wrap .sidebar { background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), color-mix(in srgb, var(--base) calc(100% - var(--sidebar-dyn, 35%)), var(--dynamic-color) var(--sidebar-dyn, 35%)) !important; transition: background .6s ease !important; }
+/* Sidebar glass: keeps the frosted blur and the glass sheen; the website colour is a translucent layer over it */
+html body .side-wrap .sidebar { -webkit-backdrop-filter: blur(calc(var(--blur) + 36px)) saturate(190%) !important; backdrop-filter: blur(calc(var(--blur) + 36px)) saturate(190%) !important; }
+body[data-dynamic-theme="1"] .side-wrap .sidebar { background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), linear-gradient(color-mix(in srgb, var(--dynamic-color) var(--sidebar-dyn, 35%), transparent), color-mix(in srgb, var(--dynamic-color) var(--sidebar-dyn, 35%), transparent)), color-mix(in srgb, var(--base) calc(60% * var(--glass-solid, 1)), transparent) !important; transition: background .6s ease !important; }
+body[data-fx="low"] .side-wrap .sidebar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
