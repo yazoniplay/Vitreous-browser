@@ -1634,7 +1634,7 @@
           return h('div', { class: 'tile-wrap' },
             h('button', { class: 'tile', onclick: () => navigate(cur(), b.url) }, fav, b.name),
             h('button', { class: 'tile-x', title: 'Remove', 'aria-label': 'Remove ' + b.name, onclick: () => { S.bookmarks.splice(i, 1); save(); drawTiles(); } }, ico('x')));
-        }), h('div', { class: 'tile-wrap' }, h('button', { class: 'tile add', onclick: addForm }, h('span', { class: 'fav' }, ico('plus')), 'Add')));
+        }));
       };
       const addForm = () => {
         const n = h('input', { type: 'text', placeholder: 'Name', maxlength: 40, 'aria-label': 'Name' });
