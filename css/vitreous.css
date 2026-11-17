@@ -2764,3 +2764,11 @@ body.little .little-back { position: fixed; top: 10px; left: 10px; z-index: 30; 
   border: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
   transition: opacity .15s ease;
 }
+
+/* ===== Low-Spec page glass: the page is translucent like the sidebar, so the wallpaper shows through (no blur) ===== */
+html body[data-fx="low"] .viewport.glass {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.03) 45%, rgba(255,255,255,.07) 100%),
+    color-mix(in srgb, var(--base) calc(10% + 16% * var(--glass-solid, 1)), transparent) !important;
+  border: 1px solid rgba(255,255,255,.3) !important;
+}
