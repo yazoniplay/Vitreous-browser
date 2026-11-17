@@ -83,7 +83,7 @@
     wallMode: 'none', wallUrl: '', wallDim: 25, wallBlur: 0, blobs: 100, blobSpeed: 100,
     /* glass */
     glassTransparency: 70, glassRefraction: 8, glassFrost: 0, lightDirection: 'top-left', breathingGlow: false, spotlightIntensity: 50, radius: 22, tabRadius: 22, panelRadius: 22, addrRadius: 22, addrPosition: 'center', rim: 100, shadow: 100, border: 1, lowfx: false, motion: true, respectReducedMotion: false,
-    dynamicTheme: false, dynamicIntensity: 18, sidebarDynamicIntensity: 35,
+    dynamicTheme: false, dynamicIntensity: 18, sidebarDynamicIntensity: 35, dynamicColor: '',
     /* type */
     font: 'system', fontCustom: '', fontScale: 100,
     /* layout */
@@ -279,6 +279,7 @@
       else if (typeof d === 'string') { if (ENUMS[k]) { if (ENUMS[k].includes(v)) out[k] = v; } else if (typeof v === 'string') out[k] = v.slice(0, k === 'css' ? 20000 : 200); }
     }
     out.accent = isHex(src.accent) ? src.accent : DEFAULTS.accent;
+    out.dynamicColor = isHex(src.dynamicColor) ? src.dynamicColor : '';
     /* the old default (252px) moves to the new default; any other width the user picked is kept */
     if (src.sideWidth === 252) out.sideWidth = DEFAULTS.sideWidth;
     out.aurora = typeof src.aurora === 'string' && Object.hasOwn(AURORA, src.aurora) ? src.aurora : DEFAULTS.aurora;
@@ -793,7 +794,7 @@
     $('#wall').style.backgroundImage = wall ? `url("${wall.replace(/["\\\n\r]/g, (c) => encodeURIComponent(c))}")` : '';
     const r = document.documentElement.style;
     r.setProperty('--accent', S.accent);
-    r.setProperty('--dynamic-color', (cur() && cur().themeColor) || S.accent);
+    r.setProperty('--dynamic-color', (cur() && cur().themeColor) || S.dynamicColor || S.accent);
     r.setProperty('--dynamic-intensity', String(S.dynamicTheme ? S.dynamicIntensity : 0));
     r.setProperty('--sidebar-dyn', S.sidebarDynamicIntensity + '%');
     /* glass transparency: 0 = solid panel, 100 = clear glass. Only the panel's relation to the background changes. */
@@ -2330,7 +2331,7 @@
         row('Follow system reduced-motion', 'Off by default. Turn on to let your OS "reduce animations" setting disable them', toggle('respectReducedMotion')),
         row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
         row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
-        row('Calm mode', 'A calm, quiet browser: solid glass, no frost or refraction, a lavender accent, command start page, pill tabs', calmSwitch()),
+        row('Calm mode', 'A calm, quiet browser.', calmSwitch()),
         row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%')),
         row('Website color intensity', 'How strongly the website color tints the sidebar', range('sidebarDynamicIntensity', 0, 100, '%'))),
 
@@ -2721,7 +2722,7 @@
     onThemeColorChange(hexCode) {
       if (!isHex(hexCode)) return false;
       if (cur()) cur().themeColor = hexCode; /* the colour belongs to the tab that reported it */
-      apply();
+      set('dynamicColor', hexCode); /* the sidebar adapts to the last reported website colour */
       return true;
     },
     onLoadStateChange(state) {
