@@ -2182,7 +2182,7 @@
         row('Follow system reduced-motion', 'Off by default. Turn on to let your OS "reduce animations" setting disable them', toggle('respectReducedMotion')),
         row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
         row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
-        row('Calm mode', 'A calm, quiet browser: solid glass, no frost or refraction, a lavender accent, command start page, pill tabs', btn('Apply', calmMode)),
+        row('Calm mode', 'A calm, quiet browser: solid glass, no frost or refraction, a lavender accent, command start page, pill tabs', h('div', { class: 'btns' }, btn('Apply', () => calmMode(true)), btn('Turn off', () => calmMode(false)))),
         row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%')),
         row('Website color intensity', 'How strongly the website color tints the sidebar', range('sidebarDynamicIntensity', 0, 100, '%'))),
 
@@ -2543,10 +2543,20 @@
   }
 
   /* Calm Mode: a quiet preset built from the roadmap values */
-  function calmMode() {
-    set('glassTransparency', 0); set('glassFrost', 0); set('glassRefraction', 0); set('spotlightIntensity', 0);
-    set('accent', '#d4c5e8'); set('startLayout', 'command'); set('tabShape', 'pill');
-    toast('Calm mode on');
+  const CALM_KEYS = ['glassTransparency', 'glassFrost', 'glassRefraction', 'spotlightIntensity', 'accent', 'startLayout', 'tabShape'];
+  let calmPrev = null; /* the settings from before Calm Mode, so Turn off can put them back */
+  function calmMode(on) {
+    if (on) {
+      calmPrev = Object.fromEntries(CALM_KEYS.map((k) => [k, S[k]]));
+      set('glassTransparency', 0); set('glassFrost', 0); set('glassRefraction', 0); set('spotlightIntensity', 0);
+      set('accent', '#d4c5e8'); set('startLayout', 'command'); set('tabShape', 'pill');
+      toast('Calm mode on');
+    } else {
+      const back = calmPrev || Object.fromEntries(CALM_KEYS.map((k) => [k, DEFAULTS[k]]));
+      Object.entries(back).forEach(([k, v]) => set(k, v));
+      calmPrev = null;
+      toast('Calm mode off');
+    }
   }
 
   /* Stable UI-facing adapter. A native CEF host can call these same hooks later. */
