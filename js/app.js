@@ -523,6 +523,20 @@
         }
         d.tx = ev.clientX - x0; d.ty = ev.clientY - y0 - 6;
         n.style.transform = `translate(${d.tx}px, ${d.ty}px) scale(1.04)`;
+        /* over the right half of the page: show the split zone instead of reordering */
+        const vp = $('#viewport').getBoundingClientRect();
+        const inSplit = ev.clientX > vp.left + vp.width / 2 && ev.clientX < vp.right && ev.clientY > vp.top && ev.clientY < vp.bottom;
+        if (inSplit) {
+          if (!d.zone) {
+            d.zone = h('div', { class: 'split-zone', 'aria-hidden': 'true' });
+            Object.assign(d.zone.style, { left: vp.left + vp.width / 2 + 'px', top: vp.top + 'px', width: vp.width / 2 + 'px', height: vp.height + 'px' });
+            document.body.append(d.zone);
+          }
+          d.split = true;
+          return;
+        }
+        if (d.zone) { d.zone.remove(); d.zone = null; }
+        d.split = false;
         const el = document.elementFromPoint(ev.clientX, ev.clientY);
         const hit = el && el.closest && el.closest('.tab');
         const next = hit && hit !== n && hit.parentElement === list ? hit : null;
@@ -590,6 +604,14 @@
         const target = d.over;
         if (d.over) d.over.classList.remove('stack-target');
         if (d.hint) { d.hint.remove(); d.hint = null; }
+        if (d.zone) { d.zone.remove(); d.zone = null; }
+        if (d.split && d.ph) {
+          /* dropped on the right half: the dragged tab opens beside the current one */
+          clearStyles();
+          d.ph.replaceWith(n);
+          splitWith(id);
+          return;
+        }
         const from = n.getBoundingClientRect();
         if (d.reorderEl) {
           // dropped on an edge: the tab takes the placeholder's slot, the rest glides into place
@@ -1272,26 +1294,42 @@
     return null;
   }
 
+  /* Split View: two tabs side by side, 50/50. Null when off */
+  let splitPair = null;
+  function splitWith(id) {
+    const left = cur();
+    if (!left || left.id === id || !tabs.some((x) => x.id === id)) { render(); return; }
+    splitPair = { left: left.id, right: id };
+    render();
+  }
   function renderViewport() {
     const t = cur();
-    const u = urlOf(t);
-    const key = t.id + '|' + u + '|' + t.reload;
+    /* the split ends when the user goes to a tab outside the pair, or one of the pair closes */
+    if (splitPair && !([splitPair.left, splitPair.right].includes(t.id) && tabs.some((x) => x.id === splitPair.left) && tabs.some((x) => x.id === splitPair.right))) splitPair = null;
+    const shown = splitPair ? [splitPair.left, splitPair.right].map((id) => tabs.find((x) => x.id === id)) : [t];
+    const key = shown.map((tb) => tb.id + '|' + urlOf(tb) + '|' + tb.reload).join('+') + (splitPair ? '|split' : '');
     if (key === viewKey) return;
     viewKey = key;
     clearInterval(dlTimer);
     const host = $('#content');
+    host.classList.toggle('split', !!splitPair);
     for (const [id, rec] of [...views]) {
       if (!tabs.some((x) => x.id === id)) { rec.el.remove(); views.delete(id); }
     }
-    let rec = views.get(t.id);
-    if (!rec || rec.key !== key) {
-      if (rec) rec.el.remove();
-      rec = { key, el: h('div', { class: 'view' }) };
-      views.set(t.id, rec);
-      host.append(rec.el);
-      fillView(rec.el, t, u);
-    }
-    for (const c of [...host.children]) c.style.display = c === rec.el ? '' : 'none';
+    const recs = shown.map((tb) => {
+      const tu = urlOf(tb);
+      const k = tb.id + '|' + tu + '|' + tb.reload;
+      let rec = views.get(tb.id);
+      if (!rec || rec.key !== k) {
+        if (rec) rec.el.remove();
+        rec = { key: k, el: h('div', { class: 'view' }) };
+        views.set(tb.id, rec);
+        host.append(rec.el);
+        fillView(rec.el, tb, tu);
+      }
+      return rec;
+    });
+    for (const c of [...host.children]) c.style.display = recs.some((r) => r.el === c) ? '' : 'none';
   }
   function fillView(v, t, u) {
     loadStart();
