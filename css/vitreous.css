@@ -2442,8 +2442,16 @@ html body .tab.in-stack.leave { animation: stackOut calc(.2s * var(--m-scale)) v
 @keyframes stackOut { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -6px; } }
 @keyframes stackClose { 0% { opacity: 1; transform: none; } 30% { transform: scale(1.03); } 100% { opacity: 0; transform: scale(0.9) translateX(-10px); } }
 html body .tab.stack.stack-closing { animation: stackClose calc(.28s * var(--m-scale)) var(--m-fade) forwards !important; pointer-events: none; }
-.ws-switch .tab:not(.leave) { animation: wsIn calc(.32s * var(--m-scale)) var(--m-spring) backwards; }
-@keyframes wsIn { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+/* Workspace switch: rows slide in from the left one after another, with a short ease-out, instead of all dropping at once */
+.ws-switch .tab:not(.leave) { animation: wsIn .3s cubic-bezier(.32,.72,0,1) both; }
+.ws-switch .tab:not(.leave):nth-child(2) { animation-delay: 22ms; }
+.ws-switch .tab:not(.leave):nth-child(3) { animation-delay: 44ms; }
+.ws-switch .tab:not(.leave):nth-child(4) { animation-delay: 66ms; }
+.ws-switch .tab:not(.leave):nth-child(5) { animation-delay: 88ms; }
+.ws-switch .tab:not(.leave):nth-child(6) { animation-delay: 110ms; }
+.ws-switch .tab:not(.leave):nth-child(n+7) { animation-delay: 132ms; }
+@keyframes wsIn { from { opacity: 0; translate: -10px 0; } to { opacity: 1; translate: 0 0; } }
+body[data-fx="low"] .ws-switch .tab:not(.leave) { animation-duration: .18s; }
 
 /* Opening the rail staggers its sections in; closing fades only the labels so icons stay visible */
 @keyframes sideIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
