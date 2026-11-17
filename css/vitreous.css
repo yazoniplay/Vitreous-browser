@@ -2530,8 +2530,8 @@ body[data-fx="low"] .address.loading::after { animation: addrSweep 1.6s ease-in-
 .lib-head { padding: 22px 24px; border-radius: var(--radius); }
 .lib-title { gap: 16px; }
 .lib-title h2 { font-size: 26px; line-height: 1.15; }
-.lib-mark { width: 50px; height: 50px; border-radius: 17px; background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: color-mix(in srgb, var(--accent) 34%, transparent); }
-.lib-mark svg { width: 22px; height: 22px; }
+.lib-mark { width: 28px; height: 28px; border-radius: 0; background: none; border: 0; color: var(--text); }
+.lib-mark svg { width: 24px; height: 24px; }
 .lib-sub { font-size: 13px; margin-top: 3px; display: block; }
 .lib-tools { gap: 10px; }
 .lib-search { height: 38px; min-width: 240px; padding: 0 14px; transition: border-color .2s ease, box-shadow .2s ease; }
@@ -2554,7 +2554,7 @@ body[data-fx="low"] .address.loading::after { animation: addrSweep 1.6s ease-in-
 .lib-act:hover { background: color-mix(in srgb, var(--text) 9%, transparent); transform: scale(1.08); }
 .lib-row:hover .lib-act, .lib-act:focus-visible { opacity: 1; }
 .lib-empty { padding: 72px 16px; }
-.lib-empty .lib-mark { width: 64px; height: 64px; border-radius: 22px; }
+.lib-empty .lib-mark { width: 40px; height: 40px; }
 .lib-add { padding: 14px; border-radius: 20px; background: var(--field); border: 1px solid var(--line); align-items: center; }
 .lib-add .lib-input:first-child { flex: 0 1 200px; }
 .lib-input { height: 38px; border-radius: 12px; transition: border-color .2s ease, box-shadow .2s ease; }
