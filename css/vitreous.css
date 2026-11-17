@@ -2527,3 +2527,16 @@ html body .pin .fav:not(.has-img) { font-size: 18px; }
 .address:focus-within::after { opacity: 1; transform: scaleX(1); }
 @keyframes geminiFlow { from { background-position: 0% 0; } to { background-position: 300% 0; } }
 body[data-fx="low"] .address::after { animation: none; }
+
+/* Music-wave bars inside the address bar: visible while the bar is focused, bars rise and fall out of phase */
+.address .wave { display: none; align-items: center; gap: 2px; height: 16px; flex: none; margin-right: 6px; pointer-events: none; }
+.address .wave i { display: block; width: 3px; height: 100%; border-radius: 2px; background: linear-gradient(180deg, #4285f4, #9b72cb 50%, #f9ab00); transform-origin: center; transform: scaleY(.3); }
+.address:focus-within .wave { display: flex; }
+.address:focus-within .wave i { animation: waveBar 0.9s ease-in-out infinite; }
+.address:focus-within .wave i:nth-child(1) { animation-delay: -0.1s; }
+.address:focus-within .wave i:nth-child(2) { animation-delay: -0.5s; }
+.address:focus-within .wave i:nth-child(3) { animation-delay: -0.3s; }
+.address:focus-within .wave i:nth-child(4) { animation-delay: -0.7s; }
+.address:focus-within .wave i:nth-child(5) { animation-delay: -0.2s; }
+@keyframes waveBar { 0%, 100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+body[data-fx="low"] .address:focus-within .wave i { animation: none; transform: scaleY(.6); }
