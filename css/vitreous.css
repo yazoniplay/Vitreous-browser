@@ -2665,6 +2665,6 @@ html body .page.layout-centered > .start { margin: auto !important; }
 html body .page.layout-centered > .start + * { margin-top: 32px; }
 
 /* ===== Start page search: wider and taller by default, width set in Settings ===== */
-html body .start { max-width: var(--start-w, 760px) !important; }
-html body .start .address { height: 56px; border-radius: 18px; font-size: 15px; }
+html body .start { max-width: none !important; width: min(calc(var(--start-w, 760px) + 40px), 100%); }
+html body .start .address { width: var(--start-w, 760px) !important; max-width: 100% !important; height: 52px; }
 html body .start .address input { font-size: 16px; }
