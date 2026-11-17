@@ -94,7 +94,7 @@
     /* toolbar */
     btnBack: true, btnForward: true, btnReload: true, btnSidebar: false, btnPalette: false, btnSettings: false, bookmarkStar: true, bmBar: 'newtab', bmNames: true, toolbarPos: 'top', stripStyle: 'glass', tabFit: 'fit', shield: true, lock: true, showHome: false, addrWidth: 680, addrShape: 'pill', addrAlign: 'center',
     /* start page */
-    startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startWidth: 760, startHint: true, calmOn: false,
+    startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startWidth: 760, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
     bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES,
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
@@ -2182,7 +2182,6 @@
         row('Follow system reduced-motion', 'Off by default. Turn on to let your OS "reduce animations" setting disable them', toggle('respectReducedMotion')),
         row('Low-Spec Mode', 'Optimizes performance for older hardware.', toggle('lowfx')),
         row('Match browser theme to website', 'Uses the rendering engine theme-color signal when available', toggle('dynamicTheme')),
-        row('Calm mode', 'A calm, quiet browser: solid glass, no frost or refraction, a lavender accent, command start page, pill tabs', (S.calmOn = isCalm(), toggle('calmOn', () => calmMode(S.calmOn)))),
         row('Website theme intensity', 'How strongly the website color tints the glass', range('dynamicIntensity', 0, 30, '%')),
         row('Website color intensity', 'How strongly the website color tints the sidebar', range('sidebarDynamicIntensity', 0, 100, '%'))),
 
@@ -2540,25 +2539,6 @@
   function toast(msg) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
-  }
-
-  /* Calm Mode: a quiet preset built from the roadmap values */
-  const CALM_KEYS = ['glassTransparency', 'glassFrost', 'glassRefraction', 'spotlightIntensity', 'accent', 'startLayout', 'tabShape'];
-  let calmPrev = null; /* the settings from before Calm Mode, so Turn off can put them back */
-  /* the switch reflects the real settings, so an already-applied preset shows as on */
-  const isCalm = () => S.glassTransparency === 0 && S.glassFrost === 0 && S.glassRefraction === 0 && S.spotlightIntensity === 0 && S.accent === '#d4c5e8' && S.startLayout === 'command' && S.tabShape === 'pill';
-  function calmMode(on) {
-    if (on) {
-      if (!isCalm()) calmPrev = Object.fromEntries(CALM_KEYS.map((k) => [k, S[k]]));
-      set('glassTransparency', 0); set('glassFrost', 0); set('glassRefraction', 0); set('spotlightIntensity', 0);
-      set('accent', '#d4c5e8'); set('startLayout', 'command'); set('tabShape', 'pill');
-      toast('Calm mode on');
-    } else {
-      const back = calmPrev || Object.fromEntries(CALM_KEYS.map((k) => [k, DEFAULTS[k]]));
-      Object.entries(back).forEach(([k, v]) => set(k, v));
-      calmPrev = null;
-      toast('Calm mode off');
-    }
   }
 
   /* Stable UI-facing adapter. A native CEF host can call these same hooks later. */
