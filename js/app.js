@@ -2591,6 +2591,7 @@
     code: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
     bookmark: '<path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    star: '<path d="M12 3.8l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.6l-5 2.6.9-5.6-4-3.9 5.6-.8z"/>',
     resize: '<path d="M19 9L9 19M19 14l-5 5"/>',
     rss: '<path d="M5 5a14 14 0 0 1 14 14M5 11a8 8 0 0 1 8 8"/><circle cx="6" cy="18" r="1.6"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
@@ -3529,24 +3530,27 @@
     if (!term) return [];
     const out = [];
     tabs.forEach((t) => {
-      const u = urlOf(t);
+      const u = urlOf(t), ttl = titleOf(t);
       if (t.id === activeId || INTERNAL.includes(u)) return;
-      if (u.toLowerCase().includes(n) || hostName(u).toLowerCase().includes(n)) out.push({ kind: 'Tab', label: hostName(u), sub: pretty(u), act: () => activate(t.id) });
+      if (u.toLowerCase().includes(n) || hostName(u).toLowerCase().includes(n) || (ttl || '').toLowerCase().includes(n))
+        out.push({ icon: 'tabs', label: ttl && ttl !== 'New tab' ? ttl : hostName(u), sub: pretty(u), act: () => activate(t.id) });
     });
     S.bookmarks.forEach((b) => {
-      if (b.name.toLowerCase().includes(n) || b.url.toLowerCase().includes(n)) out.push({ kind: 'Bookmark', label: b.name, sub: pretty(b.url), act: () => navigate(cur(), b.url) });
+      if (b.name.toLowerCase().includes(n) || b.url.toLowerCase().includes(n))
+        out.push({ icon: 'star', label: b.name, sub: pretty(b.url), act: () => navigate(cur(), b.url) });
     });
     S.history.filter((x) => x.u.toLowerCase().includes(n) || (x.t || '').toLowerCase().includes(n)).slice(0, 5)
-      .forEach((x) => out.push({ kind: 'History', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) }));
+      .forEach((x) => out.push({ icon: 'clock', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) }));
     const looksLikeAddress = /\./.test(term) && !/\s/.test(term);
-    out.push({ kind: looksLikeAddress ? 'Go to' : 'Search', label: term, sub: looksLikeAddress ? 'Open this address' : 'Search or open address', act: () => navigate(cur(), term) });
+    if (looksLikeAddress) out.push({ icon: 'globe', label: `Go to ${term}`, sub: null, act: () => navigate(cur(), term) });
+    else { const eng = allEngines()[S.search] || ENGINES.ddg; out.push({ icon: 'search', label: `Search ${eng[0]} for '${term}'`, sub: null, act: () => navigate(cur(), term) }); }
     return out.slice(0, 9);
   }
   function sugRender() {
     sugBox.replaceChildren(...sugItems.map((it, i) => h('button', {
       class: 'sugg-row' + (i === sugIndex ? ' on' : ''), role: 'option', 'aria-selected': String(i === sugIndex),
       onmousedown: (e) => { e.preventDefault(); pick(i); },
-    }, h('span', { class: 'sugg-kind', text: it.kind }), h('span', { class: 'sugg-main' }, h('span', { class: 'sugg-label', text: it.label }), h('span', { class: 'sugg-sub', text: it.sub })))));
+    }, ico(it.icon), h('span', { class: 'sugg-main' }, h('span', { class: 'sugg-label', text: it.label }), it.sub ? h('span', { class: 'sugg-sub', text: it.sub }) : null))));
   }
   function sugHide() { sugBox.hidden = true; sugIndex = -1; sugItems = []; }
   function sugOpen() {
