@@ -2794,3 +2794,23 @@ html body .side-wrap .new-tab span { color: var(--text) !important; opacity: .95
 html body .viewport.glass {
   background: color-mix(in srgb, var(--base) calc(8% + 92% * var(--glass-solid, 1)), transparent) !important;
 }
+
+/* ===== Easel: a whiteboard canvas with pinned website tiles ===== */
+.easel-canvas { position: relative; min-height: 64vh; border-radius: 22px; }
+.easel-tile {
+  position: absolute; width: 168px; height: 104px; padding: 14px; border-radius: 20px;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 8px;
+  cursor: grab; user-select: none; touch-action: none; box-sizing: border-box;
+}
+.easel-tile:active { cursor: grabbing; }
+.easel-fav {
+  width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); font-weight: 600; font-size: 15px;
+}
+.easel-name { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.easel-x {
+  position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 8px;
+  display: grid; place-items: center; opacity: 0; color: var(--muted); background: transparent; border: 0; cursor: pointer; transition: opacity .15s;
+}
+.easel-tile:hover .easel-x, .easel-x:focus-visible { opacity: 1; }
+.easel-x:hover { color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent); }

@@ -76,7 +76,7 @@
     newTab: 'Alt+KeyT', closeTab: 'Alt+KeyW', focusAddr: 'Alt+KeyL', sidebar: 'Alt+KeyB', settings: 'Alt+Comma',
     palette: 'Ctrl+KeyK', reload: 'Alt+KeyR', back: 'Alt+ArrowLeft', forward: 'Alt+ArrowRight',
     nextTab: 'Alt+ArrowDown', prevTab: 'Alt+ArrowUp', home: 'Alt+KeyH', bookmark: 'Ctrl+KeyD', theme: '', layout: '',
-    littleWin: 'Ctrl+Shift+KeyN',
+    littleWin: 'Ctrl+Shift+KeyN', easel: '', easelAdd: '',
   };
   const DEFAULTS = {
     /* appearance */
@@ -99,7 +99,7 @@
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startWidth: 760, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
-    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES,
+    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES, easelTiles: [],
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
@@ -191,7 +191,7 @@
     const enc = encodeURIComponent(q);
     return e[1].includes('%s') ? e[1].replace('%s', enc) : e[1] + enc;
   };
-  const INTERNAL = ['vitreous://newtab', 'vitreous://settings', 'vitreous://blank', 'vitreous://error', 'vitreous://downloads', 'vitreous://history', 'vitreous://bookmarks'];
+  const INTERNAL = ['vitreous://newtab', 'vitreous://settings', 'vitreous://blank', 'vitreous://error', 'vitreous://downloads', 'vitreous://history', 'vitreous://bookmarks', 'vitreous://easel'];
 
   /* ---------- state ---------- */
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -243,6 +243,7 @@
     if (u === 'vitreous://downloads') return 'Downloads';
     if (u === 'vitreous://history') return 'History';
     if (u === 'vitreous://bookmarks') return 'Bookmarks';
+    if (u === 'vitreous://easel') return 'Easel';
     if (t.titleOverride) return t.titleOverride;
     try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; }
   }
@@ -254,6 +255,7 @@
     if (u === 'vitreous://downloads') return '↓';
     if (u === 'vitreous://history') return '◷';
     if (u === 'vitreous://bookmarks') return '★';
+    if (u === 'vitreous://easel') return '▦';
     return (titleOf(t)[0] || '?').toUpperCase();
   }
   function pretty(u) {
@@ -1147,6 +1149,65 @@
     ], body, S.saveHistory ? null : h('div', { class: 'lib-note', text: 'History is off, so new visits are not being saved. Turn it back on in Settings, under Privacy.' }));
   }
 
+  /* Easel: a whiteboard canvas. Pin websites as draggable tiles; clicking a tile opens it in a new tab */
+  function pinToEasel(t) {
+    const u = t && t.hist[t.i];
+    if (!u || !/^https?:\/\//i.test(u)) return toast('Open a website first');
+    if (S.easelTiles.length >= 60) return toast('Easel is full (60 tiles)');
+    const n = S.easelTiles.length;
+    S.easelTiles.push({ id: uid(), url: u, title: hostName(u), x: 40 + (n * 28) % 360, y: 40 + (n * 28) % 240 });
+    save(); toast('Pinned to Easel');
+  }
+  function easelPage() {
+    const canvas = h('div', { class: 'easel-canvas' });
+    const sub = h('span', { class: 'lib-sub' });
+    const urlIn = h('input', { class: 'lib-input', placeholder: 'Pin a website, e.g. example.com', 'aria-label': 'Website address' });
+    const addBtn = h('button', { class: 'btn', onclick: () => add() }, ico('plus'), h('span', { text: 'Pin' }));
+    function add() {
+      const u = toUrl(urlIn.value);
+      if (!u) { urlIn.focus(); return toast('Enter a valid web address'); }
+      if (S.easelTiles.length >= 60) return toast('Easel is full (60 tiles)');
+      const n = S.easelTiles.length;
+      S.easelTiles.push({ id: uid(), url: u, title: hostName(u), x: 40 + (n * 28) % 360, y: 40 + (n * 28) % 240 });
+      urlIn.value = ''; save(); draw();
+    }
+    urlIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
+    function tileEl(tile) {
+      const el = h('div', { class: 'easel-tile glass', title: tile.url });
+      el.style.left = tile.x + 'px'; el.style.top = tile.y + 'px';
+      const kill = h('button', { class: 'easel-x', 'aria-label': 'Remove tile', title: 'Remove' }, ico('x'));
+      kill.addEventListener('pointerdown', (e) => e.stopPropagation());
+      kill.addEventListener('click', (e) => { e.stopPropagation(); S.easelTiles = S.easelTiles.filter((x) => x !== tile); save(); draw(); });
+      el.append(h('span', { class: 'easel-fav', text: (tile.title || '?').charAt(0).toUpperCase() }), h('span', { class: 'easel-name', text: tile.title }), kill);
+      el.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.easel-x')) return;
+        const sx = e.clientX, sy = e.clientY, ox = tile.x, oy = tile.y;
+        let moved = false;
+        el.setPointerCapture(e.pointerId);
+        const mv = (ev) => {
+          const dx = ev.clientX - sx, dy = ev.clientY - sy;
+          if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+          tile.x = Math.max(0, ox + dx); tile.y = Math.max(0, oy + dy);
+          el.style.left = tile.x + 'px'; el.style.top = tile.y + 'px';
+        };
+        const up = () => {
+          el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+          if (moved) save(); else newTab(tile.url);
+        };
+        el.addEventListener('pointermove', mv);
+        el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
+      });
+      return el;
+    }
+    function draw() {
+      sub.textContent = `${S.easelTiles.length} ${S.easelTiles.length === 1 ? 'tile' : 'tiles'} · drag to arrange, click to open`;
+      canvas.replaceChildren(...(S.easelTiles.length ? S.easelTiles.map(tileEl) : [empty('plus', 'Nothing pinned yet. Paste a website above, or use "Pin current page to Easel" in the command palette.')]));
+    }
+    draw();
+    return libPage('plus', 'Easel', sub, [urlIn, addBtn], canvas);
+  }
+
   function bookmarksPage() {
     let q = '', editing = null;
     const sub = h('span', { class: 'lib-sub' });
@@ -1368,6 +1429,7 @@
     else if (u === 'vitreous://downloads') { v.append(downloadsPage()); setTimeout(loadEnd, 300); }
     else if (u === 'vitreous://history') { v.append(historyPage()); setTimeout(loadEnd, 300); }
     else if (u === 'vitreous://bookmarks') { v.append(bookmarksPage()); setTimeout(loadEnd, 300); }
+    else if (u === 'vitreous://easel') { v.append(easelPage()); setTimeout(loadEnd, 300); }
     else {
       const frame = h('iframe', {
         src: u, title: titleOf(t), referrerpolicy: 'no-referrer',
@@ -3061,6 +3123,8 @@
     ['prevTab', 'Previous tab', () => stepTab(-1)],
     ['home', 'Go home', goHome],
     ['littleWin', 'Little Vitreous window', openLittle],
+    ['easel', 'Open Easel', () => newTab('vitreous://easel')],
+    ['easelAdd', 'Pin current page to Easel', () => pinToEasel(cur())],
     ['bookmark', 'Bookmark this page', toggleBookmark],
     ['theme', 'Toggle dark / light', () => set('theme', document.body.dataset.theme === 'dark' ? 'light' : 'dark')],
     ['layout', 'Toggle tab layout (side / top)', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
