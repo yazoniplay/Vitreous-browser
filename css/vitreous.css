@@ -2846,3 +2846,16 @@ html body .viewport.glass {
 .easel-tool[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 .easel-zoom-lbl { min-width: 48px; text-align: center; font-size: 12px; color: var(--muted); }
 .easel-hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; pointer-events: none; }
+
+/* ===== Easel: black canvas, and website tiles that show a live preview of the page ===== */
+.easel-canvas, .easel-stage { background: #000; }
+.easel-tile { width: 360px; height: 240px; padding: 0; overflow: hidden; border-radius: 16px; cursor: grab; }
+.easel-frame-wrap { position: absolute; left: 0; top: 0; width: 1200px; height: 800px; transform: scale(.3); transform-origin: 0 0; pointer-events: none; }
+.easel-frame { width: 100%; height: 100%; border: 0; background: #fff; pointer-events: none; }
+.easel-tile-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 44px; box-sizing: border-box; padding: 0 10px;
+  display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.easel-tile-bar .easel-fav { width: 26px; height: 26px; font-size: 12px; border-radius: 8px; flex: none; }
+.easel-tile-bar .easel-name { flex: 1; min-width: 0; color: #fff; }
+.easel-tile .easel-x { top: auto; bottom: 8px; right: 8px; opacity: 1; color: #fff; }

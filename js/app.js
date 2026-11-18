@@ -1268,12 +1268,15 @@
     }
     function nodeEl(it) {
       if (it.kind === 'site') {
-        const el = h('div', { class: 'easel-tile glass', title: it.url, 'data-id': it.id });
+        /* a live preview of the page, scaled down to fit the tile; the frame ignores the pointer so the tile can be dragged, and a click opens the site */
+        const frame = h('iframe', { class: 'easel-frame', src: it.url, loading: 'lazy', referrerpolicy: 'no-referrer', tabindex: '-1', 'aria-hidden': 'true',
+          sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox' });
+        const el = h('div', { class: 'easel-tile glass', title: it.url, 'data-id': it.id }, h('div', { class: 'easel-frame-wrap' }, frame));
         el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
         const kill = h('button', { class: 'easel-x', 'aria-label': 'Remove', title: 'Remove' }, ico('x'));
         kill.addEventListener('pointerdown', (e) => e.stopPropagation());
         kill.addEventListener('click', (e) => { e.stopPropagation(); removeItem(it); });
-        el.append(h('span', { class: 'easel-fav', text: (it.title || '?').charAt(0).toUpperCase() }), h('span', { class: 'easel-name', text: it.title }), kill);
+        el.append(h('div', { class: 'easel-tile-bar' }, h('span', { class: 'easel-fav', text: (it.title || '?').charAt(0).toUpperCase() }), h('span', { class: 'easel-name', text: it.title }), kill));
         return el;
       }
       const el = h('div', { class: 'easel-note', 'data-id': it.id });
