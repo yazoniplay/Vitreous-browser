@@ -2203,8 +2203,15 @@
   function startPage() {
     const cmd = S.startLayout === 'command';
     const input = h('input', {
-      type: 'text', placeholder: 'Search or enter address', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Search',
-      onkeydown: (e) => { if (e.key === 'Enter' && input.value.trim()) navigate(cur(), input.value); },
+      type: 'text', placeholder: 'Search or type a URL', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Search',
+    });
+    input.addEventListener('focus', () => { sugInput = input; sugUpdate(); });
+    input.addEventListener('input', () => { sugInput = input; sugUpdate(); });
+    input.addEventListener('blur', () => setTimeout(sugHide, 0));
+    input.addEventListener('keydown', (e) => {
+      if (sugKey(e)) return;
+      if (e.key === 'Enter' && input.value.trim()) { sugHide(); navigate(cur(), input.value); }
+      else if (e.key === 'Escape') { sugHide(); input.blur(); }
     });
     let n = 0;
     const rise = (cls = '') => ({ class: ('rise ' + cls).trim(), style: `--i:${n++}` });
@@ -2217,7 +2224,7 @@
     }
     if (S.startLogo) kids.push(h('img', { ...rise(), src: 'assets/vitreous-mark.svg', alt: 'Vitreous' }));
     if (S.startTitle.trim()) kids.push(h('h1', { ...rise(), text: S.startTitle }));
-    if (S.startSearch) kids.push(h('label', rise('address'), input));
+    if (S.startSearch) kids.push(h('label', { ...rise('gsearch'), 'aria-label': 'Search' }, ico('search'), input));
     if (S.startTiles && !cmd) {
       const tiles = h('div', rise('tiles'));
       const drawTiles = () => {
@@ -3524,10 +3531,10 @@
   const sugBox = h('div', { class: 'sugg', role: 'listbox', 'aria-label': 'Address suggestions' });
   sugBox.hidden = true;
   document.body.append(sugBox);
-  let sugItems = [], sugIndex = -1;
+  let sugItems = [], sugIndex = -1, sugInput = null;
   function sugList(q) {
     const term = q.trim(), n = term.toLowerCase();
-    if (!term) return [];
+    if (!term) return S.history.slice(0, 6).map((x) => ({ icon: 'clock', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) }));
     const out = [];
     tabs.forEach((t) => {
       const u = urlOf(t), ttl = titleOf(t);
@@ -3554,7 +3561,8 @@
   }
   function sugHide() { sugBox.hidden = true; sugIndex = -1; sugItems = []; }
   function sugOpen() {
-    const r = $('#addr').getBoundingClientRect();
+    const r = sugInput.getBoundingClientRect();
+    sugBox.classList.toggle('big', sugInput !== $('#addr'));
     Object.assign(sugBox.style, { left: r.left + 'px', top: r.bottom + 6 + 'px', width: Math.max(r.width, 360) + 'px' });
     const wasHidden = sugBox.hidden;
     sugBox.hidden = false;
@@ -3564,32 +3572,34 @@
     const it = sugItems[i];
     if (!it) return;
     sugHide();
-    $('#addr').value = '';
-    $('#addr').blur();
+    if (sugInput) { sugInput.value = ''; sugInput.blur(); }
     it.act();
   }
   function sugUpdate() {
     if (!S.suggest) return sugHide();
-    sugItems = sugList($('#addr').value);
+    sugInput = sugInput || $('#addr');
+    sugItems = sugList(sugInput.value);
     sugIndex = -1;
     sugRender();
     if (sugItems.length) sugOpen(); else sugHide();
   }
+  function sugKey(e) {
+    if (sugBox.hidden || !sugItems.length) return false;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      sugIndex = (sugIndex + (e.key === 'ArrowDown' ? 1 : -1) + sugItems.length) % sugItems.length;
+      sugRender();
+      return true;
+    }
+    if (e.key === 'Enter' && sugIndex >= 0) { e.preventDefault(); pick(sugIndex); return true; }
+    return false;
+  }
   $('#addr').addEventListener('input', sugUpdate);
-  document.addEventListener('pointerdown', (e) => { if (!sugBox.hidden && !sugBox.contains(e.target) && e.target !== $('#addr')) sugHide(); });
+  document.addEventListener('pointerdown', (e) => { if (!sugBox.hidden && !sugBox.contains(e.target) && !(e.target.closest && e.target.closest('.gsearch, .address'))) sugHide(); });
   window.addEventListener('resize', sugHide);
   $('#addr').addEventListener('blur', () => setTimeout(sugHide, 0));
   $('#addr').addEventListener('keydown', (e) => {
-    if (!sugBox.hidden && sugItems.length) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const d = e.key === 'ArrowDown' ? 1 : -1;
-        sugIndex = (sugIndex + d + sugItems.length) % sugItems.length;
-        sugRender();
-        return;
-      }
-      if (e.key === 'Enter' && sugIndex >= 0) { e.preventDefault(); pick(sugIndex); return; }
-    }
+    if (sugKey(e)) return;
     if (e.key === 'Enter' && e.target.value.trim()) { sugHide(); navigate(cur(), e.target.value); e.target.blur(); }
     else if (e.key === 'Escape') { sugHide(); e.target.blur(); }
   });
