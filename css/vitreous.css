@@ -2307,7 +2307,7 @@ html body .sidebar { border-right: 1px solid var(--line) !important; border-left
 html body[data-side="right"] .sidebar { border-left: 1px solid var(--line) !important; border-right: 0 !important; }
 
 /* Expanded sidebar: extra glass on top of the base panel (high-fx only, so Low-Spec's transparency fix above is untouched) */
-body[data-fx="high"] .side-wrap .sidebar { border-radius: 22px; -webkit-backdrop-filter: blur(calc(var(--blur) + 24px)) saturate(170%); backdrop-filter: blur(calc(var(--blur) + 24px)) saturate(170%); box-shadow: 0 24px 60px -24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.22); }
+body[data-fx="high"] .side-wrap .sidebar { border-radius: 22px; -webkit-backdrop-filter: blur(calc(var(--blur) + var(--blur-boost, 0px))) saturate(170%); backdrop-filter: blur(calc(var(--blur) + var(--blur-boost, 0px))) saturate(170%); box-shadow: 0 24px 60px -24px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.22); }
 
 /* Vertical rhythm */
 html body .sidebar { gap: 0; padding: 10px 10px; }
@@ -2492,7 +2492,7 @@ html body[data-pinned="0"] .side-wrap .sidebar { visibility: hidden !important; 
 html body[data-tabs="side"][data-pinned="0"] #tbSidebar { display: grid !important; }
 
 /* More glass: frosted panel, a soft glass card behind the pinned grid (like Dia's group card), and glass hover on rows */
-body[data-fx="high"] .side-wrap .sidebar { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.06)) !important; -webkit-backdrop-filter: blur(calc(var(--blur) + 36px)) saturate(190%); backdrop-filter: blur(calc(var(--blur) + 36px)) saturate(190%); }
+body[data-fx="high"] .side-wrap .sidebar { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.06)) !important; -webkit-backdrop-filter: blur(calc(var(--blur) + var(--blur-boost, 0px))) saturate(190%); backdrop-filter: blur(calc(var(--blur) + var(--blur-boost, 0px))) saturate(190%); }
 body[data-fx="high"] .side-wrap .quick { background: rgba(255,255,255,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 24px -14px rgba(0,0,0,.35); border-radius: 14px; padding: 10px; margin-top: 12px; }
 body[data-fx="high"] .side-wrap .tab:hover { background: rgba(255,255,255,.12); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 body[data-fx="high"] .side-wrap .pin { background: rgba(255,255,255,.14); }
@@ -2679,7 +2679,7 @@ html body .start .address input { font-size: 16px; }
 
 /* ===== Phase 3: adaptive sidebar. The sidebar takes a share of the website colour, set by Website color intensity (default 35%). ===== */
 /* Sidebar glass: keeps the frosted blur and the glass sheen; the website colour is a translucent layer over it */
-html body .side-wrap .sidebar { -webkit-backdrop-filter: blur(calc(var(--blur) + 36px)) saturate(190%) !important; backdrop-filter: blur(calc(var(--blur) + 36px)) saturate(190%) !important; }
+html body .side-wrap .sidebar { -webkit-backdrop-filter: blur(calc(var(--blur) + var(--blur-boost, 0px))) saturate(190%) !important; backdrop-filter: blur(calc(var(--blur) + var(--blur-boost, 0px))) saturate(190%) !important; }
 body[data-dynamic-theme="1"] .side-wrap .sidebar { background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), color-mix(in srgb, color-mix(in srgb, var(--base) calc(100% - var(--sidebar-dyn, 35%)), var(--dynamic-color)) calc(60% * var(--glass-solid, 1)), transparent) !important; transition: background .6s ease !important; }
 body[data-fx="low"] .side-wrap .sidebar { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 
