@@ -305,12 +305,13 @@
     if (Array.isArray(src.easelTiles)) {
       const num = (v, d = 0) => (Number.isFinite(+v) ? +v : d);
       const colour = (c) => (c === 'text' || isHex(c) ? c : 'text');
-      out.easelTiles = src.easelTiles.filter((x) => x && typeof x.id === 'string' && /^\w+$/.test(x.id) && ['site', 'note', 'draw', 'rect', 'ellipse'].includes(x.kind)).slice(0, 400)
+      out.easelTiles = src.easelTiles.filter((x) => x && typeof x.id === 'string' && /^\w+$/.test(x.id) && ['site', 'note', 'text', 'draw', 'rect', 'ellipse'].includes(x.kind)).slice(0, 400)
         .map((x) => {
           if (x.kind === 'site') return (typeof x.url === 'string' && /^https?:\/\//i.test(x.url)) ? { kind: 'site', id: x.id, url: x.url.slice(0, 500), title: str(x.title, 40) || str(x.url, 40), x: num(x.x, 60), y: num(x.y, 60) } : null;
+          if (x.kind === 'text') return { kind: 'text', id: x.id, x: num(x.x), y: num(x.y), c: colour(x.c), size: Math.min(96, Math.max(10, num(x.size, 22))), text: str(x.text, 2000) };
           if (x.kind === 'note') return { kind: 'note', id: x.id, x: num(x.x), y: num(x.y), w: 220, h: 150, c: isHex(x.c) ? x.c : '#f5d76e', text: str(x.text, 2000) };
           if (x.kind === 'draw') return { kind: 'draw', id: x.id, pts: Array.isArray(x.pts) ? x.pts.filter((q) => Array.isArray(q) && q.length === 2).slice(0, 2000).map((q) => [num(q[0]), num(q[1])]) : [], c: colour(x.c), sw: Math.min(12, Math.max(1, num(x.sw, 3))) };
-          return { kind: x.kind, id: x.id, x: num(x.x), y: num(x.y), w: num(x.w), h: num(x.h), c: colour(x.c), sw: Math.min(12, Math.max(1, num(x.sw, 3))) };
+          return { kind: x.kind, id: x.id, x: num(x.x), y: num(x.y), w: num(x.w), h: num(x.h), c: colour(x.c), sw: Math.min(12, Math.max(1, num(x.sw, 3))), f: !!x.f };
         }).filter(Boolean);
     }
     if (src.easelView && typeof src.easelView === 'object') {
@@ -1180,8 +1181,19 @@
     save(); toast('Pinned to Easel');
   }
   function easelPage() {
-    let tool = 'select', selId = null, saveT = 0;
+    let tool = 'select', selId = null, saveT = 0, erasing = false, lastTap = { id: null, t: 0 };
+    const style = { c: 'text', sw: 3, f: false };
+    const undoStack = [];
+    const snap = () => { undoStack.push(JSON.stringify(S.easelTiles)); if (undoStack.length > 80) undoStack.shift(); };
+    const undo = () => {
+      const prev = undoStack.pop();
+      if (prev === undefined) return toast('Nothing to undo');
+      S.easelTiles = JSON.parse(prev);
+      if (selId && !S.easelTiles.some((x) => x.id === selId)) selId = null;
+      save(); draw();
+    };
     const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(save, 250); };
+    const sizeFor = (sw) => (sw === 2 ? 18 : sw === 5 ? 28 : 44);
     const sub = h('span', { class: 'lib-sub' });
     const svg = document.createElementNS(SVG_NS, 'svg');
     svg.setAttribute('class', 'easel-svg');
@@ -1226,27 +1238,71 @@
       return { x: (e.clientX - r.left - v.x) / v.z, y: (e.clientY - r.top - v.y) / v.z };
     };
 
-    /* tools */
+    /* tools and style controls */
     const toolBtns = {};
     const setTool = (id) => {
       tool = id;
       for (const k in toolBtns) toolBtns[k].setAttribute('aria-pressed', String(k === id));
       stage.dataset.tool = id;
     };
-    const toolBar = h('div', { class: 'easel-tools glass', role: 'toolbar', 'aria-label': 'Easel tools' });
-    [['select', 'Select (V)', 'Select'], ['pen', 'Pen (P)', 'Pen'], ['rect', 'Box (R)', 'Box'], ['ellipse', 'Circle (O)', 'Circle'], ['note', 'Note (N)', 'Note']]
+    const toolsRow = h('div', { class: 'easel-row' });
+    [['select', 'Select (V)', 'Select'], ['pen', 'Pen (P)', 'Pen'], ['rect', 'Box (R)', 'Box'], ['ellipse', 'Circle (O)', 'Circle'], ['text', 'Text (T)', 'Text'], ['note', 'Note (N)', 'Note'], ['erase', 'Eraser (E)', 'Erase']]
       .forEach(([id, title, label]) => {
         const b = h('button', { class: 'easel-tool', title, onclick: () => setTool(id) }, label);
-        toolBtns[id] = b; toolBar.append(b);
+        toolBtns[id] = b; toolsRow.append(b);
       });
     setTool('select');
+
+    const COLOURS = [['text', 'Default'], ['#ff6b6b', 'Red'], ['#ffd166', 'Yellow'], ['#06d6a0', 'Green'], ['#4cc9f0', 'Blue'], ['#c77dff', 'Purple']];
+    const WIDTHS = [[2, 'Thin'], [5, 'Medium'], [10, 'Thick']];
+    const swatchBtns = [], widthBtns = [];
+    const selected = () => (selId ? S.easelTiles.find((x) => x.id === selId) : null);
+    /* changes the default for new items, and the selected item too */
+    function applyStyle(patch) {
+      Object.assign(style, patch);
+      const it = selected();
+      if (it && it.kind !== 'site') {
+        snap();
+        if (it.kind === 'note') { if (patch.c !== undefined && patch.c !== 'text') it.c = patch.c; }
+        else {
+          if (patch.c !== undefined) it.c = patch.c;
+          if (patch.sw !== undefined) { if (it.kind === 'text') it.size = sizeFor(patch.sw); else it.sw = patch.sw; }
+          if (patch.f !== undefined && (it.kind === 'rect' || it.kind === 'ellipse')) it.f = patch.f;
+        }
+        save(); draw();
+      }
+      refreshStyleUI();
+    }
+    const styleRow = h('div', { class: 'easel-row' });
+    COLOURS.forEach(([c, label]) => {
+      const b = h('button', { class: 'easel-swatch', title: label, 'aria-label': label, onclick: () => applyStyle({ c }) });
+      b.style.background = c === 'text' ? 'var(--text)' : c;
+      swatchBtns.push([c, b]); styleRow.append(b);
+    });
+    WIDTHS.forEach(([sw, label]) => {
+      const dot = h('span', { class: 'easel-dot' });
+      dot.style.width = dot.style.height = (sw * 1.6 + 2) + 'px';
+      const b = h('button', { class: 'easel-tool easel-width', title: `${label} stroke`, 'aria-label': `${label} stroke`, onclick: () => applyStyle({ sw }) }, dot);
+      widthBtns.push([sw, b]); styleRow.append(b);
+    });
+    const fillBtn = h('button', { class: 'easel-tool', title: 'Fill boxes and circles', onclick: () => applyStyle({ f: !style.f }) }, 'Fill');
+    const undoBtn = h('button', { class: 'easel-tool', title: 'Undo (Ctrl Z)', onclick: undo }, 'Undo');
+    styleRow.append(fillBtn, undoBtn);
+    function refreshStyleUI() {
+      swatchBtns.forEach(([c, b]) => b.setAttribute('aria-pressed', String(c === style.c)));
+      widthBtns.forEach(([sw, b]) => b.setAttribute('aria-pressed', String(sw === style.sw)));
+      fillBtn.setAttribute('aria-pressed', String(!!style.f));
+    }
+    refreshStyleUI();
+    const toolBar = h('div', { class: 'easel-tools glass', role: 'toolbar', 'aria-label': 'Easel tools' }, toolsRow, styleRow);
     const zoomBar = h('div', { class: 'easel-zoom glass' },
       h('button', { class: 'easel-tool', title: 'Zoom out', 'aria-label': 'Zoom out', onclick: () => zoomCenter(1 / 1.2) }, '−'),
       zoomLbl,
       h('button', { class: 'easel-tool', title: 'Zoom in', 'aria-label': 'Zoom in', onclick: () => zoomCenter(1.2) }, '+'),
       h('button', { class: 'easel-tool', title: 'Reset view', onclick: () => { S.easelView = { x: 0, y: 0, z: 1 }; applyView(); save(); } }, 'Reset'));
 
-    /* drawing: sites and notes are elements; strokes and shapes are SVG */
+    /* items */
+    const colourOf = (c) => (!c || c === 'text' ? 'var(--text)' : c);
     function setInk(el, it) {
       if (it.kind === 'draw') {
         el.setAttribute('d', it.pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' '));
@@ -1255,14 +1311,16 @@
         if (it.kind === 'rect') { el.setAttribute('x', x); el.setAttribute('y', y); el.setAttribute('width', w); el.setAttribute('height', hh); }
         else { el.setAttribute('cx', x + w / 2); el.setAttribute('cy', y + hh / 2); el.setAttribute('rx', w / 2); el.setAttribute('ry', hh / 2); }
       }
-      el.style.stroke = it.c === 'text' ? 'var(--text)' : it.c;
+      const col = colourOf(it.c);
+      el.style.stroke = col;
       el.style.strokeWidth = it.sw;
+      el.style.fill = it.kind !== 'draw' && it.f ? col : 'none';
+      el.style.fillOpacity = '.18';
     }
     function inkEl(it) {
       const el = document.createElementNS(SVG_NS, it.kind === 'draw' ? 'path' : it.kind === 'ellipse' ? 'ellipse' : 'rect');
       el.setAttribute('class', 'easel-ink');
       el.setAttribute('data-id', it.id);
-      el.setAttribute('fill', 'none');
       setInk(el, it);
       return el;
     }
@@ -1279,20 +1337,33 @@
         el.append(h('div', { class: 'easel-tile-bar' }, h('span', { class: 'easel-fav', text: (it.title || '?').charAt(0).toUpperCase() }), h('span', { class: 'easel-name', text: it.title }), kill));
         return el;
       }
+      if (it.kind === 'text') {
+        const el = h('div', { class: 'easel-text', 'data-id': it.id, text: it.text || '' });
+        el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
+        el.style.color = colourOf(it.c); el.style.fontSize = (it.size || 22) + 'px';
+        return el;
+      }
       const el = h('div', { class: 'easel-note', 'data-id': it.id });
-      el.style.left = it.x + 'px'; el.style.top = it.y + 'px'; el.style.background = it.c;
-      const body = h('div', { class: 'easel-note-text', text: it.text || '' });
-      el.append(body);
-      el.addEventListener('dblclick', (e) => { e.stopPropagation(); editNote(el); });
-      body.addEventListener('blur', () => { body.contentEditable = 'false'; it.text = body.textContent.slice(0, 2000); save(); });
+      el.style.left = it.x + 'px'; el.style.top = it.y + 'px'; el.style.background = it.c === 'text' ? '#f5d76e' : it.c;
+      el.append(h('div', { class: 'easel-note-text', text: it.text || '' }));
       return el;
     }
+    /* typing: notes and text boxes become editable; leaving them saves the text, and an empty text box is removed */
     function editNote(el) {
-      const body = el.querySelector('.easel-note-text');
+      const id = el.dataset.id;
+      const body = el.classList.contains('easel-text') ? el : el.querySelector('.easel-note-text');
       body.contentEditable = 'true';
       body.focus();
       const r = document.createRange(); r.selectNodeContents(body); r.collapse(false);
       const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      body.addEventListener('blur', () => {
+        body.contentEditable = 'false';
+        const it = S.easelTiles.find((x) => x.id === id);
+        if (!it) return;
+        const txt = body.textContent.slice(0, 2000);
+        if (!txt.trim() && it.kind === 'text') removeItem(it);
+        else { it.text = txt; save(); }
+      }, { once: true });
     }
     function placeEl(it) {
       const el = world.querySelector(`[data-id="${it.id}"]`);
@@ -1307,6 +1378,7 @@
       if (el) el.classList.add('sel');
     }
     function removeItem(it) {
+      snap();
       S.easelTiles = S.easelTiles.filter((x) => x !== it);
       if (selId === it.id) selId = null;
       save(); draw();
@@ -1320,12 +1392,12 @@
       svg.replaceChildren(...ink);
       world.replaceChildren(svg, ...nodes);
       hint.style.display = S.easelTiles.length ? 'none' : '';
-      sub.textContent = `${S.easelTiles.length} ${S.easelTiles.length === 1 ? 'item' : 'items'} · pen, boxes and notes on the canvas · scroll to zoom`;
+      sub.textContent = `${S.easelTiles.length} ${S.easelTiles.length === 1 ? 'item' : 'items'} · scroll to zoom · Ctrl Z to undo`;
       applySel();
       applyView();
     }
 
-    /* pointers: pen, shapes, notes create; select moves items and pans the canvas */
+    /* pointers */
     function panStart(e) {
       const v = easelView(), sx = e.clientX, sy = e.clientY, v0 = { x: v.x, y: v.y };
       stage.setPointerCapture(e.pointerId);
@@ -1337,24 +1409,48 @@
     }
     function moveItem(e, it) {
       const p0 = toWorld(e), o = { x: it.x, y: it.y, pts: it.pts ? it.pts.map((q) => q.slice()) : null };
+      const before = JSON.stringify(S.easelTiles);
       let moved = false;
       stage.setPointerCapture(e.pointerId);
       const mv = (ev) => {
         const p = toWorld(ev), dx = p.x - p0.x, dy = p.y - p0.y;
-        if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+        if (!moved && Math.abs(dx) + Math.abs(dy) > 3) { moved = true; undoStack.push(before); if (undoStack.length > 80) undoStack.shift(); }
+        if (!moved) return;
         if (it.kind === 'draw') it.pts = o.pts.map(([x, y]) => [x + dx, y + dy]);
         else { it.x = o.x + dx; it.y = o.y + dy; }
         placeEl(it);
       };
       const up = () => {
         stage.removeEventListener('pointermove', mv); stage.removeEventListener('pointerup', up); stage.removeEventListener('pointercancel', up);
-        save();
-        if (!moved && it.kind === 'site') newTab(it.url); /* a click without a drag opens the site */
+        if (moved) { save(); return; }
+        /* a second tap on the same note or text box starts typing (the browser drops double-clicks while the pointer is captured) */
+        const now = Date.now();
+        if (lastTap.id === it.id && now - lastTap.t < 400 && (it.kind === 'note' || it.kind === 'text')) {
+          lastTap = { id: null, t: 0 };
+          const el = world.querySelector(`[data-id="${it.id}"]`);
+          if (el) editNote(el);
+          return;
+        }
+        lastTap = { id: it.id, t: now };
+        if (it.kind === 'site') newTab(it.url); /* a click without a drag opens the site */
       };
       stage.addEventListener('pointermove', mv);
       stage.addEventListener('pointerup', up);
       stage.addEventListener('pointercancel', up);
     }
+    function eraseAt(e) {
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      const el = hit && hit.closest ? hit.closest('[data-id]') : null;
+      if (!el || !world.contains(el)) return;
+      const it = S.easelTiles.find((x) => x.id === el.dataset.id);
+      if (!it) return;
+      S.easelTiles = S.easelTiles.filter((x) => x !== it);
+      if (selId === it.id) selId = null;
+      el.remove();
+    }
+    stage.addEventListener('pointermove', (e) => { if (erasing) eraseAt(e); });
+    stage.addEventListener('pointerup', () => { if (erasing) { erasing = false; save(); draw(); } });
+    stage.addEventListener('pointercancel', () => { if (erasing) { erasing = false; save(); draw(); } });
     stage.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || e.target.closest('[contenteditable="true"]')) return;
       const p = toWorld(e);
@@ -1362,22 +1458,29 @@
         const hit = e.target.closest('[data-id]');
         const it = hit && S.easelTiles.find((x) => x.id === hit.dataset.id);
         if (!it) { selId = null; applySel(); return panStart(e); }
-        selId = it.id; applySel();
+        selId = it.id; applySel(); refreshStyleUI();
         return moveItem(e, it);
       }
-      if (tool === 'note') {
-        const it = { kind: 'note', id: uid(), x: p.x - 110, y: p.y - 75, w: 220, h: 150, c: EASEL_NOTE_COLORS[S.easelTiles.length % EASEL_NOTE_COLORS.length], text: '' };
-        if (S.easelTiles.length >= EASEL_MAX) return toast(`Easel is full (${EASEL_MAX} items)`);
+      if (tool === 'erase') {
+        snap(); erasing = true; stage.setPointerCapture(e.pointerId); eraseAt(e);
+        return;
+      }
+      if (S.easelTiles.length >= EASEL_MAX) return toast(`Easel is full (${EASEL_MAX} items)`);
+      if (tool === 'note' || tool === 'text') {
+        snap();
+        const it = tool === 'note'
+          ? { kind: 'note', id: uid(), x: p.x - 110, y: p.y - 75, w: 220, h: 150, c: style.c === 'text' ? EASEL_NOTE_COLORS[S.easelTiles.length % EASEL_NOTE_COLORS.length] : style.c, text: '' }
+          : { kind: 'text', id: uid(), x: p.x, y: p.y - 14, c: style.c, size: sizeFor(style.sw), text: '' };
         S.easelTiles.push(it); save(); draw();
         const el = world.querySelector(`[data-id="${it.id}"]`);
         if (el) editNote(el);
         return;
       }
-      if (S.easelTiles.length >= EASEL_MAX) return toast(`Easel is full (${EASEL_MAX} items)`);
       stage.setPointerCapture(e.pointerId);
       let it;
-      if (tool === 'pen') it = { kind: 'draw', id: uid(), pts: [[p.x, p.y]], c: 'text', sw: 3 };
-      else it = { kind: tool === 'rect' ? 'rect' : 'ellipse', id: uid(), x: p.x, y: p.y, w: 0, h: 0, c: 'text', sw: 3 };
+      if (tool === 'pen') it = { kind: 'draw', id: uid(), pts: [[p.x, p.y]], c: style.c, sw: style.sw };
+      else it = { kind: tool === 'rect' ? 'rect' : 'ellipse', id: uid(), x: p.x, y: p.y, w: 0, h: 0, c: style.c, sw: style.sw, f: style.f };
+      snap();
       S.easelTiles.push(it);
       const el = inkEl(it);
       svg.append(el);
@@ -1397,10 +1500,11 @@
       stage.addEventListener('pointercancel', up);
     });
 
-    /* keys: V P R O N switch tools; Delete removes the selected item */
+    /* keys: Ctrl Z undoes; V P R O T N E switch tools; Delete removes the selected item */
     const onKey = (e) => {
       if (!stage.isConnected) { window.removeEventListener('keydown', onKey); return; }
       if (e.target.closest && e.target.closest('input, [contenteditable="true"]')) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selId) {
         const it = S.easelTiles.find((x) => x.id === selId);
         e.preventDefault();
@@ -1408,7 +1512,7 @@
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const k = { v: 'select', p: 'pen', r: 'rect', o: 'ellipse', n: 'note' }[e.key.toLowerCase()];
+      const k = { v: 'select', p: 'pen', r: 'rect', o: 'ellipse', t: 'text', n: 'note', e: 'erase' }[e.key.toLowerCase()];
       if (k) setTool(k);
     };
     window.addEventListener('keydown', onKey);
