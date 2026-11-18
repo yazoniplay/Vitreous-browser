@@ -2902,3 +2902,9 @@ html body .layout-left .start .gsearch { margin: 0; }
 html body .tab.grouped::before, html body .tab.stack::before { content: ''; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 3px; background: var(--sc); pointer-events: none; }
 html body .tab.stack .stack-ico { color: var(--sc, var(--muted)); }
 html body .tab.stack .stack-ico .ico { stroke: currentColor; }
+
+/* ===== Library headers and the Easel canvas: rounded glass, not a solid black slab ===== */
+html body .lib-head.glass { border-radius: var(--radius-panels, 22px); background: color-mix(in srgb, var(--base) 55%, transparent); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid var(--line); }
+html body[data-fx="low"] .lib-head.glass { background: color-mix(in srgb, var(--base) 88%, transparent); -webkit-backdrop-filter: none; backdrop-filter: none; }
+html body .easel-canvas { border-radius: var(--radius-panels, 22px); overflow: hidden; border: 1px solid var(--line); background: color-mix(in srgb, var(--base) 60%, #000); }
+html body .easel-stage { background: transparent; }
