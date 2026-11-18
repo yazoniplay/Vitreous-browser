@@ -2814,3 +2814,35 @@ html body .viewport.glass {
 }
 .easel-tile:hover .easel-x, .easel-x:focus-visible { opacity: 1; }
 .easel-x:hover { color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent); }
+
+/* ===== Easel canvas: pan and zoom stage, notes, pen strokes and shapes ===== */
+.easel-canvas { position: relative; height: 66vh; min-height: 420px; border-radius: 22px; overflow: hidden; }
+.easel-stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
+.easel-stage:active { cursor: grabbing; }
+.easel-stage[data-tool="pen"], .easel-stage[data-tool="rect"], .easel-stage[data-tool="ellipse"] { cursor: crosshair; }
+.easel-stage[data-tool="note"] { cursor: copy; }
+.easel-world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+.easel-svg { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+.easel-ink { stroke-linecap: round; stroke-linejoin: round; pointer-events: visibleStroke; cursor: move; }
+.easel-ink.sel { filter: drop-shadow(0 0 4px var(--accent)); }
+.easel-tile.sel, .easel-note.sel { outline: 2px solid var(--accent); outline-offset: 4px; }
+.easel-tile { cursor: grab; }
+.easel-note {
+  position: absolute; width: 220px; min-height: 150px; box-sizing: border-box; padding: 14px; border-radius: 16px;
+  color: #1a1a1a; font-size: 15px; line-height: 1.4; box-shadow: 0 12px 26px -14px rgba(0,0,0,.55); cursor: grab;
+}
+.easel-note-text { min-height: 120px; outline: none; white-space: pre-wrap; word-break: break-word; }
+.easel-note-text[contenteditable="true"] { cursor: text; }
+.easel-tools, .easel-zoom {
+  position: absolute; z-index: 3; display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 14px;
+}
+.easel-tools { top: 12px; left: 50%; transform: translateX(-50%); }
+.easel-zoom { right: 12px; bottom: 12px; }
+.easel-tool {
+  height: 30px; min-width: 30px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent;
+  color: var(--text); font: inherit; font-size: 13px; cursor: pointer;
+}
+.easel-tool:hover { background: color-mix(in srgb, var(--text) 10%, transparent); }
+.easel-tool[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.easel-zoom-lbl { min-width: 48px; text-align: center; font-size: 12px; color: var(--muted); }
+.easel-hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; pointer-events: none; }

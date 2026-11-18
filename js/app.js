@@ -99,7 +99,7 @@
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startWidth: 760, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
-    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES, easelTiles: [],
+    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES, easelTiles: [], easelView: { x: 0, y: 0, z: 1 },
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
@@ -1149,61 +1149,252 @@
     ], body, S.saveHistory ? null : h('div', { class: 'lib-note', text: 'History is off, so new visits are not being saved. Turn it back on in Settings, under Privacy.' }));
   }
 
-  /* Easel: a whiteboard canvas. Pin websites as draggable tiles; clicking a tile opens it in a new tab */
+  /* Easel: a whiteboard canvas. S.easelTiles holds every item: sites (website tiles), notes, pen strokes and boxes/circles.
+     Pan and zoom live in S.easelView. Item coordinates are in canvas space, so zooming never moves the items. */
+  const EASEL_MAX = 400;
+  const EASEL_NOTE_COLORS = ['#f5d76e', '#8fd3ff', '#b7f0c1', '#f7b2c8'];
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const easelView = () => (S.easelView && typeof S.easelView.z === 'number') ? S.easelView : (S.easelView = { x: 0, y: 0, z: 1 });
   function pinToEasel(t) {
     const u = t && t.hist[t.i];
     if (!u || !/^https?:\/\//i.test(u)) return toast('Open a website first');
-    if (S.easelTiles.length >= 60) return toast('Easel is full (60 tiles)');
+    if (S.easelTiles.length >= EASEL_MAX) return toast(`Easel is full (${EASEL_MAX} items)`);
     const n = S.easelTiles.length;
-    S.easelTiles.push({ id: uid(), url: u, title: hostName(u), x: 40 + (n * 28) % 360, y: 40 + (n * 28) % 240 });
+    S.easelTiles.push({ kind: 'site', id: uid(), url: u, title: hostName(u), x: 60 + (n * 28) % 360, y: 60 + (n * 28) % 240 });
     save(); toast('Pinned to Easel');
   }
   function easelPage() {
-    const canvas = h('div', { class: 'easel-canvas' });
+    let tool = 'select', selId = null, saveT = 0;
+    const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(save, 250); };
     const sub = h('span', { class: 'lib-sub' });
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'easel-svg');
+    const world = h('div', { class: 'easel-world' }, svg);
+    const stage = h('div', { class: 'easel-stage' }, world);
+    const hint = h('div', { class: 'easel-hint', text: 'Empty canvas. Pick a tool above, pin a website, or drag to move around.' });
+    stage.append(hint);
+    const zoomLbl = h('span', { class: 'easel-zoom-lbl' });
+
     const urlIn = h('input', { class: 'lib-input', placeholder: 'Pin a website, e.g. example.com', 'aria-label': 'Website address' });
-    const addBtn = h('button', { class: 'btn', onclick: () => add() }, ico('plus'), h('span', { text: 'Pin' }));
-    function add() {
-      const u = toUrl(urlIn.value);
+    function pinUrl(v) {
+      const u = toUrl(v);
       if (!u) { urlIn.focus(); return toast('Enter a valid web address'); }
-      if (S.easelTiles.length >= 60) return toast('Easel is full (60 tiles)');
+      if (S.easelTiles.length >= EASEL_MAX) return toast(`Easel is full (${EASEL_MAX} items)`);
       const n = S.easelTiles.length;
-      S.easelTiles.push({ id: uid(), url: u, title: hostName(u), x: 40 + (n * 28) % 360, y: 40 + (n * 28) % 240 });
+      S.easelTiles.push({ kind: 'site', id: uid(), url: u, title: hostName(u), x: 60 + (n * 28) % 360, y: 60 + (n * 28) % 240 });
       urlIn.value = ''; save(); draw();
     }
-    urlIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
-    function tileEl(tile) {
-      const el = h('div', { class: 'easel-tile glass', title: tile.url });
-      el.style.left = tile.x + 'px'; el.style.top = tile.y + 'px';
-      const kill = h('button', { class: 'easel-x', 'aria-label': 'Remove tile', title: 'Remove' }, ico('x'));
-      kill.addEventListener('pointerdown', (e) => e.stopPropagation());
-      kill.addEventListener('click', (e) => { e.stopPropagation(); S.easelTiles = S.easelTiles.filter((x) => x !== tile); save(); draw(); });
-      el.append(h('span', { class: 'easel-fav', text: (tile.title || '?').charAt(0).toUpperCase() }), h('span', { class: 'easel-name', text: tile.title }), kill);
-      el.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('.easel-x')) return;
-        const sx = e.clientX, sy = e.clientY, ox = tile.x, oy = tile.y;
-        let moved = false;
-        el.setPointerCapture(e.pointerId);
-        const mv = (ev) => {
-          const dx = ev.clientX - sx, dy = ev.clientY - sy;
-          if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
-          tile.x = Math.max(0, ox + dx); tile.y = Math.max(0, oy + dy);
-          el.style.left = tile.x + 'px'; el.style.top = tile.y + 'px';
-        };
-        const up = () => {
-          el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
-          if (moved) save(); else newTab(tile.url);
-        };
-        el.addEventListener('pointermove', mv);
-        el.addEventListener('pointerup', up);
-        el.addEventListener('pointercancel', up);
+    urlIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') pinUrl(urlIn.value); });
+    const addBtn = h('button', { class: 'btn', onclick: () => pinUrl(urlIn.value) }, ico('plus'), h('span', { text: 'Pin' }));
+
+    /* view: pan and zoom, saved with the state */
+    function applyView() {
+      const v = easelView();
+      world.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.z})`;
+      zoomLbl.textContent = Math.round(v.z * 100) + '%';
+    }
+    function zoomAt(sx, sy, f) {
+      const v = easelView();
+      const nz = Math.min(3, Math.max(0.25, v.z * f)), k = nz / v.z;
+      v.x = sx - (sx - v.x) * k; v.y = sy - (sy - v.y) * k; v.z = nz;
+      applyView(); saveSoon();
+    }
+    const zoomCenter = (f) => { const r = stage.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, f); };
+    stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const r = stage.getBoundingClientRect();
+      zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.1 : 1 / 1.1);
+    }, { passive: false });
+    const toWorld = (e) => {
+      const r = stage.getBoundingClientRect(), v = easelView();
+      return { x: (e.clientX - r.left - v.x) / v.z, y: (e.clientY - r.top - v.y) / v.z };
+    };
+
+    /* tools */
+    const toolBtns = {};
+    const setTool = (id) => {
+      tool = id;
+      for (const k in toolBtns) toolBtns[k].setAttribute('aria-pressed', String(k === id));
+      stage.dataset.tool = id;
+    };
+    const toolBar = h('div', { class: 'easel-tools glass', role: 'toolbar', 'aria-label': 'Easel tools' });
+    [['select', 'Select (V)', 'Select'], ['pen', 'Pen (P)', 'Pen'], ['rect', 'Box (R)', 'Box'], ['ellipse', 'Circle (O)', 'Circle'], ['note', 'Note (N)', 'Note']]
+      .forEach(([id, title, label]) => {
+        const b = h('button', { class: 'easel-tool', title, onclick: () => setTool(id) }, label);
+        toolBtns[id] = b; toolBar.append(b);
       });
+    setTool('select');
+    const zoomBar = h('div', { class: 'easel-zoom glass' },
+      h('button', { class: 'easel-tool', title: 'Zoom out', 'aria-label': 'Zoom out', onclick: () => zoomCenter(1 / 1.2) }, '−'),
+      zoomLbl,
+      h('button', { class: 'easel-tool', title: 'Zoom in', 'aria-label': 'Zoom in', onclick: () => zoomCenter(1.2) }, '+'),
+      h('button', { class: 'easel-tool', title: 'Reset view', onclick: () => { S.easelView = { x: 0, y: 0, z: 1 }; applyView(); save(); } }, 'Reset'));
+
+    /* drawing: sites and notes are elements; strokes and shapes are SVG */
+    function setInk(el, it) {
+      if (it.kind === 'draw') {
+        el.setAttribute('d', it.pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' '));
+      } else {
+        const x = Math.min(it.x, it.x + it.w), y = Math.min(it.y, it.y + it.h), w = Math.abs(it.w), hh = Math.abs(it.h);
+        if (it.kind === 'rect') { el.setAttribute('x', x); el.setAttribute('y', y); el.setAttribute('width', w); el.setAttribute('height', hh); }
+        else { el.setAttribute('cx', x + w / 2); el.setAttribute('cy', y + hh / 2); el.setAttribute('rx', w / 2); el.setAttribute('ry', hh / 2); }
+      }
+      el.style.stroke = it.c === 'text' ? 'var(--text)' : it.c;
+      el.style.strokeWidth = it.sw;
+    }
+    function inkEl(it) {
+      const el = document.createElementNS(SVG_NS, it.kind === 'draw' ? 'path' : it.kind === 'ellipse' ? 'ellipse' : 'rect');
+      el.setAttribute('class', 'easel-ink');
+      el.setAttribute('data-id', it.id);
+      el.setAttribute('fill', 'none');
+      setInk(el, it);
       return el;
     }
-    function draw() {
-      sub.textContent = `${S.easelTiles.length} ${S.easelTiles.length === 1 ? 'tile' : 'tiles'} · drag to arrange, click to open`;
-      canvas.replaceChildren(...(S.easelTiles.length ? S.easelTiles.map(tileEl) : [empty('plus', 'Nothing pinned yet. Paste a website above, or use "Pin current page to Easel" in the command palette.')]));
+    function nodeEl(it) {
+      if (it.kind === 'site') {
+        const el = h('div', { class: 'easel-tile glass', title: it.url, 'data-id': it.id });
+        el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
+        const kill = h('button', { class: 'easel-x', 'aria-label': 'Remove', title: 'Remove' }, ico('x'));
+        kill.addEventListener('pointerdown', (e) => e.stopPropagation());
+        kill.addEventListener('click', (e) => { e.stopPropagation(); removeItem(it); });
+        el.append(h('span', { class: 'easel-fav', text: (it.title || '?').charAt(0).toUpperCase() }), h('span', { class: 'easel-name', text: it.title }), kill);
+        return el;
+      }
+      const el = h('div', { class: 'easel-note', 'data-id': it.id });
+      el.style.left = it.x + 'px'; el.style.top = it.y + 'px'; el.style.background = it.c;
+      const body = h('div', { class: 'easel-note-text', text: it.text || '' });
+      el.append(body);
+      el.addEventListener('dblclick', (e) => { e.stopPropagation(); editNote(el); });
+      body.addEventListener('blur', () => { body.contentEditable = 'false'; it.text = body.textContent.slice(0, 2000); save(); });
+      return el;
     }
+    function editNote(el) {
+      const body = el.querySelector('.easel-note-text');
+      body.contentEditable = 'true';
+      body.focus();
+      const r = document.createRange(); r.selectNodeContents(body); r.collapse(false);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    }
+    function placeEl(it) {
+      const el = world.querySelector(`[data-id="${it.id}"]`);
+      if (!el) return;
+      if (it.kind === 'draw' || it.kind === 'rect' || it.kind === 'ellipse') setInk(el, it);
+      else { el.style.left = it.x + 'px'; el.style.top = it.y + 'px'; }
+    }
+    function applySel() {
+      world.querySelectorAll('.sel').forEach((el) => el.classList.remove('sel'));
+      if (!selId) return;
+      const el = world.querySelector(`[data-id="${selId}"]`);
+      if (el) el.classList.add('sel');
+    }
+    function removeItem(it) {
+      S.easelTiles = S.easelTiles.filter((x) => x !== it);
+      if (selId === it.id) selId = null;
+      save(); draw();
+    }
+    function draw() {
+      const ink = [], nodes = [];
+      for (const it of S.easelTiles) {
+        if (it.kind === 'draw' || it.kind === 'rect' || it.kind === 'ellipse') ink.push(inkEl(it));
+        else nodes.push(nodeEl(it));
+      }
+      svg.replaceChildren(...ink);
+      world.replaceChildren(svg, ...nodes);
+      hint.style.display = S.easelTiles.length ? 'none' : '';
+      sub.textContent = `${S.easelTiles.length} ${S.easelTiles.length === 1 ? 'item' : 'items'} · pen, boxes and notes on the canvas · scroll to zoom`;
+      applySel();
+      applyView();
+    }
+
+    /* pointers: pen, shapes, notes create; select moves items and pans the canvas */
+    function panStart(e) {
+      const v = easelView(), sx = e.clientX, sy = e.clientY, v0 = { x: v.x, y: v.y };
+      stage.setPointerCapture(e.pointerId);
+      const mv = (ev) => { v.x = v0.x + (ev.clientX - sx); v.y = v0.y + (ev.clientY - sy); applyView(); };
+      const up = () => { stage.removeEventListener('pointermove', mv); stage.removeEventListener('pointerup', up); stage.removeEventListener('pointercancel', up); save(); };
+      stage.addEventListener('pointermove', mv);
+      stage.addEventListener('pointerup', up);
+      stage.addEventListener('pointercancel', up);
+    }
+    function moveItem(e, it) {
+      const p0 = toWorld(e), o = { x: it.x, y: it.y, pts: it.pts ? it.pts.map((q) => q.slice()) : null };
+      let moved = false;
+      stage.setPointerCapture(e.pointerId);
+      const mv = (ev) => {
+        const p = toWorld(ev), dx = p.x - p0.x, dy = p.y - p0.y;
+        if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+        if (it.kind === 'draw') it.pts = o.pts.map(([x, y]) => [x + dx, y + dy]);
+        else { it.x = o.x + dx; it.y = o.y + dy; }
+        placeEl(it);
+      };
+      const up = () => {
+        stage.removeEventListener('pointermove', mv); stage.removeEventListener('pointerup', up); stage.removeEventListener('pointercancel', up);
+        save();
+        if (!moved && it.kind === 'site') newTab(it.url); /* a click without a drag opens the site */
+      };
+      stage.addEventListener('pointermove', mv);
+      stage.addEventListener('pointerup', up);
+      stage.addEventListener('pointercancel', up);
+    }
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest('[contenteditable="true"]')) return;
+      const p = toWorld(e);
+      if (tool === 'select') {
+        const hit = e.target.closest('[data-id]');
+        const it = hit && S.easelTiles.find((x) => x.id === hit.dataset.id);
+        if (!it) { selId = null; applySel(); return panStart(e); }
+        selId = it.id; applySel();
+        return moveItem(e, it);
+      }
+      if (tool === 'note') {
+        const it = { kind: 'note', id: uid(), x: p.x - 110, y: p.y - 75, w: 220, h: 150, c: EASEL_NOTE_COLORS[S.easelTiles.length % EASEL_NOTE_COLORS.length], text: '' };
+        if (S.easelTiles.length >= EASEL_MAX) return toast(`Easel is full (${EASEL_MAX} items)`);
+        S.easelTiles.push(it); save(); draw();
+        const el = world.querySelector(`[data-id="${it.id}"]`);
+        if (el) editNote(el);
+        return;
+      }
+      if (S.easelTiles.length >= EASEL_MAX) return toast(`Easel is full (${EASEL_MAX} items)`);
+      stage.setPointerCapture(e.pointerId);
+      let it;
+      if (tool === 'pen') it = { kind: 'draw', id: uid(), pts: [[p.x, p.y]], c: 'text', sw: 3 };
+      else it = { kind: tool === 'rect' ? 'rect' : 'ellipse', id: uid(), x: p.x, y: p.y, w: 0, h: 0, c: 'text', sw: 3 };
+      S.easelTiles.push(it);
+      const el = inkEl(it);
+      svg.append(el);
+      const mv = (ev) => {
+        const q = toWorld(ev);
+        if (it.kind === 'draw') { if (it.pts.length < 2000) it.pts.push([q.x, q.y]); }
+        else { it.w = q.x - it.x; it.h = q.y - it.y; }
+        setInk(el, it);
+      };
+      const up = () => {
+        stage.removeEventListener('pointermove', mv); stage.removeEventListener('pointerup', up); stage.removeEventListener('pointercancel', up);
+        if (it.kind !== 'draw' && Math.abs(it.w) < 4 && Math.abs(it.h) < 4) S.easelTiles = S.easelTiles.filter((x) => x !== it);
+        save(); draw();
+      };
+      stage.addEventListener('pointermove', mv);
+      stage.addEventListener('pointerup', up);
+      stage.addEventListener('pointercancel', up);
+    });
+
+    /* keys: V P R O N switch tools; Delete removes the selected item */
+    const onKey = (e) => {
+      if (!stage.isConnected) { window.removeEventListener('keydown', onKey); return; }
+      if (e.target.closest && e.target.closest('input, [contenteditable="true"]')) return;
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selId) {
+        const it = S.easelTiles.find((x) => x.id === selId);
+        e.preventDefault();
+        if (it) removeItem(it);
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const k = { v: 'select', p: 'pen', r: 'rect', o: 'ellipse', n: 'note' }[e.key.toLowerCase()];
+      if (k) setTool(k);
+    };
+    window.addEventListener('keydown', onKey);
+
+    const canvas = h('div', { class: 'easel-canvas' }, stage, toolBar, zoomBar);
     draw();
     return libPage('plus', 'Easel', sub, [urlIn, addBtn], canvas);
   }
