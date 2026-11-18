@@ -2789,3 +2789,8 @@ html body .side-wrap .side-foot #palBtn,
 html body .side-wrap .side-foot button { color: var(--text) !important; opacity: 1 !important; }
 html body .side-wrap .new-tab,
 html body .side-wrap .new-tab span { color: var(--text) !important; opacity: .95 !important; font-weight: 600; }
+
+/* ===== Page solidity: at 0% transparency the page is fully opaque in high-spec too (it was capped at 70%) ===== */
+html body .viewport.glass {
+  background: color-mix(in srgb, var(--base) calc(8% + 92% * var(--glass-solid, 1)), transparent) !important;
+}
