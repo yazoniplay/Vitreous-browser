@@ -2974,3 +2974,6 @@ html body[data-theme="light"][data-fx="low"] .sugg { background: color-mix(in sr
 
 /* ===== With a wallpaper set, the colour glow is hidden so the photo stays sharp ===== */
 body[data-wall="1"] .backdrop { display: none; }
+
+/* ===== Midnight: true black base with a dimmer glow, so it reads as OLED black ===== */
+body[data-oled="1"] .backdrop { opacity: .35; }
