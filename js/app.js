@@ -3545,6 +3545,7 @@
   const sugCache = new Map();
   async function remoteSuggest(term) {
     if (!S.searchSuggest || (S.search || 'ddg') !== 'ddg' || term.length < 2) return [];
+    if (!/^https?:/.test(location.protocol)) console.warn('Vitreous: search suggestions need the page served over http(s); the request may be blocked from file://');
     if (sugCache.has(term)) return sugCache.get(term);
     sugCtrl?.abort();
     sugCtrl = new AbortController();
@@ -3555,16 +3556,18 @@
       if (sugCache.size > 50) sugCache.clear();
       sugCache.set(term, list);
       return list;
-    } catch { return []; }
+    } catch (err) { console.warn('Vitreous: search suggestions failed', err); return []; }
   }
   /* history rows: one per address, newest first, optionally filtered */
+  const addrKey = (u) => { try { const x = new URL(u); return (x.hostname.replace(/^www\./, '') + x.pathname.replace(/\/+$/, '') + x.search).toLowerCase(); } catch { return u; } };
   function histRows(max, match = '') {
     const seen = new Set(), out = [];
     for (const x of S.history) {
       if (out.length >= max) break;
-      if (seen.has(x.u)) continue;
+      const k = addrKey(x.u);
+      if (seen.has(k)) continue;
       if (match && !(x.u.toLowerCase().includes(match) || (x.t || '').toLowerCase().includes(match))) continue;
-      seen.add(x.u);
+      seen.add(k);
       out.push({ icon: 'clock', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) });
     }
     return out;
@@ -3583,7 +3586,7 @@
       if (b.name.toLowerCase().includes(n) || b.url.toLowerCase().includes(n))
         out.push({ icon: 'star', label: b.name, sub: pretty(b.url), act: () => navigate(cur(), b.url) });
     });
-    histRows(5, n).forEach((r) => out.push(r));
+    histRows(3, n).forEach((r) => out.push(r));
     const looksLikeAddress = /\./.test(term) && !/\s/.test(term);
     const last = looksLikeAddress
       ? { icon: 'globe', label: `Go to ${term}`, sub: null, act: () => navigate(cur(), term) }
