@@ -2264,7 +2264,7 @@
   function startPage() {
     const cmd = S.startLayout === 'command';
     const input = h('input', {
-      type: 'text', placeholder: 'Search or type a URL', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Search',
+      type: 'text', placeholder: 'Ask Vitreous', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Ask Vitreous',
     });
     input.addEventListener('focus', () => { sugInput = input; sugUpdate(); });
     input.addEventListener('input', () => { sugInput = input; sugUpdate(); });

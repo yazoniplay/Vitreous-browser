@@ -2927,3 +2927,24 @@ html body[data-theme="light"][data-fx="low"] .lib-head.glass, html body[data-the
   background: color-mix(in srgb, #ffffff 70%, transparent) !important;
 }
 html body .start .gsearch input, html body .address input { color: var(--text); }
+
+/* ===== Suggestions: translucent glass, with text that stays readable ===== */
+html body .sugg {
+  background: color-mix(in srgb, #0b0f1c 62%, transparent) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid color-mix(in srgb, #ffffff 18%, transparent);
+  color: #f5f7fb;
+}
+html body .sugg-label { color: #f5f7fb; font-weight: 500; }
+html body .sugg-sub, html body .sugg-row .ico { color: #c9d0e0; }
+html body .sugg-row:hover, html body .sugg-row.on { background: color-mix(in srgb, #ffffff 16%, transparent); }
+html body[data-theme="light"] .sugg {
+  background: color-mix(in srgb, #ffffff 74%, transparent) !important;
+  border-color: color-mix(in srgb, #000000 12%, transparent);
+  color: #0f1420;
+}
+html body[data-theme="light"] .sugg-label { color: #0f1420; }
+html body[data-theme="light"] .sugg-sub, html body[data-theme="light"] .sugg-row .ico { color: #3f4759; }
+html body[data-theme="light"] .sugg-row:hover, html body[data-theme="light"] .sugg-row.on { background: color-mix(in srgb, #000000 8%, transparent); }
+html body[data-fx="low"] .sugg { -webkit-backdrop-filter: none; backdrop-filter: none; background: color-mix(in srgb, #0b0f1c 86%, transparent) !important; }
+html body[data-theme="light"][data-fx="low"] .sugg { background: color-mix(in srgb, #ffffff 92%, transparent) !important; }
