@@ -468,7 +468,12 @@
   function newStackFrom(t) { const st = { id: uid(), name: STACK_NAME, color: ACCENTS[stacks.length % ACCENTS.length], ws: t.ws, open: true }; stacks.push(st); t.stack = st.id; render(); }
   function addToStack(t, st) { t.stack = st.id; render(); }
   async function renameStack(id) { const st = stackOf(id); if (!st) return; const n = await askPrompt({ title: 'Stack name', value: st.name }); if (n && n.trim()) { st.name = n.trim().slice(0, 24); render(); } }
-  function cycleStackColor(id) { const st = stackOf(id); if (!st) return; st.color = ACCENTS[(ACCENTS.indexOf(st.color) + 1) % ACCENTS.length]; render(); }
+  const COLOR_NAMES = { '#5aa9ff': 'Blue', '#b57bff': 'Purple', '#0ea5a0': 'Teal', '#ff6b9a': 'Pink', '#ffb340': 'Amber', '#ff5a5a': 'Red', '#34d399': 'Green', '#e5e7eb': 'Grey' };
+  function stackColorEntries(id) {
+    const st = stackOf(id);
+    if (!st) return [];
+    return ACCENTS.map((c) => [(c === st.color ? '✓ ' : '') + (COLOR_NAMES[c] || c), () => { st.color = c; render(); }]);
+  }
   function ungroupStack(id) { tabs.forEach((t) => { if (t.stack === id) delete t.stack; }); stacks = stacks.filter((s) => s.id !== id); render(); }
   /* closing a stack: header and its tabs fade out in a short stagger, then the stack and its tabs are removed */
   function closeStackTabs(id) {
@@ -959,6 +964,9 @@
   function patchTab(n, t) {
     n.setAttribute('aria-selected', String(t.id === activeId));
     n.title = urlOf(t);
+    const grp = t.stack && stackOf(t.stack);
+    n.classList.toggle('grouped', !!grp);
+    if (grp) n.style.setProperty('--sc', grp.color); else n.style.removeProperty('--sc');
     const title = titleOf(t), letter = favLetter(t);
     const tt = n.querySelector('.t'), ff = n.querySelector('.fav');
     if (tt.textContent !== title) tt.textContent = title;
@@ -3414,7 +3422,7 @@
       openContextMenu(e, [
         [stackOf(sid)?.open ? 'Collapse' : 'Expand', () => toggleStack(sid)],
         ['Rename stack', () => renameStack(sid)],
-        ['Change color', () => cycleStackColor(sid)],
+        ...stackColorEntries(sid),
         ['Ungroup', () => ungroupStack(sid)],
         ['Close all tabs in stack', () => closeStackTabs(sid)],
       ]);

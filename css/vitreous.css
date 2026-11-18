@@ -2897,3 +2897,8 @@ html body .start .gsearch input { flex: 1; min-width: 0; height: 100%; padding: 
 html body .start .gsearch input::placeholder { color: var(--muted); }
 html body .layout-left .start .gsearch { margin: 0; }
 .sugg.big { border-radius: 24px; padding: 10px 0; }
+
+/* ===== Tab groups: colour strip on grouped tabs and group headers ===== */
+html body .tab.grouped::before, html body .tab.stack::before { content: ''; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 3px; background: var(--sc); pointer-events: none; }
+html body .tab.stack .stack-ico { color: var(--sc, var(--muted)); }
+html body .tab.stack .stack-ico .ico { stroke: currentColor; }
