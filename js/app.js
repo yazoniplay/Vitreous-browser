@@ -99,7 +99,7 @@
     /* start page */
     startLogo: true, startTitle: 'vitreous', startSearch: true, startTiles: true, startAdd: true, startWidth: 760, startHint: true,
     startClock: false, clock24: true, startGreeting: false, customGreeting: '', startLayout: 'centered', userName: '', tileSize: 108, startWidgets: true, siteIcons: true,
-    bookmarks: DEFAULT_BOOKMARKS, quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES, easelTiles: [], easelView: { x: 0, y: 0, z: 1 },
+    bookmarks: DEFAULT_BOOKMARKS, passwords: [], quickLinks: DEFAULT_QUICK, spaces: DEFAULT_SPACES, easelTiles: [], easelView: { x: 0, y: 0, z: 1 },
     history: MOCK_HISTORY, downloads: MOCK_DOWNLOADS,
     /* behavior */
     search: 'ddg', engines: [], newTabMode: 'start', homepage: '',
@@ -191,7 +191,7 @@
     const enc = encodeURIComponent(q);
     return e[1].includes('%s') ? e[1].replace('%s', enc) : e[1] + enc;
   };
-  const INTERNAL = ['vitreous://newtab', 'vitreous://settings', 'vitreous://blank', 'vitreous://error', 'vitreous://downloads', 'vitreous://history', 'vitreous://bookmarks', 'vitreous://easel'];
+  const INTERNAL = ['vitreous://newtab', 'vitreous://settings', 'vitreous://blank', 'vitreous://error', 'vitreous://downloads', 'vitreous://history', 'vitreous://bookmarks', 'vitreous://easel', 'vitreous://passwords'];
 
   /* ---------- state ---------- */
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -243,6 +243,7 @@
     if (u === 'vitreous://downloads') return 'Downloads';
     if (u === 'vitreous://history') return 'History';
     if (u === 'vitreous://bookmarks') return 'Bookmarks';
+    if (u === 'vitreous://passwords') return 'Passwords';
     if (u === 'vitreous://easel') return 'Easel';
     if (t.titleOverride) return t.titleOverride;
     try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; }
@@ -255,6 +256,7 @@
     if (u === 'vitreous://downloads') return '↓';
     if (u === 'vitreous://history') return '◷';
     if (u === 'vitreous://bookmarks') return '★';
+    if (u === 'vitreous://passwords') return '◉';
     if (u === 'vitreous://easel') return '▦';
     return (titleOf(t)[0] || '?').toUpperCase();
   }
@@ -300,6 +302,11 @@
     if (Array.isArray(src.bookmarks)) {
       out.bookmarks = src.bookmarks.filter((x) => x && typeof x.url === 'string' && /^https?:\/\//i.test(x.url)).slice(0, 24)
         .map((x) => ({ name: str(x.name, 40) || str(x.url, 40), url: x.url.slice(0, 500) }));
+    }
+    /* Passwords (mock): keep well-formed entries only */
+    if (Array.isArray(src.passwords)) {
+      out.passwords = src.passwords.filter((x) => x && typeof x.site === 'string' && typeof x.user === 'string' && typeof x.pass === 'string').slice(0, 200)
+        .map((x) => ({ id: str(x.id, 32) || uid(), site: str(x.site, 120), user: str(x.user, 120), pass: str(x.pass, 200), ts: Number(x.ts) || Date.now() }));
     }
     /* Easel: keep only well-formed items, and clamp the saved pan and zoom */
     if (Array.isArray(src.easelTiles)) {
@@ -1560,6 +1567,50 @@
     return libPage('plus', 'Easel', sub, [urlIn, addBtn], canvas);
   }
 
+  /* Passwords (mock): a list with reveal, copy and delete. Nothing is encrypted, filled in or synced. */
+  function passwordsPage() {
+    let q = '', reveal = null, revealTimer = 0;
+    const sub = h('span', { class: 'lib-sub' });
+    const body = h('div');
+    const siteIn = h('input', { class: 'lib-input', placeholder: 'Site, e.g. github.com', maxlength: '80', 'aria-label': 'Site', autocomplete: 'off' });
+    const userIn = h('input', { class: 'lib-input', placeholder: 'Username', maxlength: '120', 'aria-label': 'Username', autocomplete: 'off' });
+    const passIn = h('input', { class: 'lib-input', type: 'password', placeholder: 'Password', maxlength: '200', 'aria-label': 'Password', autocomplete: 'new-password' });
+    const addBtn = h('button', { class: 'btn', onclick: () => add() }, ico('plus'), h('span', { text: 'Add' }));
+    function add() {
+      const site = siteIn.value.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase();
+      if (!site || !userIn.value.trim() || !passIn.value) return toast('Enter a site, username and password');
+      if (S.passwords.length >= 200) return toast('Password limit reached (200)');
+      S.passwords.push({ id: uid(), site: site.slice(0, 120), user: userIn.value.trim().slice(0, 120), pass: passIn.value.slice(0, 200), ts: Date.now() });
+      siteIn.value = ''; userIn.value = ''; passIn.value = ''; save(); draw(); toast('Saved');
+    }
+    [siteIn, userIn, passIn].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); }));
+    const copy = async (p) => { try { await navigator.clipboard.writeText(p.pass); toast('Password copied'); } catch { toast('The browser blocked copying'); } };
+    function draw() {
+      const n = q.trim().toLowerCase();
+      sub.textContent = `${S.passwords.length} saved`;
+      const rows = S.passwords.filter((p) => !n || p.site.includes(n) || p.user.toLowerCase().includes(n));
+      body.replaceChildren(rows.length
+        ? h('div', { class: 'lib-card' }, rows.map((p) => {
+          const shown = reveal === p.id;
+          return h('div', { class: 'lib-row' },
+            rowMain(`https://${p.site}`, p.site, `${p.user} · ${shown ? p.pass : '••••••••'}`, ''),
+            actBtn('eye', shown ? 'Hide password' : 'Show password', () => {
+              reveal = shown ? null : p.id;
+              clearTimeout(revealTimer);
+              if (reveal) revealTimer = setTimeout(() => { reveal = null; draw(); }, 10000);
+              draw();
+            }),
+            actBtn('copy', 'Copy password', () => copy(p)),
+            actBtn('x', 'Delete password', () => { S.passwords = S.passwords.filter((y) => y !== p); save(); draw(); }));
+        }))
+        : empty('lock', n ? 'No passwords match your search.' : 'No passwords saved yet. Add one below.'));
+    }
+    draw();
+    const warn = h('div', { class: 'warn', text: 'Mock: nothing here is encrypted, autofilled or synced. Passwords are stored unencrypted in this browser and shown in full when you press Show.' });
+    return libPage('lock', 'Passwords', sub, [libSearch('Search passwords', (v) => { q = v; draw(); })],
+      body, h('div', { class: 'rise', style: '--i:1' }, warn, h('div', { class: 'lib-add' }, siteIn, userIn, passIn, addBtn)));
+  }
+
   function bookmarksPage() {
     let q = '', editing = null;
     const sub = h('span', { class: 'lib-sub' });
@@ -1781,6 +1832,7 @@
     else if (u === 'vitreous://downloads') { v.append(downloadsPage()); setTimeout(loadEnd, 300); }
     else if (u === 'vitreous://history') { v.append(historyPage()); setTimeout(loadEnd, 300); }
     else if (u === 'vitreous://bookmarks') { v.append(bookmarksPage()); setTimeout(loadEnd, 300); }
+    else if (u === 'vitreous://passwords') { v.append(passwordsPage()); setTimeout(loadEnd, 300); }
     else if (u === 'vitreous://easel') { v.append(easelPage()); setTimeout(loadEnd, 300); }
     else {
       const frame = h('iframe', {
@@ -1819,6 +1871,7 @@
     if (url === 'vitreous://downloads') { el.classList.add('has-ico'); el.append(ico('download')); return; }
     if (url === 'vitreous://history') { el.classList.add('has-ico'); el.append(ico('clock')); return; }
     if (url === 'vitreous://bookmarks') { el.classList.add('has-ico'); el.append(ico('bookmark')); return; }
+    if (url === 'vitreous://passwords') { el.classList.add('has-ico'); el.append(ico('lock')); return; }
     if (url === 'vitreous://newtab') { el.classList.add('has-img', 'logo'); el.append(h('img', { src: 'assets/vitreous-mark.svg', alt: '' })); return; }
     let src = '';
     try { const u = new URL(url); if (/^https?:$/.test(u.protocol)) src = u.origin + '/favicon.ico'; } catch { /* letter */ }
@@ -2606,6 +2659,8 @@
     code: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
     bookmark: '<path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    eye: '<path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
     star: '<path d="M12 3.8l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.6l-5 2.6.9-5.6-4-3.9 5.6-.8z"/>',
     resize: '<path d="M19 9L9 19M19 14l-5 5"/>',
     rss: '<path d="M5 5a14 14 0 0 1 14 14M5 11a8 8 0 0 1 8 8"/><circle cx="6" cy="18" r="1.6"/>',
@@ -3203,6 +3258,7 @@
       ['Open History', '', () => navigate(cur(), 'vitreous://history')],
       ['Open Downloads', '', () => navigate(cur(), 'vitreous://downloads')],
       ['Open Bookmarks', '', () => navigate(cur(), 'vitreous://bookmarks')],
+      ['Open Passwords', '', () => navigate(cur(), 'vitreous://passwords')],
       ['Toggle top / side tab layout', '', () => set('tabs', S.tabs === 'top' ? 'side' : 'top')],
       ['Export settings', '', () => { openSettings('grp-advanced'); }],
       ['Boost this site…', '', () => openBoost(hostOf(urlOf(cur())).replace(/^www\./, ''))],
