@@ -3519,9 +3519,73 @@
   $('#addr').addEventListener('focus', (e) => { const u = urlOf(cur()); e.target.value = INTERNAL.includes(u) ? '' : u; e.target.select(); });
   $('#addr').addEventListener('blur', renderToolbar);
   $('#addrClear').addEventListener('mousedown', (e) => { e.preventDefault(); const i = $('#addr'); i.value = ''; i.dispatchEvent(new Event('input')); i.focus(); });
+  /* Address bar suggestions: open tabs, bookmarks, history and a search row, as you type */
+  const sugBox = h('div', { class: 'sugg glass', role: 'listbox', 'aria-label': 'Address suggestions' });
+  sugBox.hidden = true;
+  document.body.append(sugBox);
+  let sugItems = [], sugIndex = -1;
+  function sugList(q) {
+    const term = q.trim(), n = term.toLowerCase();
+    if (!term) return [];
+    const out = [];
+    tabs.forEach((t) => {
+      const u = urlOf(t);
+      if (t.id === activeId || INTERNAL.includes(u)) return;
+      if (u.toLowerCase().includes(n) || hostName(u).toLowerCase().includes(n)) out.push({ kind: 'Tab', label: hostName(u), sub: pretty(u), act: () => activate(t.id) });
+    });
+    S.bookmarks.forEach((b) => {
+      if (b.name.toLowerCase().includes(n) || b.url.toLowerCase().includes(n)) out.push({ kind: 'Bookmark', label: b.name, sub: pretty(b.url), act: () => navigate(cur(), b.url) });
+    });
+    S.history.filter((x) => x.u.toLowerCase().includes(n) || (x.t || '').toLowerCase().includes(n)).slice(0, 5)
+      .forEach((x) => out.push({ kind: 'History', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) }));
+    const looksLikeAddress = /\./.test(term) && !/\s/.test(term);
+    out.push({ kind: looksLikeAddress ? 'Go to' : 'Search', label: term, sub: looksLikeAddress ? 'Open this address' : 'Search or open address', act: () => navigate(cur(), term) });
+    return out.slice(0, 9);
+  }
+  function sugRender() {
+    sugBox.replaceChildren(...sugItems.map((it, i) => h('button', {
+      class: 'sugg-row' + (i === sugIndex ? ' on' : ''), role: 'option', 'aria-selected': String(i === sugIndex),
+      onmousedown: (e) => { e.preventDefault(); pick(i); },
+    }, h('span', { class: 'sugg-kind', text: it.kind }), h('span', { class: 'sugg-main' }, h('span', { class: 'sugg-label', text: it.label }), h('span', { class: 'sugg-sub', text: it.sub })))));
+  }
+  function sugHide() { sugBox.hidden = true; sugIndex = -1; sugItems = []; }
+  function sugOpen() {
+    const r = $('#addr').getBoundingClientRect();
+    Object.assign(sugBox.style, { left: r.left + 'px', top: r.bottom + 8 + 'px', width: Math.max(r.width, 360) + 'px' });
+    const wasHidden = sugBox.hidden;
+    sugBox.hidden = false;
+    if (wasHidden && motionOn()) sugBox.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.32,.72,0,1)' });
+  }
+  function pick(i) {
+    const it = sugItems[i];
+    if (!it) return;
+    sugHide();
+    $('#addr').value = '';
+    $('#addr').blur();
+    it.act();
+  }
+  function sugUpdate() {
+    if (!S.suggest) return sugHide();
+    sugItems = sugList($('#addr').value);
+    sugIndex = -1;
+    sugRender();
+    if (sugItems.length) sugOpen(); else sugHide();
+  }
+  $('#addr').addEventListener('input', sugUpdate);
+  $('#addr').addEventListener('blur', () => setTimeout(sugHide, 0));
   $('#addr').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.value.trim()) { navigate(cur(), e.target.value); e.target.blur(); }
-    else if (e.key === 'Escape') e.target.blur();
+    if (!sugBox.hidden && sugItems.length) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const d = e.key === 'ArrowDown' ? 1 : -1;
+        sugIndex = (sugIndex + d + sugItems.length) % sugItems.length;
+        sugRender();
+        return;
+      }
+      if (e.key === 'Enter' && sugIndex >= 0) { e.preventDefault(); pick(sugIndex); return; }
+    }
+    if (e.key === 'Enter' && e.target.value.trim()) { sugHide(); navigate(cur(), e.target.value); e.target.blur(); }
+    else if (e.key === 'Escape') { sugHide(); e.target.blur(); }
   });
 
   document.addEventListener('keydown', (e) => {
