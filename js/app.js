@@ -3540,7 +3540,24 @@
   sugBox.hidden = true;
   document.body.append(sugBox);
   let sugItems = [], sugIndex = -1, sugInput = null;
-  function sugList(q) {
+  /* search-engine suggestions: only with the Search suggestions setting on, and only for DuckDuckGo */
+  let sugTimer = null, sugCtrl = null;
+  const sugCache = new Map();
+  async function remoteSuggest(term) {
+    if (!S.searchSuggest || (S.search || 'ddg') !== 'ddg' || term.length < 2) return [];
+    if (sugCache.has(term)) return sugCache.get(term);
+    sugCtrl?.abort();
+    sugCtrl = new AbortController();
+    try {
+      const r = await fetch('https://duckduckgo.com/ac/?q=' + encodeURIComponent(term) + '&type=list', { signal: sugCtrl.signal, referrerPolicy: 'no-referrer', credentials: 'omit' });
+      const j = await r.json();
+      const list = Array.isArray(j) && Array.isArray(j[1]) ? j[1].filter((x) => typeof x === 'string').slice(0, 4) : [];
+      if (sugCache.size > 50) sugCache.clear();
+      sugCache.set(term, list);
+      return list;
+    } catch { return []; }
+  }
+  function sugList(q, remote = []) {
     const term = q.trim(), n = term.toLowerCase();
     if (!term) return S.history.slice(0, 6).map((x) => ({ icon: 'clock', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) }));
     const out = [];
@@ -3557,9 +3574,11 @@
     S.history.filter((x) => x.u.toLowerCase().includes(n) || (x.t || '').toLowerCase().includes(n)).slice(0, 5)
       .forEach((x) => out.push({ icon: 'clock', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) }));
     const looksLikeAddress = /\./.test(term) && !/\s/.test(term);
-    if (looksLikeAddress) out.push({ icon: 'globe', label: `Go to ${term}`, sub: null, act: () => navigate(cur(), term) });
-    else { const eng = allEngines()[S.search] || ENGINES.ddg; out.push({ icon: 'search', label: `Search ${eng[0]} for '${term}'`, sub: null, act: () => navigate(cur(), term) }); }
-    return out.slice(0, 9);
+    const last = looksLikeAddress
+      ? { icon: 'globe', label: `Go to ${term}`, sub: null, act: () => navigate(cur(), term) }
+      : { icon: 'search', label: `Search ${(allEngines()[S.search] || ENGINES.ddg)[0]} for '${term}'`, sub: null, act: () => navigate(cur(), term) };
+    const rows = remote.map((phrase) => ({ icon: 'search', label: phrase, sub: null, act: () => navigate(cur(), phrase) }));
+    return [...out.slice(0, Math.max(0, 8 - rows.length)), ...rows, last];
   }
   function sugRender() {
     sugBox.replaceChildren(...sugItems.map((it, i) => h('button', {
@@ -3567,7 +3586,7 @@
       onmousedown: (e) => { e.preventDefault(); pick(i); },
     }, ico(it.icon), h('span', { class: 'sugg-main' }, h('span', { class: 'sugg-label', text: it.label }), it.sub ? h('span', { class: 'sugg-sub', text: it.sub }) : null))));
   }
-  function sugHide() { sugBox.hidden = true; sugIndex = -1; sugItems = []; }
+  function sugHide() { clearTimeout(sugTimer); sugCtrl?.abort(); sugBox.hidden = true; sugIndex = -1; sugItems = []; }
   function sugOpen() {
     const r = sugInput.getBoundingClientRect();
     if (!r.width || !r.height || !sugInput.isConnected) return sugHide();
@@ -3588,7 +3607,19 @@
     if (!S.suggest) return sugHide();
     const act = document.activeElement;
     sugInput = act && (act.id === 'addr' || (act.closest && act.closest('.gsearch'))) ? act : $('#addr');
-    sugItems = sugList(sugInput.value);
+    const term = sugInput.value.trim();
+    sugItems = sugList(term);
+    sugIndex = -1;
+    sugRender();
+    if (sugItems.length) sugOpen(); else sugHide();
+    clearTimeout(sugTimer);
+    if (term.length >= 2 && S.searchSuggest) sugTimer = setTimeout(() => refreshRemote(term), 160);
+  }
+  async function refreshRemote(term) {
+    const rem = await remoteSuggest(term);
+    if (!sugInput || sugInput.value.trim() !== term || !S.suggest) return;
+    if (sugBox.hidden && document.activeElement !== sugInput) return;
+    sugItems = sugList(term, rem);
     sugIndex = -1;
     sugRender();
     if (sugItems.length) sugOpen(); else sugHide();
