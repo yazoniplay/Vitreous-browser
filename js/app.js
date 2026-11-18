@@ -301,6 +301,22 @@
       out.bookmarks = src.bookmarks.filter((x) => x && typeof x.url === 'string' && /^https?:\/\//i.test(x.url)).slice(0, 24)
         .map((x) => ({ name: str(x.name, 40) || str(x.url, 40), url: x.url.slice(0, 500) }));
     }
+    /* Easel: keep only well-formed items, and clamp the saved pan and zoom */
+    if (Array.isArray(src.easelTiles)) {
+      const num = (v, d = 0) => (Number.isFinite(+v) ? +v : d);
+      const colour = (c) => (c === 'text' || isHex(c) ? c : 'text');
+      out.easelTiles = src.easelTiles.filter((x) => x && typeof x.id === 'string' && /^\w+$/.test(x.id) && ['site', 'note', 'draw', 'rect', 'ellipse'].includes(x.kind)).slice(0, 400)
+        .map((x) => {
+          if (x.kind === 'site') return (typeof x.url === 'string' && /^https?:\/\//i.test(x.url)) ? { kind: 'site', id: x.id, url: x.url.slice(0, 500), title: str(x.title, 40) || str(x.url, 40), x: num(x.x, 60), y: num(x.y, 60) } : null;
+          if (x.kind === 'note') return { kind: 'note', id: x.id, x: num(x.x), y: num(x.y), w: 220, h: 150, c: isHex(x.c) ? x.c : '#f5d76e', text: str(x.text, 2000) };
+          if (x.kind === 'draw') return { kind: 'draw', id: x.id, pts: Array.isArray(x.pts) ? x.pts.filter((q) => Array.isArray(q) && q.length === 2).slice(0, 2000).map((q) => [num(q[0]), num(q[1])]) : [], c: colour(x.c), sw: Math.min(12, Math.max(1, num(x.sw, 3))) };
+          return { kind: x.kind, id: x.id, x: num(x.x), y: num(x.y), w: num(x.w), h: num(x.h), c: colour(x.c), sw: Math.min(12, Math.max(1, num(x.sw, 3))) };
+        }).filter(Boolean);
+    }
+    if (src.easelView && typeof src.easelView === 'object') {
+      const v = src.easelView;
+      out.easelView = { x: Math.min(100000, Math.max(-100000, +v.x || 0)), y: Math.min(100000, Math.max(-100000, +v.y || 0)), z: Math.min(3, Math.max(0.25, +v.z || 1)) };
+    }
     if (Array.isArray(src.routes)) {
       out.routes = src.routes.filter((x) => x && /^[a-z0-9.-]{1,253}$/i.test(String(x.host || '')) && typeof x.ws === 'string' && out.spaces.some((sp) => sp.id === x.ws))
         .slice(0, 30).map((x) => ({ host: String(x.host).toLowerCase(), ws: x.ws }));
