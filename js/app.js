@@ -3520,7 +3520,7 @@
   $('#addr').addEventListener('blur', renderToolbar);
   $('#addrClear').addEventListener('mousedown', (e) => { e.preventDefault(); const i = $('#addr'); i.value = ''; i.dispatchEvent(new Event('input')); i.focus(); });
   /* Address bar suggestions: open tabs, bookmarks, history and a search row, as you type */
-  const sugBox = h('div', { class: 'sugg glass', role: 'listbox', 'aria-label': 'Address suggestions' });
+  const sugBox = h('div', { class: 'sugg', role: 'listbox', 'aria-label': 'Address suggestions' });
   sugBox.hidden = true;
   document.body.append(sugBox);
   let sugItems = [], sugIndex = -1;
@@ -3551,7 +3551,7 @@
   function sugHide() { sugBox.hidden = true; sugIndex = -1; sugItems = []; }
   function sugOpen() {
     const r = $('#addr').getBoundingClientRect();
-    Object.assign(sugBox.style, { left: r.left + 'px', top: r.bottom + 8 + 'px', width: Math.max(r.width, 360) + 'px' });
+    Object.assign(sugBox.style, { left: r.left + 'px', top: r.bottom + 6 + 'px', width: Math.max(r.width, 360) + 'px' });
     const wasHidden = sugBox.hidden;
     sugBox.hidden = false;
     if (wasHidden && motionOn()) sugBox.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.32,.72,0,1)' });
@@ -3572,6 +3572,8 @@
     if (sugItems.length) sugOpen(); else sugHide();
   }
   $('#addr').addEventListener('input', sugUpdate);
+  document.addEventListener('pointerdown', (e) => { if (!sugBox.hidden && !sugBox.contains(e.target) && e.target !== $('#addr')) sugHide(); });
+  window.addEventListener('resize', sugHide);
   $('#addr').addEventListener('blur', () => setTimeout(sugHide, 0));
   $('#addr').addEventListener('keydown', (e) => {
     if (!sugBox.hidden && sugItems.length) {
