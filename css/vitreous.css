@@ -2877,3 +2877,4 @@ html body .viewport.glass {
 }
 .easel-text[contenteditable="true"] { cursor: text; outline: 1px dashed var(--accent); }
 .easel-text:empty::before { content: 'Type…'; opacity: .45; }
+.easel-text { width: max-content; max-width: 480px; }
