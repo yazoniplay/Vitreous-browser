@@ -3562,6 +3562,7 @@
   function sugHide() { sugBox.hidden = true; sugIndex = -1; sugItems = []; }
   function sugOpen() {
     const r = sugInput.getBoundingClientRect();
+    if (!r.width || !r.height || !sugInput.isConnected) return sugHide();
     sugBox.classList.toggle('big', sugInput !== $('#addr'));
     Object.assign(sugBox.style, { left: r.left + 'px', top: r.bottom + 6 + 'px', width: Math.max(r.width, 360) + 'px' });
     const wasHidden = sugBox.hidden;
@@ -3577,7 +3578,8 @@
   }
   function sugUpdate() {
     if (!S.suggest) return sugHide();
-    sugInput = sugInput || $('#addr');
+    const act = document.activeElement;
+    sugInput = act && (act.id === 'addr' || (act.closest && act.closest('.gsearch'))) ? act : $('#addr');
     sugItems = sugList(sugInput.value);
     sugIndex = -1;
     sugRender();
