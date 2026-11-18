@@ -1181,17 +1181,13 @@
     save(); toast('Pinned to Easel');
   }
   function easelPage() {
-    let tool = 'select', selId = null, saveT = 0, erasing = false, lastTap = { id: null, t: 0 };
+    let tool = 'select', selId = null, saveT = 0, erasing = false, erasedAny = false, lastTap = { id: null, t: 0 };
     const style = { c: 'text', sw: 3, f: false };
-    const undoStack = [];
-    const snap = () => { undoStack.push(JSON.stringify(S.easelTiles)); if (undoStack.length > 80) undoStack.shift(); };
-    const undo = () => {
-      const prev = undoStack.pop();
-      if (prev === undefined) return toast('Nothing to undo');
-      S.easelTiles = JSON.parse(prev);
-      if (selId && !S.easelTiles.some((x) => x.id === selId)) selId = null;
-      save(); draw();
-    };
+    const undoStack = [], redoStack = [];
+    const snap = () => { undoStack.push(JSON.stringify(S.easelTiles)); if (undoStack.length > 80) undoStack.shift(); redoStack.length = 0; };
+    const restore = (json) => { S.easelTiles = JSON.parse(json); if (selId && !S.easelTiles.some((x) => x.id === selId)) selId = null; save(); draw(); };
+    const undo = () => { const prev = undoStack.pop(); if (prev === undefined) return toast('Nothing to undo'); redoStack.push(JSON.stringify(S.easelTiles)); restore(prev); };
+    const redo = () => { const next = redoStack.pop(); if (next === undefined) return toast('Nothing to redo'); undoStack.push(JSON.stringify(S.easelTiles)); restore(next); };
     const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(save, 250); };
     const sizeFor = (sw) => (sw === 2 ? 18 : sw === 5 ? 28 : 44);
     const sub = h('span', { class: 'lib-sub' });
@@ -1287,7 +1283,8 @@
     });
     const fillBtn = h('button', { class: 'easel-tool', title: 'Fill boxes and circles', onclick: () => applyStyle({ f: !style.f }) }, 'Fill');
     const undoBtn = h('button', { class: 'easel-tool', title: 'Undo (Ctrl Z)', onclick: undo }, 'Undo');
-    styleRow.append(fillBtn, undoBtn);
+    const redoBtn = h('button', { class: 'easel-tool', title: 'Redo (Ctrl Shift Z)', onclick: redo }, 'Redo');
+    styleRow.append(fillBtn, undoBtn, redoBtn);
     function refreshStyleUI() {
       swatchBtns.forEach(([c, b]) => b.setAttribute('aria-pressed', String(c === style.c)));
       widthBtns.forEach(([sw, b]) => b.setAttribute('aria-pressed', String(sw === style.sw)));
@@ -1414,7 +1411,7 @@
       stage.setPointerCapture(e.pointerId);
       const mv = (ev) => {
         const p = toWorld(ev), dx = p.x - p0.x, dy = p.y - p0.y;
-        if (!moved && Math.abs(dx) + Math.abs(dy) > 3) { moved = true; undoStack.push(before); if (undoStack.length > 80) undoStack.shift(); }
+        if (!moved && Math.abs(dx) + Math.abs(dy) > 3) { moved = true; undoStack.push(before); redoStack.length = 0; if (undoStack.length > 80) undoStack.shift(); }
         if (!moved) return;
         if (it.kind === 'draw') it.pts = o.pts.map(([x, y]) => [x + dx, y + dy]);
         else { it.x = o.x + dx; it.y = o.y + dy; }
@@ -1438,19 +1435,51 @@
       stage.addEventListener('pointerup', up);
       stage.addEventListener('pointercancel', up);
     }
+    const segDist = (p, a, b) => {
+      const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy;
+      const t = L ? Math.max(0, Math.min(1, ((p.x - a[0]) * dx + (p.y - a[1]) * dy) / L)) : 0;
+      return Math.hypot(p.x - (a[0] + t * dx), p.y - (a[1] + t * dy));
+    };
+    /* geometry hit test in canvas units, so thin strokes are easy to erase at any zoom */
+    function hitShape(it, p, tol) {
+      if (it.kind === 'draw') {
+        const pad = (it.sw || 3) / 2 + tol;
+        if (it.pts.length === 1) return Math.hypot(p.x - it.pts[0][0], p.y - it.pts[0][1]) <= pad;
+        for (let i = 1; i < it.pts.length; i++) if (segDist(p, it.pts[i - 1], it.pts[i]) <= pad) return true;
+        return false;
+      }
+      const x0 = Math.min(it.x, it.x + it.w), x1 = Math.max(it.x, it.x + it.w), y0 = Math.min(it.y, it.y + it.h), y1 = Math.max(it.y, it.y + it.h);
+      if (it.kind === 'rect') {
+        if (p.x < x0 - tol || p.x > x1 + tol || p.y < y0 - tol || p.y > y1 + tol) return false;
+        if (it.f) return true;
+        return p.x < x0 + tol || p.x > x1 - tol || p.y < y0 + tol || p.y > y1 - tol;
+      }
+      const rx = (x1 - x0) / 2, ry = (y1 - y0) / 2;
+      if (rx < 1 || ry < 1) return false;
+      const d = Math.hypot((p.x - (x0 + rx)) / rx, (p.y - (y0 + ry)) / ry), m = Math.min(rx, ry);
+      return it.f ? d <= 1 + tol / m : Math.abs(d - 1) * m <= tol + (it.sw || 3) / 2;
+    }
     function eraseAt(e) {
-      const hit = document.elementFromPoint(e.clientX, e.clientY);
-      const el = hit && hit.closest ? hit.closest('[data-id]') : null;
-      if (!el || !world.contains(el)) return;
-      const it = S.easelTiles.find((x) => x.id === el.dataset.id);
-      if (!it) return;
-      S.easelTiles = S.easelTiles.filter((x) => x !== it);
-      if (selId === it.id) selId = null;
-      el.remove();
+      const p = toWorld(e), tol = 10 / easelView().z;
+      let victim = null;
+      for (let i = S.easelTiles.length - 1; i >= 0 && !victim; i--) {
+        const it = S.easelTiles[i];
+        if ((it.kind === 'draw' || it.kind === 'rect' || it.kind === 'ellipse') && hitShape(it, p, tol)) victim = it;
+      }
+      if (!victim) {
+        const hit = document.elementFromPoint(e.clientX, e.clientY);
+        const el = hit && hit.closest ? hit.closest('[data-id]') : null;
+        if (el && world.contains(el)) victim = S.easelTiles.find((x) => x.id === el.dataset.id) || null;
+      }
+      if (!victim) return;
+      if (!erasedAny) { snap(); erasedAny = true; }
+      S.easelTiles = S.easelTiles.filter((x) => x !== victim);
+      if (selId === victim.id) selId = null;
+      world.querySelectorAll(`[data-id="${victim.id}"]`).forEach((el) => el.remove());
     }
     stage.addEventListener('pointermove', (e) => { if (erasing) eraseAt(e); });
-    stage.addEventListener('pointerup', () => { if (erasing) { erasing = false; save(); draw(); } });
-    stage.addEventListener('pointercancel', () => { if (erasing) { erasing = false; save(); draw(); } });
+    stage.addEventListener('pointerup', () => { if (erasing) { erasing = false; if (erasedAny) { save(); draw(); } } });
+    stage.addEventListener('pointercancel', () => { if (erasing) { erasing = false; if (erasedAny) { save(); draw(); } } });
     stage.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || e.target.closest('[contenteditable="true"]')) return;
       const p = toWorld(e);
@@ -1462,7 +1491,7 @@
         return moveItem(e, it);
       }
       if (tool === 'erase') {
-        snap(); erasing = true; stage.setPointerCapture(e.pointerId); eraseAt(e);
+        erasing = true; erasedAny = false; stage.setPointerCapture(e.pointerId); eraseAt(e);
         return;
       }
       if (S.easelTiles.length >= EASEL_MAX) return toast(`Easel is full (${EASEL_MAX} items)`);
@@ -1504,7 +1533,8 @@
     const onKey = (e) => {
       if (!stage.isConnected) { window.removeEventListener('keydown', onKey); return; }
       if (e.target.closest && e.target.closest('input, [contenteditable="true"]')) return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selId) {
         const it = S.easelTiles.find((x) => x.id === selId);
         e.preventDefault();
