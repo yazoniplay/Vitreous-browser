@@ -3557,9 +3557,21 @@
       return list;
     } catch { return []; }
   }
+  /* history rows: one per address, newest first, optionally filtered */
+  function histRows(max, match = '') {
+    const seen = new Set(), out = [];
+    for (const x of S.history) {
+      if (out.length >= max) break;
+      if (seen.has(x.u)) continue;
+      if (match && !(x.u.toLowerCase().includes(match) || (x.t || '').toLowerCase().includes(match))) continue;
+      seen.add(x.u);
+      out.push({ icon: 'clock', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) });
+    }
+    return out;
+  }
   function sugList(q, remote = []) {
     const term = q.trim(), n = term.toLowerCase();
-    if (!term) return S.history.slice(0, 6).map((x) => ({ icon: 'clock', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) }));
+    if (!term) return histRows(6);
     const out = [];
     tabs.forEach((t) => {
       const u = urlOf(t), ttl = titleOf(t);
@@ -3571,8 +3583,7 @@
       if (b.name.toLowerCase().includes(n) || b.url.toLowerCase().includes(n))
         out.push({ icon: 'star', label: b.name, sub: pretty(b.url), act: () => navigate(cur(), b.url) });
     });
-    S.history.filter((x) => x.u.toLowerCase().includes(n) || (x.t || '').toLowerCase().includes(n)).slice(0, 5)
-      .forEach((x) => out.push({ icon: 'clock', label: x.t || hostName(x.u), sub: pretty(x.u), act: () => navigate(cur(), x.u) }));
+    histRows(5, n).forEach((r) => out.push(r));
     const looksLikeAddress = /\./.test(term) && !/\s/.test(term);
     const last = looksLikeAddress
       ? { icon: 'globe', label: `Go to ${term}`, sub: null, act: () => navigate(cur(), term) }
