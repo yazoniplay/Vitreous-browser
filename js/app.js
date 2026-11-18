@@ -885,12 +885,11 @@
     /* glass transparency: 0 = solid panel, 100 = clear glass. Only the panel's relation to the background changes. */
     const gl = S.glassTransparency / 100;
     const tintV = String(0.30 - gl * 0.28);
-    /* blur capped at 4px so clear glass shows the background, not a frosted version of it */
-    /* Low-Spec forces blur off, but transparency (--glass-solid) still applies */
-    /* Blur slider at 0 means no backdrop blur at all: the glass keeps its sheen and edge, the wallpaper stays sharp */
+    /* One blur value for every glass surface, set by the Blur slider: 0 is no blur at all, 40 is 20px.
+       Low-Spec forces blur off, but transparency (--glass-solid) still applies. */
     const noBlur = S.lowfx || !S.wallBlur;
-    r.setProperty('--blur', noBlur ? '0px' : (gl * 4) + 'px');
-    r.setProperty('--blur-boost', noBlur ? '0px' : '36px');
+    r.setProperty('--blur', noBlur ? '0px' : (Math.min(S.wallBlur, 40) * 0.5).toFixed(1) + 'px');
+    r.setProperty('--blur-boost', '0px');
     /* living light: lighting direction sets the sheen angle and the drop-shadow offset */
     const LIGHT = { 'top-left': { a: 135, x: 6 }, 'top-right': { a: 225, x: -6 }, center: { a: 180, x: 0 } }[S.lightDirection] || { a: 135, x: 6 };
     r.setProperty('--sheen-angle', LIGHT.a + 'deg');
