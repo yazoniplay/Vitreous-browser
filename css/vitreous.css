@@ -2971,3 +2971,6 @@ html body[data-theme="light"] .sugg-label { color: #0f1420; }
 html body[data-theme="light"] .sugg-sub, html body[data-theme="light"] .sugg-row .ico { color: #2c3445; }
 html body[data-fx="low"] .sugg { -webkit-backdrop-filter: none; backdrop-filter: none; background: color-mix(in srgb, #0b0f1c 70%, transparent) !important; }
 html body[data-theme="light"][data-fx="low"] .sugg { background: color-mix(in srgb, #ffffff 80%, transparent) !important; }
+
+/* ===== With a wallpaper set, the colour glow is hidden so the photo stays sharp ===== */
+body[data-wall="1"] .backdrop { display: none; }
